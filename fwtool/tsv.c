@@ -43,16 +43,21 @@ int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, 
 
 		do {
 			const char *pb, *pp = NULL;
+			int quote = 0;
 
 			pb = p;
 
 			while(l && *p != '\0') {
-				if (*p == '\t') {
+				if (*p == '\t' && !quote) {
 					pp = p;
 					while(--l && *++p == '\t')
 						;
 					break;
 				} else if (*p == '\r') {
+					if (quote) {
+						errno = EBADMSG;
+						return -1;
+					}
 					pp = p;
 					p++;
 					l--;
@@ -63,11 +68,22 @@ int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, 
 					}
 					break;
 				} else if (*p == '\n') {
+					if (quote) {
+						errno = EBADMSG;
+						return -1;
+					}
 					pp = p;
 					p++;
 					l--;
 					newline = 1;
 					break;
+				} else if (*p == '\"') {
+					quote ^= 1;
+				} else if (*p == '\\') {
+					if (l > 1) {
+						p++;
+						l--;
+					}
 				}
 				p++;
 				l--;
@@ -78,12 +94,21 @@ int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, 
 			}
 
 			if (pp > pb) {
-				size_t sl;
+				size_t sl, plb, slb;
 
 				sl = pp - pb;
 
 				if (pl) {
-					strncpy(sp, pb, sl);
+					for (plb = 0, slb = 0; plb < sl; plb++) {
+						if (pb[plb] == '\"') {
+							continue;
+						} else if (pb[plb] == '\\') {
+							if ((plb + 1) < sl) {
+								plb++;
+							}
+						}
+						sp[slb++] = pb[plb];
+					}
 					sp[sl] = '\0';
 
 					if (!col_num) {
