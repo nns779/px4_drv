@@ -7,3 +7,26 @@ PLEX社のWebサイト( http://plex-net.co.jp )にて配布されているドラ
 
 このドライバを使用するには、別途ファームウェアファイルを用意する必要があります。
 fwtoolを使用すると、簡単にファームウェアファイルを用意することができます。
+
+#　fwtoolを用いたファームウェアファイルの用意
+
+gcc, makeがインストールされている必要があります
+
+$ cd fwtool
+$ wget 'http://plex-net.co.jp/plex/pxw3u4/pxw3u4_BDA_ver1x64.zip' -O 'pxw3u4_BDA_ver1x64.zip'
+$ unzip -oj 'pxw3u4_BDA_ver1x64.zip' 'pxw3u4_BDA_ver1x64/PXW3U4.sys'
+$ rm 'pxw3u4_BDA_ver1x64.zip'
+$ make
+$ ./fwtool 'PXW3U4.sys' 'it930x-firmware.bin'
+$ sudo mkdir -p /lib/firmware
+$ sudo cp it930x-firmware.bin /lib/firmware/
+$ cd ../
+
+# ドライバのインストール
+
+gcc, make, カーネルソース/ヘッダがインストールされている必要があります
+
+$ cd driver
+$ make
+$ sudo make install
+$ cd ../
