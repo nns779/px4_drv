@@ -125,17 +125,14 @@ static int load_fwinfo(struct tsv_data *tsv, struct fwinfo *fi, int num)
 
 	for (i = 0; i < NAME_NUM; i++) {
 		name_map[i] = -1;
-	}
 
-	for (i = 0; i < col_num; i++) {
-		for (j = 0; j < NAME_NUM; j++) {
-			if (name_map[j] == -1 && !strcmp(tsv->name[i], name[j])) {
-				name_map[j] = i;
+		for (j = 0; j < col_num; j++) {
+			if (!strcmp(tsv->name[j], name[i])) {
+				name_map[i] = j;
+				break;
 			}
 		}
-	}
 
-	for (i = 0; i < NAME_NUM; i++) {
 		if (name_map[i] == -1) {
 			fprintf(stderr, "No enough columns in 'fwinfo.tsv'.\n");
 			return -1;
@@ -210,7 +207,7 @@ static int output_firmware(struct fwinfo *fi, const char *buf, long size, const 
 
 	crc32 = crc32_calc(&buf[code_ofs], code_len);
 
-	fprintf(stderr, "Firmware length: %lu %s\n", code_len, (code_len == 1) ? "byte" : "bytes");
+	fprintf(stderr, "Firmware length: %zu %s\n", code_len, (code_len == 1) ? "byte" : "bytes");
 	fprintf(stderr, "Firmware CRC32: %08x\n", crc32);
 
 	if (fi->fw_crc32 && crc32 != fi->fw_crc32) {
