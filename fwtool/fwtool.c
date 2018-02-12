@@ -244,6 +244,7 @@ int main(int argc, char *argv[])
 	struct fwinfo *fi;
 	char *buf;
 	long size;
+	uint32_t crc32;
 
 	fprintf(stderr, "fwtool for px4 drivers\n\n");
 
@@ -286,8 +287,10 @@ int main(int argc, char *argv[])
 		goto end2;
 	}
 
+	crc32 = crc32_calc(buf, size);
+
 	for (i = 0; i < num; i++) {
-		if (size == fi[i].size && crc32_calc(buf, size) == fi[i].crc32) {
+		if (size == fi[i].size && crc32 == fi[i].crc32) {
 			fprintf(stderr, "Driver description: %s\n", fi[i].desc);
 			ret = output_firmware(&fi[i], buf, size, argv[2]);
 			if (!ret) {
