@@ -19,8 +19,9 @@ struct context {
 	void *ctx;
 };
 
-struct priv_data {
+struct priv_data_usb {
 	struct urb **urbs;
+	u32 num_urb;
 	struct context ctx;
 	atomic_t start;
 };
@@ -149,8 +150,8 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	int ret = 0;
 	u32 i, n, l;
 	struct usb_device *dev = bus->usb.dev;
-	struct priv_data *priv = bus->usb.priv;
-	struct urb **urbs = priv->urbs;
+	struct priv_data_usb *priv = bus->usb.priv;
+	struct urb **urbs;
 	struct context *ctx = &priv->ctx;
 
 	if (!on_stream)
@@ -158,10 +159,10 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 
 	pr_debug("it930x_usb_start_streaming\n");
 
-	if (atomic_read(&priv->start))
+	if (atomic_add_return(2, &priv->start) > 2) {
+		atomic_sub(2, &priv->start);
 		return 0;
-
-	atomic_set(&priv->start, 1);
+	}
 
 	n = bus->usb.stream_urb_num;
 	l = bus->usb.stream_xfer_size;
@@ -169,14 +170,28 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	ctx->on_stream = on_stream;
 	ctx->ctx = context;
 
+	urbs = kcalloc(n, sizeof(*urbs), GFP_KERNEL);
+	if (!urbs) {
+		ret = -ENOMEM;
+		goto fail;
+	}
+
 	for (i = 0; i < n; i++) {
 		void *p;
 		dma_addr_t dma;
 
+		urbs[i] = usb_alloc_urb(0, GFP_ATOMIC | __GFP_ZERO);
+		if (!urbs[i]) {
+			pr_debug("it930x_usb_start_streaming: usb_alloc_urb() failed.\n");
+			break;
+		}
+
 		p = usb_alloc_coherent(dev, l, GFP_ATOMIC, &dma);
 		if (!p) {
-			free_urbs(dev, urbs, n, false);
-			ret = -ENOMEM;
+			pr_debug("it930x_usb_start_streaming: usb_alloc_coherent() failed.\n");
+
+			usb_free_urb(urbs[i]);
+			urbs[i] = NULL;
 			break;
 		}
 
@@ -184,6 +199,13 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 
 		urbs[i]->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 		urbs[i]->transfer_dma = dma;
+	}
+
+	n = i;
+
+	if (!n) {
+		ret = -ENOMEM;
+		goto fail;
 	}
 
 	for (i = 0; i < n; i++) {
@@ -196,14 +218,27 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 			for (j = 0; j < i; j++)
 				usb_kill_urb(urbs[j]);
 
-			free_urbs(dev, urbs, n, false);
 			break;
 		}
 	}
 
 	if (ret)
-		atomic_set(&priv->start, 0);
+		goto fail;
 
+	pr_debug("it930x_usb_start_streaming: n: %u\n", n);
+
+	priv->urbs = urbs;
+	priv->num_urb = n;
+
+	atomic_sub(1, &priv->start);
+
+	return ret;
+
+fail:
+	free_urbs(dev, urbs, n, true);
+	kfree(urbs);
+
+	atomic_sub(2, &priv->start);
 	return ret;
 }
 
@@ -211,20 +246,26 @@ static int it930x_usb_stop_streaming(struct it930x_bus *bus)
 {
 	u32 i, n;
 	struct usb_device *dev = bus->usb.dev;
-	struct priv_data *priv = bus->usb.priv;
+	struct priv_data_usb *priv = bus->usb.priv;
 	struct urb **urbs = priv->urbs;
 
 	pr_debug("it930x_usb_stop_streaming\n");
 
-	if (!atomic_read(&priv->start))
+	if (atomic_read(&priv->start) != 1)
 		return 0;
 
-	n = bus->usb.stream_urb_num;
+	n = priv->num_urb;
 
-	for (i = 0; i < n; i++)
-		usb_kill_urb(urbs[i]);
+	if (urbs) {
+		for (i = 0; i < n; i++)
+			usb_kill_urb(urbs[i]);
 
-	free_urbs(dev, urbs, n, false);
+		free_urbs(dev, urbs, n, true);
+		kfree(urbs);
+
+		priv->urbs = NULL;
+		priv->num_urb = 0;
+	}
 
 	atomic_set(&priv->start, 0);
 
@@ -243,9 +284,7 @@ int it930x_bus_init(struct it930x_bus *bus)
 		if (!bus->usb.dev) {
 			ret = -EINVAL;
 		} else {
-			u32 i, num;
-			struct priv_data *priv;
-			struct urb **urbs;
+			struct priv_data_usb *priv;
 
 			bus->ops.ctrl_tx = it930x_usb_ctrl_tx;
 			bus->ops.ctrl_rx = it930x_usb_ctrl_rx;
@@ -253,38 +292,20 @@ int it930x_bus_init(struct it930x_bus *bus)
 			bus->ops.start_streaming = it930x_usb_start_streaming;
 			bus->ops.stop_streaming = it930x_usb_stop_streaming;
 
-			num = bus->usb.stream_urb_num;
-
 			priv = kzalloc(sizeof(*priv), GFP_ATOMIC);
 			if (!priv) {
 				ret = -ENOMEM;
 				break;
 			}
 
+			priv->urbs = NULL;
+			priv->num_urb = 0;
 			priv->ctx.bus = bus;
 			atomic_set(&priv->start, 0);
 
-			urbs = kcalloc(num, sizeof(*urbs), GFP_KERNEL);
-			if (!urbs) {
-				kfree(priv);
-				ret = -ENOMEM;
-				break;
-			}
-
-			for (i = 0; i < num; i++) {
-				urbs[i] = usb_alloc_urb(0, GFP_ATOMIC | __GFP_ZERO);
-				if (!urbs[i]) {
-					free_urbs(bus->usb.dev, urbs, num, true);
-					kfree(urbs);
-					kfree(priv);
-					ret = -ENOMEM;
-					break;
-				}
-			}
+			bus->usb.priv = priv;
 
 			usb_get_dev(bus->usb.dev);
-			priv->urbs = urbs;
-			bus->usb.priv = priv;
 		}
 		break;
 
@@ -308,13 +329,10 @@ int it930x_bus_term(struct it930x_bus *bus)
 	switch(bus->type) {
 	case IT930X_BUS_USB:
 	{
-		struct priv_data *priv = bus->usb.priv;
+		struct priv_data_usb *priv = bus->usb.priv;
 
 		if (priv) {
-			if (priv->urbs) {
-				free_urbs(bus->usb.dev, priv->urbs, bus->usb.stream_urb_num, true);
-				kfree(priv->urbs);
-			}
+			it930x_usb_stop_streaming(bus);
 			kfree(priv);
 		}
 		if (bus->usb.dev)
