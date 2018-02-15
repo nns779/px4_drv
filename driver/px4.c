@@ -50,6 +50,7 @@ struct px4_tsdev {
 	int isdb;	// ISDB_T or ISDB_S
 	bool init;
 	bool open;
+	bool lnb_power;
 	struct px4_device *px4;
 	struct tc90522_demod tc90522;
 	union {
@@ -115,6 +116,7 @@ static int px4_init(struct px4_device *px4)
 		tsdev->id = i;
 		tsdev->init = false;
 		tsdev->open = false;
+		tsdev->lnb_power = false;
 		tsdev->px4 = px4;
 		atomic_set(&tsdev->streaming, 0);
 	}
@@ -227,16 +229,23 @@ static int px4_control_power(struct px4_device *px4, bool on)
 			if (!px4->tsdev[i].open) {
 				switch (px4->tsdev[i].isdb) {
 				case ISDB_S:
-					tc90522_sleep_s(&px4->tsdev[i].tc90522, true);
+					ret = tc90522_sleep_s(&px4->tsdev[i].tc90522, true);
 					break;
 
 				case ISDB_T:
-					tc90522_sleep_t(&px4->tsdev[i].tc90522, true);
+					ret = tc90522_sleep_t(&px4->tsdev[i].tc90522, true);
 					break;
 
 				default:
 					break;
 				}
+			}
+
+			if (ret) {
+				// error
+				it930x_set_gpio(it930x, 7, true);
+				it930x_set_gpio(it930x, 2, false);
+				break;
 			}
 		}
 	} else {
@@ -245,6 +254,24 @@ static int px4_control_power(struct px4_device *px4, bool on)
 	}
 
 	return ret;
+}
+
+static int px4_control_lnb_power(struct px4_device *px4, bool on)
+{
+	int i;
+	bool b = false;
+
+	for (i = 0; i < TSDEV_NUM; i++) {
+		if (px4->tsdev[i].lnb_power) {
+			b = true;
+			break;
+		}
+	}
+
+	if ((b && !on) || (!b && on))
+		return 0;
+
+	return it930x_set_gpio(&px4->it930x, 11, (on) ? true : false);
 }
 
 static bool px4_ts_sync(u8 **buf, u32 *len, bool *sync_remain)
@@ -577,6 +604,12 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev, size_t buf_size)
 
 	atomic_set(&tsdev->streaming, 1);
 
+	if (!px4->streaming_count) {
+		ret = it930x_bus_start_streaming(&px4->it930x.bus, px4_on_stream, px4);
+		if (ret)
+			goto fail;
+	}
+
 	switch (tsdev->isdb) {
 	case ISDB_S:
 		// enable ts pins
@@ -593,20 +626,21 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev, size_t buf_size)
 		break;
 	}
 
-	if (!ret && !px4->streaming_count)
-		ret = it930x_bus_start_streaming(&px4->it930x.bus, px4_on_stream, px4);
-
-	if (!ret) {
+	if (!ret)
 		ret = ringbuffer_init(&tsdev->rgbuf, buf_size);
-		if (ret && !px4->streaming_count)
-			it930x_bus_stop_streaming(&px4->it930x.bus);
-		else
-			px4->streaming_count++;
-	}
 
 	if (ret)
-		atomic_set(&tsdev->streaming, 0);
+		goto fail_after_bus_start;
 
+	px4->streaming_count++;
+
+	return ret;
+
+fail_after_bus_start:
+	if (!px4->streaming_count)
+		it930x_bus_stop_streaming(&px4->it930x.bus);
+fail:
+	atomic_set(&tsdev->streaming, 0);
 	return ret;
 }
 
@@ -750,7 +784,8 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 	return 0;
 
 fail_after_power:
-	px4_control_power(px4, false);
+	if (ref == 2)
+		px4_control_power(px4, false);
 fail:
 	tsdev->open = false;
 	mutex_unlock(&px4->lock);
@@ -806,6 +841,10 @@ static int px4_tsdev_release(struct inode *inode, struct file *file)
 		px4_tsdev_uninit(tsdev);
 
 	tsdev->open = false;
+
+	tsdev->lnb_power = false;
+	if (avail)
+		px4_control_lnb_power(px4, false);
 
 	ref = px4_unref(px4);
 	if (avail && ref == 1)
@@ -874,6 +913,41 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 
 		break;
 	}
+
+	case PTX_ENABLE_LNB_POWER:
+	{
+		int lnb;
+
+		lnb = (int)arg;
+
+		pr_debug("px4_tsdev_unlocked_ioctl: PTX_ENABLE_LNB_POWER lnb: %d\n", lnb);
+
+		if (lnb == 0) {
+			// 0V
+			tsdev->lnb_power = false;
+		} else if (lnb == 2) {
+			// 15V
+			tsdev->lnb_power = true;
+		} else {
+			ret = -EINVAL;
+			break;
+		}
+
+		ret = px4_control_lnb_power(px4, true);
+		break;
+	}
+
+	case PTX_DISABLE_LNB_POWER:
+		pr_debug("px4_tsdev_unlocked_ioctl: PTX_DISABLE_LNB_POWER\n");
+
+		if (!tsdev->lnb_power) {
+			ret = 0;
+			break;
+		}
+
+		tsdev->lnb_power = false;
+		ret= px4_control_lnb_power(px4, false);
+		break;
 
 	default:
 		pr_debug("px4_tsdev_unlocked_ioctl: unknown ioctl %08x\n", cmd);
@@ -985,6 +1059,11 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 		goto fail;
 
 	ret = it930x_set_gpio(it930x, 2, false);
+	if (ret)
+		goto fail;
+
+	// LNB power supply: off
+	ret = it930x_set_gpio(it930x, 11, false);
 	if (ret)
 		goto fail;
 

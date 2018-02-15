@@ -12,5 +12,7 @@ struct ptx_freq {
 #define PTX_START_STREAMING	_IO(0x8d, 0x02)
 #define PTX_STOP_STREAMING	_IO(0x8d, 0x03)
 #define PTX_GET_CNR		_IOR(0x8d, 0x04, int *)
+#define PTX_ENABLE_LNB_POWER	_IOW(0x8d, 0x05, int)
+#define PTX_DISABLE_LNB_POWER	_IO(0x8d, 0x06)
 
 #endif
