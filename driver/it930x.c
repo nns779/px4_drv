@@ -7,6 +7,7 @@
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/errno.h>
+#include <linux/slab.h>
 #include <linux/firmware.h>
 
 #include "it930x-config.h"
@@ -43,7 +44,7 @@ static u16 calc_checksum(const void *buf, size_t len)
 static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf *buf, struct ctrl_buf *rbuf, u8 *rcode, bool no_rx)
 {
 	int ret;
-	u8 *b, l;
+	u8 *b, l, seq;
 	u16 csum1, csum2;
 	int rl = 255;
 
@@ -54,11 +55,12 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 
 	b = it930x->buf;
 	l = 3 + buf->len + 2;
+	seq = it930x->sequence++;
 
 	b[0] = l;
 	b[1] = (cmd >> 8) & 0xff;
 	b[2] = cmd & 0xff;
-	b[3] = it930x->sequence++;
+	b[3] = seq;
 	if (buf->buf)
 		memcpy(&b[4], buf->buf, buf->len);
 
@@ -90,6 +92,11 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 	csum2 = (((b[rl - 2] & 0xff) << 8) | (b[rl - 1] & 0xff));
 	if (csum1 != csum2) {
 		pr_debug("it930x_control: Incorrect checksum! (cmd: %04x, len: %u, rlen: %u, csum1: %04x, csum2: %04x)\n", cmd, buf->len, rl, csum1, csum2);
+		return -EBADMSG;
+	}
+
+	if (b[1] != seq) {
+		pr_debug("it930x_control: Incorrect sequence number! (cmd: %04x, len: %u, rlen: %u, seq: %02u, rseq: %02u, csum: %04x)\n", cmd, buf->len, rl, seq, b[1], csum1);
 		return -EBADMSG;
 	}
 
@@ -331,36 +338,24 @@ static int it930x_enable_dvbt_mode(struct it930x_bridge *it930x, bool enable)
 {
 	int ret = 0;
 
-	if (enable) {
-		ret = it930x_write_reg_bits(it930x, 0xf41f, 1, 2, 1);
-		if (ret)
-			return ret;
+	ret = it930x_write_reg_bits(it930x, 0xf41f, (enable) ? 1 : 0, 2, 1);
+	if (ret)
+		return ret;
 
-		ret = it930x_write_reg_bits(it930x, 0xda10, 0, 0, 1);
-		if (ret)
-			return ret;
+	// mpeg full speed
+	ret = it930x_write_reg_bits(it930x, 0xda10, (enable) ? 0 : 1, 0, 1);
+	if (ret)
+		return ret;
 
-		ret = it930x_write_reg_bits(it930x, 0xf41a, 1, 0, 1);
-		if (ret)
-			return ret;
-	} else {
-		ret = it930x_write_reg_bits(it930x, 0xf41f, 0, 2, 1);
-		if (ret)
-			return ret;
-
-		ret = it930x_write_reg_bits(it930x, 0xda10, 1, 0, 1);
-		if (ret)
-			return ret;
-
-		ret = it930x_write_reg_bits(it930x, 0xf41a, 0, 0, 1);
-		if (ret)
-			return ret;
-	}
+	// enable
+	ret = it930x_write_reg_bits(it930x, 0xf41a, (enable) ? 1 : 0, 0, 1);
+	if (ret)
+		return ret;
 
 	return 0;
 }
 
-static int it930x_enable_stream_output(struct it930x_bridge *it930x, bool enable)
+static int it930x_enable_stream_output(struct it930x_bridge *it930x, bool enable, u32 xfer_size)
 {
 	int ret = 0, ret2 = 0;
 
@@ -370,37 +365,42 @@ static int it930x_enable_stream_output(struct it930x_bridge *it930x, bool enable
 
 	switch(it930x->bus.type) {
 	case IT930X_BUS_USB:
+		// disable ep
+		ret = it930x_write_reg_bits(it930x, 0xdd11, 0, 5, 1);
+		if (ret)
+			goto end_rst_off;
+
 		// nak
 		ret = it930x_write_reg_bits(it930x, 0xdd13, (enable) ? 0 : 1, 5, 1);
 		if (ret)
 			goto end_rst_off;
 
-		// ep
-		ret = it930x_write_reg_bits(it930x, 0xdd11, (enable) ? 1 : 0, 5, 1);
+		// enable ep
+		ret = it930x_write_reg_bits(it930x, 0xdd11, 1, 5, 1);
 		if (ret)
 			goto end_rst_off;
 
 		if (enable) {
 			struct it930x_regbuf regbuf[2];
 			u16 x;
-			u8 buf[2];
+			u8 b[2];
 
-			x = (it930x->bus.usb.stream_xfer_size / 4) & 0xffff;
+			x = (xfer_size / 4) & 0xffff;
 
-			buf[0] = x & 0xff;
-			buf[1] = (x >> 8) & 0xff;
+			b[0] = (x & 0xff);
+			b[1] = ((x >> 8) & 0xff);
 
-			it930x_regbuf_set_buf(&regbuf[0], 0xdd88, buf, 2);
+			it930x_regbuf_set_buf(&regbuf[0], 0xdd88, b, 2);
 			it930x_regbuf_set_val(&regbuf[1], 0xdd0c, 512 / 4/* USB2.0 */);
 			ret = it930x_write_regs(it930x, regbuf, 2);
 			if (ret)
 				goto end_rst_off;
 
-			ret = it930x_write_reg_bits(it930x, 0xda05, 0, 0, 0);
+			ret = it930x_write_reg_bits(it930x, 0xda05, 0, 0, 1);
 			if (ret)
 				goto end_rst_off;
 
-			ret = it930x_write_reg_bits(it930x, 0xda06, 0, 0, 0);
+			ret = it930x_write_reg_bits(it930x, 0xda06, 0, 0, 1);
 			if (ret)
 				goto end_rst_off;
 		}
@@ -419,7 +419,36 @@ end_rst_off:
 
 	return (ret) ? ret : ret2;
 }
+#if 0
+static int it930x_set_xfer_size(struct it930x_bridge *it930x, u32 xfer_size)
+{
+	int ret = 0, ret2 = 0;
+	struct it930x_regbuf regbuf[2];
+	u16 x;
+	u8 b[2];
 
+	if (it930x->bus.type != IT930X_BUS_USB)
+		// only for usb
+		return 0;
+
+	ret = it930x_write_reg_bits(it930x, 0xda1d, 1, 0, 1);
+	if (ret)
+		return ret;
+
+	x = (xfer_size / 4) & 0xffff;
+
+	b[0] = (x & 0xff);
+	b[1] = ((x >> 8) & 0xff);
+
+	it930x_regbuf_set_buf(&regbuf[0], 0xdd88, b, 2);
+	it930x_regbuf_set_val(&regbuf[1], 0xdd0c, 512 / 4/* USB2.0 */);
+	ret = it930x_write_regs(it930x, regbuf, 2);
+
+	ret2 = it930x_write_reg_bits(it930x, 0xda1d, 0, 0, 1);
+
+	return (ret) ? ret : ret2;
+}
+#endif
 static int it930x_config_i2c(struct it930x_bridge *it930x)
 {
 	int ret = 0, i, j;
@@ -443,11 +472,11 @@ static int it930x_config_i2c(struct it930x_bridge *it930x)
 	// set i2c address and bus
 
 	for(i = 0, j = 0; i < 5; i++) {
-		struct it930x_stream_port *port = &it930x->port[i];
-		if (port->enable) {
-			it930x_regbuf_set_val(&regbuf[j], i2c_regs[port->slave_number][0], port->i2c_addr);
+		struct it930x_stream_input *input = &it930x->input[i];
+		if (input->enable) {
+			it930x_regbuf_set_val(&regbuf[j], i2c_regs[input->slave_number][0], input->i2c_addr);
 			j++;
-			it930x_regbuf_set_val(&regbuf[j], i2c_regs[port->slave_number][1], port->i2c_bus);
+			it930x_regbuf_set_val(&regbuf[j], i2c_regs[input->slave_number][1], input->i2c_bus);
 			j++;
 		}
 	}
@@ -461,33 +490,39 @@ static int it930x_config_i2c(struct it930x_bridge *it930x)
 	return 0;
 }
 
-static int it930x_config_stream_port(struct it930x_bridge *it930x)
+static int it930x_config_stream_input(struct it930x_bridge *it930x)
 {
 	int ret = 0, i;
 
 	for (i = 0; i < 5; i++) {
-		struct it930x_stream_port *port = &it930x->port[i];
+		struct it930x_stream_input *input = &it930x->input[i];
 		struct it930x_regbuf regbuf[3];
 
-		if (!port->enable)
-			continue;
+		if (!input->enable) {
+			// disable input port
+			ret = it930x_write_reg(it930x, 0xda4c + input->port_number, 0);
+			if (ret)
+				break;
 
-		if (port->number < 2) {
-			ret = it930x_write_reg(it930x, 0xda58 + port->number, (port->is_parallel) ? 1 : 0);
+			continue;
+		}
+
+		if (input->port_number < 2) {
+			ret = it930x_write_reg(it930x, 0xda58 + input->port_number, (input->is_parallel) ? 1 : 0);
 			if (ret) {
-				pr_debug("it930x_config_stream_port: it930x_write_reg(): failed. (idx: %d, ret: %d)\n", i, ret);
+				pr_debug("it930x_config_stream_input: it930x_write_reg(0xda58 + port_number): failed. (idx: %d, ret: %d)\n", i, ret);
 				break;
 			}
 		}
 
 		// mode: sync byte
-		it930x_regbuf_set_val(&regbuf[0], 0xda73 + port->number, 1);
-		it930x_regbuf_set_val(&regbuf[1], 0xda78 + port->number, port->sync_byte);
-		// enable port
-		it930x_regbuf_set_val(&regbuf[2], 0xda4c + port->number, 1);
+		it930x_regbuf_set_val(&regbuf[0], 0xda73 + input->port_number, 1);
+		it930x_regbuf_set_val(&regbuf[1], 0xda78 + input->port_number, input->sync_byte);
+		// enable input port
+		it930x_regbuf_set_val(&regbuf[2], 0xda4c + input->port_number, 1);
 		ret = it930x_write_regs(it930x, regbuf, 3);
 		if (ret) {
-			pr_debug("it930x_config_stream_port: it930x_write_regs() failed. (idx: %d, ret: %d)\n", i, ret);
+			pr_debug("it930x_config_stream_input: it930x_write_regs() failed. (idx: %d, ret: %d)\n", i, ret);
 			break;
 		}
 	}
@@ -541,7 +576,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 	ret = request_firmware(&fw, filename, &it930x->bus.usb.dev->dev);
 	if (ret) {
 		pr_debug("it930x_load_firmware: request_firmware() failed. (ret: %d)\n", ret);
-		pr_err("Could't load firmware from the file.\n");
+		pr_err("Couldn't load firmware from the file.\n");
 		return ret;
 	}
 
@@ -637,7 +672,7 @@ int it930x_init_device(struct it930x_bridge *it930x)
 		return ret;
 	}
 
-	ret = it930x_enable_stream_output(it930x, true);
+	ret = it930x_enable_stream_output(it930x, true, it930x->bus.usb.streaming_xfer_size);
 	if (ret) {
 		pr_debug("it930x_init_device: it930x_enable_stream_output() failed.\n");
 		return ret;
@@ -658,9 +693,9 @@ int it930x_init_device(struct it930x_bridge *it930x)
 		return ret;
 	}
 
-	ret = it930x_config_stream_port(it930x);
+	ret = it930x_config_stream_input(it930x);
 	if (ret) {
-		pr_debug("it930x_init_device: it930x_config_stream_port() failed. (ret: %d)\n", ret);
+		pr_debug("it930x_init_device: it930x_config_stream_input() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
@@ -697,4 +732,46 @@ int it930x_set_gpio(struct it930x_bridge *it930x, int gpio, bool h)
 	it930x_regbuf_set_val(&regbuf[2], gpio_en_regs[gpio - 1] - 0x01, (h) ? 1 : 0);
 
 	return it930x_write_regs(it930x, regbuf, 3);
+}
+
+int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool enable)
+{
+	if (input_idx >= 5)
+		return -EINVAL;
+
+	return it930x_write_reg(it930x, 0xda4c + it930x->input[input_idx].port_number, (enable) ? 1 : 0);
+}
+
+int it930x_purge_psb(struct it930x_bridge *it930x)
+{
+	int ret = 0;
+	u8 b[2];
+	struct it930x_regbuf regbuf[1];
+	void *p;
+	int len;
+
+	if (it930x->bus.type != IT930X_BUS_USB)
+		return 0;
+
+	it930x_regbuf_set_buf(&regbuf[0], 0xda98, &b[0], 2);
+	ret = it930x_read_regs(it930x, regbuf, 1);
+	if (ret)
+		return ret;
+
+	pr_debug("it930x_purge_psb: 0xda98: %02x, 0xda99: %02x\n", b[0], b[1]);
+
+	if (!b[0] && !b[1])
+		return 0;
+
+	len = it930x->bus.usb.streaming_xfer_size;
+
+	p = kmalloc(len, GFP_KERNEL);
+	if (!p)
+		return -ENOMEM;
+
+	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 800);
+	pr_debug("it930x_purge_psb: len: %d\n", len);
+
+	kfree(p);
+	return ret;
 }

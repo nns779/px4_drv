@@ -22,8 +22,6 @@ struct tc90522_regbuf {
 	} u;
 };
 
-#define TC90522_REGBUF_ARRAY_NUM(regbuf)	((sizeof((regbuf)) / sizeof((regbuf)[0])))
-
 static inline void tc90522_regbuf_set_val(struct tc90522_regbuf *regbuf, u8 reg, u8 val)
 {
 	regbuf->reg = reg;
@@ -54,6 +52,7 @@ int tc90522_get_cn_s(struct tc90522_demod *demod, u16 *cn);
 int tc90522_enable_ts_pins_s(struct tc90522_demod *demod, bool e);
 
 int tc90522_sleep_t(struct tc90522_demod *demod, bool sleep);
+int tc90522_set_agc_t(struct tc90522_demod *demod, bool on);
 int tc90522_get_cndat_t(struct tc90522_demod *demod, u32 *cndat);
 int tc90522_enable_ts_pins_t(struct tc90522_demod *demod, bool e);
 

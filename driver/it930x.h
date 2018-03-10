@@ -24,10 +24,10 @@ struct it930x_i2c_master_info {
 	u8 bus;
 };
 
-struct it930x_stream_port {
+struct it930x_stream_input {
 	bool enable;
 	bool is_parallel;
-	u8 number;		// internal port number
+	u8 port_number;		// internal port number
 	u8 slave_number;
 	u8 i2c_bus;
 	u8 i2c_addr;
@@ -38,7 +38,7 @@ struct it930x_stream_port {
 struct it930x_bridge {
 	struct it930x_bus bus;
 	u32 fw_version;
-	struct it930x_stream_port port[5];
+	struct it930x_stream_input input[5];
 	struct it930x_i2c_master_info i2c[2];
 	struct i2c_comm_master i2c_master[2];
 	u8 buf[255];
@@ -78,5 +78,7 @@ int it930x_init(struct it930x_bridge *it930x);
 int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename);
 int it930x_init_device(struct it930x_bridge *it930x);
 int it930x_set_gpio(struct it930x_bridge *it930x, int gpio, bool h);
+int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool enable);
+int it930x_purge_psb(struct it930x_bridge *it930x);
 
 #endif

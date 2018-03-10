@@ -260,6 +260,22 @@ int tc90522_sleep_t(struct tc90522_demod *demod, bool sleep)
 	return tc90522_write_reg(demod, 0x03, (sleep) ? 0xf0 : 0x00);
 }
 
+int tc90522_set_agc_t(struct tc90522_demod *demod, bool on)
+{
+	struct tc90522_regbuf regbuf[] = {
+		{ 0x25, NULL, { 0x00 } },
+		{ 0x20, NULL, { 0x00 } },
+		{ 0x23, NULL, { 0x4d } },
+		{ 0x01, NULL, { 0x50 } }
+	};
+
+	if (on)
+		// on
+		regbuf[2].u.val &= ~0x01;
+
+	return tc90522_write_regs(demod, regbuf, 4);
+}
+
 int tc90522_get_cndat_t(struct tc90522_demod *demod, u32 *cndat)
 {
 	int ret = 0;

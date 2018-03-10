@@ -8,6 +8,8 @@ PLEX社のWebサイト( http://plex-net.co.jp )にて配布されているドラ
 このドライバを使用するには、別途ファームウェアファイルを用意する必要があります。
 fwtoolを使用すると、簡単にファームウェアファイルを用意することができます。
 
+このドライバの動作確認にはPX-W3U4を使用しています。
+
 
 [fwtoolを用いたファームウェアファイルの用意]
 
@@ -31,3 +33,8 @@ $ cd driver
 $ make
 $ sudo make install
 $ cd ../
+
+ドライバがロードされている状態で再度インストールを行った場合には以下を実行してください
+
+$ sudo modprobe -r px4_drv
+$ sudo modprobe px4_drv

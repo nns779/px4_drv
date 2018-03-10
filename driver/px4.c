@@ -23,6 +23,9 @@
 #include "it930x-bus.h"
 #include "it930x.h"
 #include "tc90522.h"
+#if 0
+#include "r850.h"
+#endif
 #include "rt710.h"
 #include "ringbuffer.h"
 
@@ -39,6 +42,8 @@
 
 #define PID_PX_W3U4	0x083f
 #define PID_PX_W3PE4	0x023f
+#define PID_PX_Q3U4	0x084a
+#define PID_PX_Q3PE4	0x024a
 
 #define ISDB_T	0
 #define ISDB_S	1
@@ -54,6 +59,9 @@ struct px4_tsdev {
 	struct px4_device *px4;
 	struct tc90522_demod tc90522;
 	union {
+#if 0
+		struct r850_tuner r850;		// for ISDB-T
+#endif
 		struct rt710_tuner rt710;	// for ISDB-S
 	} t;
 	atomic_t streaming;	// 0: not streaming, !0: streaming
@@ -84,17 +92,22 @@ static dev_t px4_dev_first;
 static struct px4_device *devs[MAX_DEVICE];
 static bool devs_reserve[MAX_DEVICE];
 static unsigned int xfer_packets = 816;
-static unsigned int max_urbs = 16;
+static unsigned int max_urbs = 6;
+static bool no_dma = false;
 
 module_param(xfer_packets, uint, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (default: 816)");
 
 module_param(max_urbs, uint, S_IRUSR | S_IWUSR);
-MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 16)");
+MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 6)");
+
+module_param(no_dma, bool, S_IRUSR | S_IWUSR);
 
 static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, PID_PX_W3U4) },
 	{ USB_DEVICE(0x0511, PID_PX_W3PE4) },
+	{ USB_DEVICE(0x0511, PID_PX_Q3U4) },
+	{ USB_DEVICE(0x0511, PID_PX_Q3PE4) },
 	{ 0 },
 };
 
@@ -162,25 +175,25 @@ static int px4_load_config(struct px4_device *px4)
 	px4->tsdev[2].isdb = ISDB_T;
 	px4->tsdev[3].isdb = ISDB_T;
 
-	it930x->port[0].i2c_addr = 0x22;
-	it930x->port[1].i2c_addr = 0x26;
-	it930x->port[2].i2c_addr = 0x20;
-	it930x->port[3].i2c_addr = 0x24;
+	it930x->input[0].i2c_addr = 0x22;
+	it930x->input[1].i2c_addr = 0x26;
+	it930x->input[2].i2c_addr = 0x20;
+	it930x->input[3].i2c_addr = 0x24;
 
 	for (i = 0; i < TSDEV_NUM; i++) {
-		struct it930x_stream_port *port = &it930x->port[i];
+		struct it930x_stream_input *input = &it930x->input[i];
 		struct px4_tsdev *tsdev = &px4->tsdev[i];
 
-		port->enable = true;
-		port->is_parallel = false;
-		port->number = i + 1;
-		port->slave_number = i;
-		port->i2c_bus = 2;
-		port->packet_len = 188;
-		port->sync_byte = ((i + 1) << 4) | 0x07;	// 0x17 0x27 0x37 0x47
+		input->enable = true;
+		input->is_parallel = false;
+		input->port_number = i + 1;
+		input->slave_number = i;
+		input->i2c_bus = 2;
+		input->packet_len = 188;
+		input->sync_byte = ((i + 1) << 4) | 0x07;	// 0x17 0x27 0x37 0x47
 
 		tsdev->tc90522.i2c = &it930x->i2c_master[0];
-		tsdev->tc90522.i2c_addr = port->i2c_addr;
+		tsdev->tc90522.i2c_addr = input->i2c_addr;
 
 		switch (tsdev->isdb) {
 		case ISDB_S:
@@ -189,12 +202,16 @@ static int px4_load_config(struct px4_device *px4)
 			break;
 
 		case ISDB_T:
+#if 0
+			tsdev->t.r850.i2c = &tsdev->tc90522.i2c_master;
+			tsdev->t.r850.i2c_addr = 0x7c;
+#endif
 			// not implemented
 			break;
 		}
 	}
 
-	it930x->port[4].enable = false;
+	it930x->input[4].enable = false;
 
 	return 0;
 }
@@ -394,7 +411,7 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 	switch (tsdev->isdb) {
 	case ISDB_S:
 	{
-		ret = tc90522_write_regs(tc90522, tc_init_s, TC90522_REGBUF_ARRAY_NUM(tc_init_s));
+		ret = tc90522_write_regs(tc90522, tc_init_s, ARRAY_SIZE(tc_init_s));
 		if (ret)
 			break;
 
@@ -420,7 +437,7 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 	case ISDB_T:
 	{
 #if 0
-		ret = tc90522_write_regs(tc90522, tc_init_t, TC90522_REGBUF_ARRAY_NUM(tc_init_t));
+		ret = tc90522_write_regs(tc90522, tc_init_t, ARRAY_SIZE(tc_init_t));
 		if (ret)
 			break;
 
@@ -494,7 +511,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			}
 			real_freq = 1049480 + (38360 * freq->freq_no);
 		} else if (freq->freq_no < 24) {
-			real_freq = 1613000 + (4000 * freq->freq_no);
+			real_freq = 1613000 + (40000 * (freq->freq_no - 12));
 		} else {
 			ret = -EINVAL;
 			break;
@@ -592,10 +609,12 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	return ret;
 }
 
-static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev, size_t buf_size)
+static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 {
 	int ret = 0;
+	size_t buf_size;
 	struct px4_device *px4 = tsdev->px4;
+	struct it930x_bus *bus = &px4->it930x.bus;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 
 	if (atomic_read(&tsdev->streaming))
@@ -605,20 +624,29 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev, size_t buf_size)
 	atomic_set(&tsdev->streaming, 1);
 
 	if (!px4->streaming_count) {
-		ret = it930x_bus_start_streaming(&px4->it930x.bus, px4_on_stream, px4);
-		if (ret)
-			goto fail;
+		bus->usb.streaming_urb_num = max_urbs;
+		bus->usb.streaming_no_dma = no_dma;
+
+		pr_debug("px4_tsdev_start_streaming: max_urbs: %u, no_dma: %c\n", bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
 	}
+
+	buf_size = bus->usb.streaming_xfer_size + bus->usb.streaming_urb_num;
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
 		// enable ts pins
 		ret = tc90522_enable_ts_pins_s(tc90522, true);
+		if (ret)
+			// disable ts pins
+			tc90522_enable_ts_pins_s(tc90522, false);
 		break;
 
 	case ISDB_T:
 		// enable ts pins
 		ret = tc90522_enable_ts_pins_t(tc90522, true);
+		if (ret)
+			// disable ts pins
+			tc90522_enable_ts_pins_t(tc90522, false);
 		break;
 
 	default:
@@ -626,19 +654,26 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev, size_t buf_size)
 		break;
 	}
 
-	if (!ret)
-		ret = ringbuffer_init(&tsdev->rgbuf, buf_size);
-
 	if (ret)
-		goto fail_after_bus_start;
+		goto fail;
+
+	ret = ringbuffer_init(&tsdev->rgbuf, buf_size);
+	if (ret)
+		goto fail;
+
+	if (!px4->streaming_count) {
+		ret = it930x_bus_start_streaming(bus, px4_on_stream, px4);
+		if (ret)
+			goto fail_after_ringbuffer;
+	}
 
 	px4->streaming_count++;
 
 	return ret;
 
-fail_after_bus_start:
-	if (!px4->streaming_count)
-		it930x_bus_stop_streaming(&px4->it930x.bus);
+fail_after_ringbuffer:
+	ringbuffer_flush(&tsdev->rgbuf);
+	ringbuffer_term(&tsdev->rgbuf);
 fail:
 	atomic_set(&tsdev->streaming, 0);
 	return ret;
@@ -767,12 +802,12 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 
 	if (ref == 2) {
 		// S0
-		ret = tc90522_write_regs(&px4->tsdev[0].tc90522, tc_init_s0, TC90522_REGBUF_ARRAY_NUM(tc_init_s0));
+		ret = tc90522_write_regs(&px4->tsdev[0].tc90522, tc_init_s0, ARRAY_SIZE(tc_init_s0));
 		if (ret)
 			goto fail_after_power;
 
 		// T0
-		ret = tc90522_write_regs(&px4->tsdev[2].tc90522, tc_init_t0, TC90522_REGBUF_ARRAY_NUM(tc_init_t0));
+		ret = tc90522_write_regs(&px4->tsdev[2].tc90522, tc_init_t0, ARRAY_SIZE(tc_init_t0));
 		if (ret)
 			goto fail_after_power;
 	}
@@ -893,7 +928,7 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 
 	case PTX_START_STREAMING:
 		pr_debug("px4_tsdev_unlocked_ioctl: PTX_START_STREAMING\n");
-		ret = px4_tsdev_start_streaming(tsdev, px4->it930x.bus.usb.stream_xfer_size * px4->it930x.bus.usb.stream_urb_num);
+		ret = px4_tsdev_start_streaming(tsdev);
 		break;
 
 	case PTX_STOP_STREAMING:
@@ -918,6 +953,11 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 	{
 		int lnb;
 
+		if (tsdev->isdb != ISDB_S) {
+			ret = -EINVAL;
+			break;
+		}
+
 		lnb = (int)arg;
 
 		pr_debug("px4_tsdev_unlocked_ioctl: PTX_ENABLE_LNB_POWER lnb: %d\n", lnb);
@@ -933,11 +973,16 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 			break;
 		}
 
-		ret = px4_control_lnb_power(px4, true);
+		ret = px4_control_lnb_power(px4, tsdev->lnb_power);
 		break;
 	}
 
 	case PTX_DISABLE_LNB_POWER:
+		if (tsdev->isdb != ISDB_S) {
+			ret = -EINVAL;
+			break;
+		}
+
 		pr_debug("px4_tsdev_unlocked_ioctl: PTX_DISABLE_LNB_POWER\n");
 
 		if (!tsdev->lnb_power) {
@@ -975,7 +1020,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	struct it930x_bridge *it930x;
 	struct it930x_bus *bus;
 
-	pr_debug("xfer_packets: %u, max_urbs: %u\n", xfer_packets, max_urbs);
+	pr_debug("xfer_packets: %u\n", xfer_packets);
 
 	mutex_lock(&glock);
 
@@ -1019,9 +1064,8 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	bus->type = IT930X_BUS_USB;
 	bus->usb.dev = interface_to_usbdev(intf);
-	bus->usb.timeout = 3000;
-	bus->usb.stream_xfer_size = xfer_packets * 188;
-	bus->usb.stream_urb_num = max_urbs;
+	bus->usb.ctrl_timeout = 3000;
+	bus->usb.streaming_xfer_size = xfer_packets * 188;
 
 	ret = it930x_bus_init(bus);
 	if (ret)
@@ -1066,6 +1110,8 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	ret = it930x_set_gpio(it930x, 11, false);
 	if (ret)
 		goto fail;
+
+	it930x_purge_psb(it930x);
 
 	// cdev
 

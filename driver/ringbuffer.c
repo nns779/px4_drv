@@ -98,7 +98,7 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 
 	buf_size = ringbuffer->buf_size;
 
-	while (l > buf_pos) {
+	while (l > buf_pos && !atomic_read(&ringbuffer->empty)) {
 		size_t data_size, head_pos, read_size, t;
 
 		if (!ringbuffer->buf)
