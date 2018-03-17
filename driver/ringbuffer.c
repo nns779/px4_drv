@@ -100,6 +100,7 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 
 	while (l > buf_pos && !atomic_read(&ringbuffer->empty)) {
 		size_t data_size, head_pos, read_size, t;
+		unsigned long r;
 
 		if (!ringbuffer->buf)
 			break;
@@ -119,9 +120,15 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 
 		t = (head_pos + read_size <= buf_size) ? (read_size) : (buf_size - head_pos);
 
-		memcpy(p + buf_pos, ringbuffer->buf + head_pos, t);
+		r = copy_to_user(p + buf_pos, ringbuffer->buf + head_pos, t);
+		if (r)
+			pr_debug("ringbuffer_read_to_user: copy_to_user() 1 failed. remain: %lu\n", r);
+
 		if (t < read_size) {
-			memcpy(p + buf_pos + t, ringbuffer->buf, read_size - t);
+			r = copy_to_user(p + buf_pos + t, ringbuffer->buf, read_size - t);
+			if (r)
+				pr_debug("ringbuffer_read_to_user: copy_to_user() 2 failed. remain: %lu\n", r);
+
 			head_pos = read_size - t;
 		} else {
 			head_pos = (head_pos + read_size == buf_size) ? 0 : (head_pos + read_size);
