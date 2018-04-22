@@ -74,6 +74,9 @@ struct px4_device {
 	wait_queue_head_t wait;
 	struct mutex lock;
 	int dev_idx;
+	u16 vid;		// Vendor id
+	u16 pid;		// Product id
+	unsigned int dev_id;	// 1 or 2
 	struct it930x_bridge it930x;
 	struct cdev cdev;
 	unsigned long streaming_count;
@@ -953,14 +956,22 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 	{
 		int lnb;
 
+		lnb = (int)arg;
+
+		pr_debug("px4_tsdev_unlocked_ioctl: PTX_ENABLE_LNB_POWER lnb: %d\n", lnb);
+
 		if (tsdev->isdb != ISDB_S) {
 			ret = -EINVAL;
 			break;
 		}
 
-		lnb = (int)arg;
-
-		pr_debug("px4_tsdev_unlocked_ioctl: PTX_ENABLE_LNB_POWER lnb: %d\n", lnb);
+#ifdef DISABLE_LNB_POWER_Q4
+		if (px4->vid == 0x511 && (px4->pid == PID_PX_Q3U4 || px4->pid == PID_PX_Q3PE4)) {
+			pr_warn("LNB power supply is disabled.\n");
+			ret = -EINVAL;
+			break;
+		}
+#endif
 
 		if (lnb == 0) {
 			// 0V
@@ -978,12 +989,19 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 	}
 
 	case PTX_DISABLE_LNB_POWER:
+		pr_debug("px4_tsdev_unlocked_ioctl: PTX_DISABLE_LNB_POWER\n");
+
 		if (tsdev->isdb != ISDB_S) {
 			ret = -EINVAL;
 			break;
 		}
 
-		pr_debug("px4_tsdev_unlocked_ioctl: PTX_DISABLE_LNB_POWER\n");
+#ifdef DISABLE_LNB_POWER_Q4
+		if (px4->vid == 0x511 && (px4->pid == PID_PX_Q3U4 || px4->pid == PID_PX_Q3PE4)) {
+			ret = -EINVAL;
+			break;
+		}
+#endif
 
 		if (!tsdev->lnb_power) {
 			ret = 0;
@@ -1016,11 +1034,12 @@ static struct file_operations px4_tsdev_fops = {
 static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
 	int ret = 0, dev_idx = -1, i;
+	struct usb_device *usbdev;
 	struct px4_device *px4 = NULL;
 	struct it930x_bridge *it930x;
 	struct it930x_bus *bus;
 
-	pr_debug("xfer_packets: %u\n", xfer_packets);
+	pr_debug("px4_probe: xfer_packets: %u\n", xfer_packets);
 
 	mutex_lock(&glock);
 
@@ -1034,13 +1053,15 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	mutex_unlock(&glock);
 
-	pr_debug("dev_idx: %d\n", dev_idx);
+	pr_debug("px4_probe: dev_idx: %d\n", dev_idx);
 
 	if (dev_idx == -1) {
 		pr_err("Unused device index was not found.\n");
 		ret = -ECANCELED;
 		goto fail;
 	}
+
+	usbdev = interface_to_usbdev(intf);
 
 	px4 = kzalloc(sizeof(*px4), GFP_KERNEL);
 	if (!px4) {
@@ -1050,6 +1071,17 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	}
 
 	px4->dev_idx = dev_idx;
+	px4->vid = id->idVendor;
+	px4->pid = id->idProduct;
+	px4->dev_id = 0;
+
+	if (strlen(usbdev->serial) == 15)
+		if (kstrtouint(&usbdev->serial[14], 16, &px4->dev_id))
+			pr_debug("px4_probe: kstrtouint() failed.\n");
+		else
+			pr_debug("px4_probe: dev_id: %u\n", px4->dev_id);
+	else
+		pr_debug("px4_probe: the length of serial number is invalid.\n");
 
 	it930x = &px4->it930x;
 	bus = &it930x->bus;
@@ -1063,7 +1095,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	// Initialize bus operator
 
 	bus->type = IT930X_BUS_USB;
-	bus->usb.dev = interface_to_usbdev(intf);
+	bus->usb.dev = usbdev;
 	bus->usb.ctrl_timeout = 3000;
 	bus->usb.streaming_xfer_size = xfer_packets * 188;
 

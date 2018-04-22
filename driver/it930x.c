@@ -636,7 +636,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 		goto end;
 	}
 
-	pr_info("Firmware loaded. version: %08x\n", it930x->fw_version);
+	pr_info("Firmware loaded. version: %x.%x.%x.%x\n", ((it930x->fw_version >> 24) & 0xff), ((it930x->fw_version >> 16) & 0xff), ((it930x->fw_version >> 8) & 0xff), (it930x->fw_version & 0xff));
 
 end:
 	release_firmware(fw);

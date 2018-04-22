@@ -13,7 +13,7 @@ fwtoolを使用すると、簡単にファームウェアファイルを用意�
 
 [fwtoolを用いたファームウェアファイルの用意]
 
-gcc, makeがインストールされている必要があります
+unzip, gcc, makeがインストールされている必要があります
 
 $ cd fwtool
 $ wget 'http://plex-net.co.jp/plex/pxw3u4/pxw3u4_BDA_ver1x64.zip' -O 'pxw3u4_BDA_ver1x64.zip'

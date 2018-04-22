@@ -10,6 +10,9 @@ ccflags-y := -I$(M)/../include
 ifneq ($(DEBUG),0)
 ccflags-y += -DDEBUG -g
 endif
+ifneq ($(DISABLE_LNB_POWER_Q4),0)
+ccflags-y += -DDISABLE_LNB_POWER_Q4
+endif
 
 obj-m := px4_drv.o
 px4_drv-objs := px4.o it930x-bus.o it930x.o tc90522.o rt710.o ringbuffer.o
@@ -21,9 +24,10 @@ clean:
 	$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) clean
 
 install:
+	rm -f /etc/udev/rules.d/90-px4.rules
 	install -D -v -m 644 $(TARGET) $(INSTALL_DIR)/$(TARGET)
-	install -D -v -m 644 ../etc/90-px4.rules /etc/udev/rules.d/90-px4.rules
+	install -D -v -m 644 ../etc/99-px4video.rules /etc/udev/rules.d/99-px4video.rules
 	depmod -a $(KVER)
 
 uninstall:
-	rm -v $(INSTALL_DIR)/$(TARGET) /etc/udev/rules.d/90-px4.rules
+	rm -fv $(INSTALL_DIR)/$(TARGET) /etc/udev/rules.d/99-px4video.rules /etc/udev/rules.d/90-px4.rules
