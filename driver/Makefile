@@ -15,7 +15,7 @@ ccflags-y += -DDISABLE_LNB_POWER_Q4
 endif
 
 obj-m := px4_drv.o
-px4_drv-objs := px4.o it930x-bus.o it930x.o tc90522.o rt710.o ringbuffer.o
+px4_drv-objs := px4.o it930x-bus.o it930x.o tc90522.o rt710.o r850_lite.o r850_channel.o ringbuffer.o
 
 all:
 	$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) modules

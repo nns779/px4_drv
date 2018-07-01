@@ -745,23 +745,15 @@ int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool 
 int it930x_purge_psb(struct it930x_bridge *it930x)
 {
 	int ret = 0;
-	u8 b[2];
-	struct it930x_regbuf regbuf[1];
 	void *p;
 	int len;
 
 	if (it930x->bus.type != IT930X_BUS_USB)
 		return 0;
 
-	it930x_regbuf_set_buf(&regbuf[0], 0xda98, &b[0], 2);
-	ret = it930x_read_regs(it930x, regbuf, 1);
+	ret = it930x_write_reg_bits(it930x, 0xda1d, 1, 0, 1);
 	if (ret)
 		return ret;
-
-	pr_debug("it930x_purge_psb: 0xda98: %02x, 0xda99: %02x\n", b[0], b[1]);
-
-	if (!b[0] && !b[1])
-		return 0;
 
 	len = it930x->bus.usb.streaming_xfer_size;
 
@@ -773,5 +765,8 @@ int it930x_purge_psb(struct it930x_bridge *it930x)
 	pr_debug("it930x_purge_psb: len: %d\n", len);
 
 	kfree(p);
+
+	it930x_write_reg_bits(it930x, 0xda1d, 0, 0, 1);
+
 	return ret;
 }

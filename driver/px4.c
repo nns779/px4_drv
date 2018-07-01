@@ -23,9 +23,8 @@
 #include "it930x-bus.h"
 #include "it930x.h"
 #include "tc90522.h"
-#if 0
-#include "r850.h"
-#endif
+#include "r850_lite.h"
+#include "r850_channel.h"
 #include "rt710.h"
 #include "ringbuffer.h"
 
@@ -59,9 +58,7 @@ struct px4_tsdev {
 	struct px4_device *px4;
 	struct tc90522_demod tc90522;
 	union {
-#if 0
 		struct r850_tuner r850;		// for ISDB-T
-#endif
 		struct rt710_tuner rt710;	// for ISDB-S
 	} t;
 	atomic_t streaming;	// 0: not streaming, !0: streaming
@@ -205,11 +202,8 @@ static int px4_load_config(struct px4_device *px4)
 			break;
 
 		case ISDB_T:
-#if 0
 			tsdev->t.r850.i2c = &tsdev->tc90522.i2c_master;
 			tsdev->t.r850.i2c_addr = 0x7c;
-#endif
-			// not implemented
 			break;
 		}
 	}
@@ -219,7 +213,7 @@ static int px4_load_config(struct px4_device *px4)
 	return 0;
 }
 
-static int px4_control_power(struct px4_device *px4, bool on)
+static int px4_set_power(struct px4_device *px4, bool on)
 {
 	int ret = 0;
 	struct it930x_bridge *it930x = &px4->it930x;
@@ -276,7 +270,7 @@ static int px4_control_power(struct px4_device *px4, bool on)
 	return ret;
 }
 
-static int px4_control_lnb_power(struct px4_device *px4, bool on)
+static int px4_set_lnb_power(struct px4_device *px4, bool on)
 {
 	int i;
 	bool b = false;
@@ -439,7 +433,6 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 	case ISDB_T:
 	{
-#if 0
 		ret = tc90522_write_regs(tc90522, tc_init_t, ARRAY_SIZE(tc_init_t));
 		if (ret)
 			break;
@@ -453,10 +446,13 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 		ret = tc90522_sleep_t(tc90522, false);
 		if (ret)
 			break;
-#else
-		// not implemented
-		ret = -EIO;
-#endif
+
+		ret = r850_init(&tsdev->t.r850);
+		if (ret) {
+			pr_debug("px4_tsdev_init: r850_init() failed.\n");
+			break;
+		}
+
 		break;
 	}
 
@@ -494,7 +490,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 {
 	int ret = 0;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
-	struct tc90522_regbuf regbuf_tc[2];
+	struct tc90522_regbuf regbuf_tc[3];
 	u32 real_freq;
 
 	pr_debug("px4_tsdev_set_channel: freq_no: %d, slot: %d\n", freq->freq_no, freq->slot);
@@ -601,8 +597,99 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 	case ISDB_T:
 	{
-		// not implemented
-		ret = -EIO;
+		int i;
+		bool tuner_locked;
+		u8 regs[R850_NUM_REGS - 0x08];
+
+		if ((freq->freq_no >= 3 && freq->freq_no <= 12) || (freq->freq_no >= 22 && freq->freq_no <= 62)) {
+			// CATV C13-C22ch, C23-63ch
+#if 0
+			real_freq = 93143 + freq->freq_no * 6000 + freq->slot/* addfreq */;
+
+			if (freq->freq_no == 12)
+				real_freq += 2000;
+#else
+			ret = -ENOSYS;
+			break;
+#endif
+		} else if (freq->freq_no >= 63 && freq->freq_no <= 102) {
+			// UHF 13-52ch
+#if 0
+			real_freq = 95143 + freq->freq_no * 6000 + freq->slot/* addfreq */;
+#else
+			ret = r850_channel_get_regs(freq->freq_no, regs);
+			if (ret)
+				break;
+#endif
+		} else {
+			// Unknown channel
+			ret = -EINVAL;
+			break;
+		}
+
+		tc90522_regbuf_set_val(&regbuf_tc[0], 0x47, 0x30);
+		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
+		if (ret)
+			break;
+
+		ret = tc90522_set_agc_t(tc90522, false);
+		if (ret)
+			break;
+
+		tc90522_regbuf_set_val(&regbuf_tc[0], 0x76, 0x0c);
+		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
+		if (ret)
+			break;
+
+		ret = r850_write_config_regs(&tsdev->t.r850, regs);
+		if (ret) {
+			pr_debug("px4_tsdev_set_channel: r850_write_config_regs failed.\n");
+			break;
+		}
+
+		msleep(40);
+
+		regs[0x2f - 0x08] |= 0x02;
+		ret = r850_write_config_regs(&tsdev->t.r850, regs);
+		if (ret) {
+			pr_debug("px4_tsdev_set_channel: r850_write_config_regs failed.\n");
+			break;
+		}
+
+		i = 50;
+		while (i--) {
+			ret = r850_is_pll_locked(&tsdev->t.r850, &tuner_locked);
+			if (!ret && tuner_locked)
+				break;
+
+			msleep(10);
+		}
+		if (ret) {
+			pr_debug("px4_tsdev_set_channel: r850_is_pll_locked() failed.\n");
+			break;
+		} else {
+			pr_debug("px4_tsdev_set_channel: r850_is_pll_locked() locked: %d, count: %d\n", tuner_locked, i);
+		}
+
+		if (!tuner_locked) {
+			// PLL error
+			ret = -EIO;
+			break;
+		}
+
+		ret = tc90522_set_agc_t(tc90522, true);
+		if (ret)
+			break;
+
+		tc90522_regbuf_set_val(&regbuf_tc[0], 0x71, 0x21);
+		tc90522_regbuf_set_val(&regbuf_tc[1], 0x72, 0x25);
+		tc90522_regbuf_set_val(&regbuf_tc[2], 0x75, 0x08);
+		ret = tc90522_write_regs(tc90522, regbuf_tc, 3);
+		if (ret)
+			break;
+
+		msleep(400);
+
 		break;
 	}
 
@@ -636,6 +723,9 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	}
 
 	buf_size = bus->usb.streaming_xfer_size + bus->usb.streaming_urb_num;
+
+	if (!px4->streaming_count)
+		it930x_purge_psb(&px4->it930x);
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
@@ -796,7 +886,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 	tsdev->open = true;
 
 	if (ref == 2) {
-		ret = px4_control_power(px4, true);
+		ret = px4_set_power(px4, true);
 		if (ret)
 			goto fail;
 	}
@@ -825,7 +915,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 
 fail_after_power:
 	if (ref == 2)
-		px4_control_power(px4, false);
+		px4_set_power(px4, false);
 fail:
 	tsdev->open = false;
 	mutex_unlock(&px4->lock);
@@ -884,11 +974,11 @@ static int px4_tsdev_release(struct inode *inode, struct file *file)
 
 	tsdev->lnb_power = false;
 	if (avail)
-		px4_control_lnb_power(px4, false);
+		px4_set_lnb_power(px4, false);
 
 	ref = px4_unref(px4);
 	if (avail && ref == 1)
-		px4_control_power(px4, false);
+		px4_set_power(px4, false);
 
 	mutex_unlock(&px4->lock);
 	wake_up(&px4->wait);
@@ -986,7 +1076,7 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 			break;
 		}
 
-		ret = px4_control_lnb_power(px4, tsdev->lnb_power);
+		ret = px4_set_lnb_power(px4, tsdev->lnb_power);
 		break;
 	}
 
@@ -1011,7 +1101,7 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 		}
 
 		tsdev->lnb_power = false;
-		ret= px4_control_lnb_power(px4, false);
+		ret= px4_set_lnb_power(px4, false);
 		break;
 
 	default:
@@ -1144,8 +1234,6 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	ret = it930x_set_gpio(it930x, 11, false);
 	if (ret)
 		goto fail;
-
-	it930x_purge_psb(it930x);
 
 	// cdev
 
