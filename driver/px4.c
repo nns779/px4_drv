@@ -473,6 +473,7 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 static void px4_tsdev_uninit(struct px4_tsdev *tsdev)
 {
+#if 0
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 
 	switch (tsdev->isdb) {
@@ -484,6 +485,7 @@ static void px4_tsdev_uninit(struct px4_tsdev *tsdev)
 		tc90522_sleep_t(tc90522, true);
 		break;
 	}
+#endif
 
 	return;
 }

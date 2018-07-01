@@ -140,6 +140,7 @@ int tc90522_init(struct tc90522_demod *demod)
 
 int tc90522_sleep_s(struct tc90522_demod *demod, bool sleep)
 {
+#if 1
 	struct tc90522_regbuf regbuf[2] = {
 		{ 0x13, NULL, { 0x00 } },
 		{ 0x17, NULL, { 0x00 } }
@@ -152,6 +153,9 @@ int tc90522_sleep_s(struct tc90522_demod *demod, bool sleep)
 	}
 
 	return tc90522_write_regs(demod, regbuf, 2);
+#else
+	return tc90522_write_reg(demod, 0x17, (sleep) ? 0x01 : 0x00);
+#endif
 }
 
 int tc90522_set_agc_s(struct tc90522_demod *demod, bool on)
@@ -257,7 +261,11 @@ int tc90522_enable_ts_pins_s(struct tc90522_demod *demod, bool e)
 
 int tc90522_sleep_t(struct tc90522_demod *demod, bool sleep)
 {
+#if 1
 	return tc90522_write_reg(demod, 0x03, (sleep) ? 0xf0 : 0x00);
+#else
+	return tc90522_write_reg(demod, 0x03, (sleep) ? 0x90 : 0x80);
+#endif
 }
 
 int tc90522_set_agc_t(struct tc90522_demod *demod, bool on)
