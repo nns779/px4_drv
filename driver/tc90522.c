@@ -259,6 +259,21 @@ int tc90522_enable_ts_pins_s(struct tc90522_demod *demod, bool e)
 	return tc90522_write_regs(demod, regbuf, 2);
 }
 
+int tc90522_is_signal_locked_s(struct tc90522_demod *demod, bool *lock)
+{
+	int ret = 0;
+	u8 b;
+
+	*lock = false;
+
+	ret = tc90522_read_reg(demod, 0xc3, &b);
+	pr_debug("tc90522_is_signal_locked_s: 0xc3: 0x%02X\n", b);
+	if (ret && !(b & 0x10))
+		*lock = true;
+
+	return ret;
+}
+
 int tc90522_sleep_t(struct tc90522_demod *demod, bool sleep)
 {
 #if 1
@@ -301,4 +316,19 @@ int tc90522_get_cndat_t(struct tc90522_demod *demod, u32 *cndat)
 int tc90522_enable_ts_pins_t(struct tc90522_demod *demod, bool e)
 {
 	return tc90522_write_reg(demod, 0x1d, (e) ? 0x00 : 0xa8);
+}
+
+int tc90522_is_signal_locked_t(struct tc90522_demod *demod, bool *lock)
+{
+	int ret = 0;
+	u8 b;
+
+	*lock = false;
+
+	ret = tc90522_read_reg(demod, 0x80, &b);
+	pr_debug("tc90522_is_signal_locked_t: 0x80: 0x%02X\n", b);
+	if (!ret && !(b & 0x08))
+		*lock = true;
+
+	return ret;
 }

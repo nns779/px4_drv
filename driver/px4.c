@@ -598,7 +598,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	case ISDB_T:
 	{
 		int i;
-		bool tuner_locked;
+		bool tuner_locked, demod_locked;
 		u8 regs[R850_NUM_REGS - 0x08];
 
 		if ((freq->freq_no >= 3 && freq->freq_no <= 12) || (freq->freq_no >= 22 && freq->freq_no <= 62)) {
@@ -688,7 +688,20 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		if (ret)
 			break;
 
-		msleep(400);
+		i = 50;
+		while (i--) {
+			ret = tc90522_is_signal_locked_t(tc90522, &demod_locked);
+			if (!ret && demod_locked)
+				break;
+
+			msleep(40);
+		}
+		if (ret) {
+			pr_debug("px4_tsdev_set_channel: tc90522_is_signal_locked_t() failed.\n");
+			break;
+		} else {
+			pr_debug("px4_tsdev_set_channel: tc90522_is_signal_locked_t() locked: %d, count: %d\n", demod_locked, i);
+		}
 
 		break;
 	}
