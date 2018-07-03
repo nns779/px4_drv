@@ -16,11 +16,10 @@ fwtoolを使用すると、簡単にファームウェアファイルを用意�
 unzip, gcc, makeがインストールされている必要があります
 
 $ cd fwtool
-$ wget 'http://plex-net.co.jp/plex/pxw3u4/pxw3u4_BDA_ver1x64.zip' -O 'pxw3u4_BDA_ver1x64.zip'
-$ unzip -oj 'pxw3u4_BDA_ver1x64.zip' 'pxw3u4_BDA_ver1x64/PXW3U4.sys'
-$ rm 'pxw3u4_BDA_ver1x64.zip'
 $ make
-$ ./fwtool 'PXW3U4.sys' 'it930x-firmware.bin'
+$ wget http://plex-net.co.jp/plex/pxw3u4/pxw3u4_BDA_ver1x64.zip -O pxw3u4_BDA_ver1x64.zip
+$ unzip -oj pxw3u4_BDA_ver1x64.zip pxw3u4_BDA_ver1x64/PXW3U4.sys
+$ ./fwtool PXW3U4.sys it930x-firmware.bin
 $ sudo mkdir -p /lib/firmware
 $ sudo cp it930x-firmware.bin /lib/firmware/
 $ cd ../
@@ -34,7 +33,7 @@ $ make
 $ sudo make install
 $ cd ../
 
-ドライバがロードされている状態で再度インストールを行った場合には以下を実行してください
+ドライバがカーネルにロードされている状態で再度インストールを行った場合には以下を実行してください
 
 $ sudo modprobe -r px4_drv
 $ sudo modprobe px4_drv
