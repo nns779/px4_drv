@@ -10,8 +10,11 @@
 
 struct ringbuffer {
 	spinlock_t lock;	// for data_size
-	atomic_t empty;
+	atomic_t avail;
+	atomic_t rw_cnt;
+	atomic_t wait_cnt;
 	wait_queue_head_t wait;
+	wait_queue_head_t data_wait;
 	u8 *buf;
 	size_t buf_size;
 	size_t data_size;
@@ -19,9 +22,10 @@ struct ringbuffer {
 	size_t head_pos;	// read
 };
 
-int ringbuffer_init(struct ringbuffer *ringbuffer, size_t size);
+int ringbuffer_init(struct ringbuffer *ringbuffer);
 int ringbuffer_term(struct ringbuffer *ringbuffer);
-int ringbuffer_flush(struct ringbuffer *ringbuffer);
+int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size);
+int ringbuffer_free(struct ringbuffer *ringbuffer);
 int ringbuffer_write(struct ringbuffer *ringbuffer, const void *data, size_t len);
 int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len);
 

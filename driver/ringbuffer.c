@@ -11,43 +11,100 @@
 
 #include "ringbuffer.h"
 
-int ringbuffer_init(struct ringbuffer *ringbuffer, size_t size)
+int ringbuffer_init(struct ringbuffer *ringbuffer)
 {
-	ringbuffer_term(ringbuffer);
-
-	ringbuffer->buf = (u8 *)__get_free_pages(GFP_KERNEL, get_order(size));
-	if (!ringbuffer->buf) {
-		return -ENOMEM;
-	}
-	ringbuffer->buf_size = size;
-	ringbuffer->data_size = 0;
-
 	spin_lock_init(&ringbuffer->lock);
+	atomic_set(&ringbuffer->avail, 0);
+	atomic_set(&ringbuffer->rw_cnt, 0);
+	atomic_set(&ringbuffer->wait_cnt, 0);
 	init_waitqueue_head(&ringbuffer->wait);
-	atomic_set(&ringbuffer->empty, 0);
-
-	ringbuffer->tail_pos = ringbuffer->head_pos = 0;
+	init_waitqueue_head(&ringbuffer->data_wait);
+	ringbuffer->buf = NULL;
+	ringbuffer->buf_size = 0;
+	ringbuffer->data_size = 0;
+	ringbuffer->tail_pos = 0;
+	ringbuffer->head_pos = 0;
 
 	return 0;
 }
 
 int ringbuffer_term(struct ringbuffer *ringbuffer)
 {
-	if (ringbuffer->buf) {
-		unsigned long p = (unsigned long)ringbuffer->buf;
-		ringbuffer->buf = NULL;
-		free_pages(p, get_order(ringbuffer->buf_size));
+	return ringbuffer_free(ringbuffer);
+}
+
+static void _ringbuffer_free(struct ringbuffer *ringbuffer)
+{
+	free_pages((unsigned long)ringbuffer->buf, get_order(ringbuffer->buf_size));
+
+	ringbuffer->buf = NULL;
+	ringbuffer->buf_size = 0;
+	ringbuffer->data_size = 0;
+	ringbuffer->tail_pos = 0;
+	ringbuffer->head_pos = 0;
+}
+
+int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size)
+{
+	int ret = 0;
+
+	// Acquire lock
+	if (atomic_add_return(1, &ringbuffer->wait_cnt) != 1) {
+		// Someone is waiting
+		ret = -EAGAIN;
+		goto exit;
 	}
+	atomic_set(&ringbuffer->avail, 0);
+	wake_up(&ringbuffer->data_wait);
+	wait_event(ringbuffer->wait, !atomic_read(&ringbuffer->rw_cnt));
+
+	if (ringbuffer->buf)
+		_ringbuffer_free(ringbuffer);
+
+	// Allocate
+
+	ringbuffer->buf = (u8 *)__get_free_pages(GFP_KERNEL, get_order(size));
+	if (!ringbuffer->buf) {
+		ret = -ENOMEM;
+		goto exit;
+	}
+
+	ringbuffer->buf_size = size;
+	ringbuffer->data_size = 0;
+	ringbuffer->tail_pos = 0;
+	ringbuffer->head_pos = 0;
+
+	atomic_set(&ringbuffer->avail, 1);
+
+exit:
+	// Release lock
+	atomic_sub(1, &ringbuffer->wait_cnt);
 
 	return 0;
 }
 
-int ringbuffer_flush(struct ringbuffer *ringbuffer)
+int ringbuffer_free(struct ringbuffer *ringbuffer)
 {
-	ringbuffer->tail_pos = ringbuffer->head_pos = 0;
-	ringbuffer->data_size = 0;
-	atomic_set(&ringbuffer->empty, 1);
-	wake_up(&ringbuffer->wait);
+	int ret = 0;
+
+	if (!ringbuffer->buf)
+		return 0;
+
+	// Acquire lock
+	if (atomic_add_return(1, &ringbuffer->wait_cnt) != 1) {
+		// Someone is waiting
+		ret = -EAGAIN;
+		goto exit;
+	}
+	atomic_set(&ringbuffer->avail, 0);
+	wake_up(&ringbuffer->data_wait);
+	wait_event(ringbuffer->wait, !atomic_read(&ringbuffer->rw_cnt));
+
+	_ringbuffer_free(ringbuffer);
+
+exit:
+	// Release lock
+	atomic_sub(1, &ringbuffer->wait_cnt);
 
 	return 0;
 }
@@ -57,9 +114,12 @@ int ringbuffer_write(struct ringbuffer *ringbuffer, const void *data, size_t len
 	unsigned long flags;
 	const u8 *p = data;
 	size_t buf_size, data_size, tail_pos, write_size;
+	int rr;
 
-	if (!ringbuffer->buf)
-		return -EINVAL;
+	if (!atomic_read(&ringbuffer->avail) || atomic_read(&ringbuffer->wait_cnt))
+		return -EIO;
+
+	atomic_add(1, &ringbuffer->rw_cnt);
 
 	buf_size = ringbuffer->buf_size;
 	tail_pos = ringbuffer->tail_pos;
@@ -84,9 +144,14 @@ int ringbuffer_write(struct ringbuffer *ringbuffer, const void *data, size_t len
 
 		spin_lock_irqsave(&ringbuffer->lock, flags);
 		ringbuffer->data_size += write_size;
-		wake_up(&ringbuffer->wait);
 		spin_unlock_irqrestore(&ringbuffer->lock, flags);
+
+		wake_up(&ringbuffer->data_wait);
 	}
+
+	rr = atomic_sub_return(1, &ringbuffer->rw_cnt);
+	if (atomic_read(&ringbuffer->wait_cnt) && !rr)
+		wake_up(&ringbuffer->wait);
 
 	return 0;
 }
@@ -95,17 +160,20 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 {
 	u8 *p = buf;
 	size_t buf_size, l = *len, buf_pos = 0;
+	int rr;
+
+	if (!atomic_read(&ringbuffer->avail) || atomic_read(&ringbuffer->wait_cnt))
+		return -EIO;
+
+	atomic_add(1, &ringbuffer->rw_cnt);
 
 	buf_size = ringbuffer->buf_size;
 
-	while (l > buf_pos && !atomic_read(&ringbuffer->empty)) {
+	while (l > buf_pos && atomic_read(&ringbuffer->avail)) {
 		size_t data_size, head_pos, read_size, t;
 		unsigned long r;
 
-		if (!ringbuffer->buf)
-			break;
-
-		wait_event(ringbuffer->wait, (ringbuffer->data_size || atomic_read(&ringbuffer->empty)));
+		wait_event(ringbuffer->data_wait, (ringbuffer->data_size || !atomic_read(&ringbuffer->avail)));
 
 		spin_lock(&ringbuffer->lock);
 		data_size = ringbuffer->data_size;
@@ -143,6 +211,10 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 	}
 
 	*len = buf_pos;
+
+	rr = atomic_sub_return(1, &ringbuffer->rw_cnt);
+	if (atomic_read(&ringbuffer->wait_cnt) && !rr)
+		wake_up(&ringbuffer->wait);
 
 	return 0;
 }

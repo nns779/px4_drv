@@ -132,6 +132,20 @@ static int px4_init(struct px4_device *px4)
 		tsdev->lnb_power = false;
 		tsdev->px4 = px4;
 		atomic_set(&tsdev->streaming, 0);
+		ringbuffer_init(&tsdev->rgbuf);
+	}
+
+	return 0;
+}
+
+static int px4_term(struct px4_device *px4)
+{
+	int i;
+
+	for (i = 0; i < TSDEV_NUM; i++) {
+		struct px4_tsdev *tsdev = &px4->tsdev[i];
+
+		ringbuffer_term(&tsdev->rgbuf);
 	}
 
 	return 0;
@@ -765,7 +779,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	if (ret)
 		goto fail;
 
-	ret = ringbuffer_init(&tsdev->rgbuf, buf_size);
+	ret = ringbuffer_alloc(&tsdev->rgbuf, buf_size);
 	if (ret)
 		goto fail;
 
@@ -780,8 +794,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	return ret;
 
 fail_after_ringbuffer:
-	ringbuffer_flush(&tsdev->rgbuf);
-	ringbuffer_term(&tsdev->rgbuf);
+	ringbuffer_free(&tsdev->rgbuf);
 fail:
 	atomic_set(&tsdev->streaming, 0);
 	return ret;
@@ -803,8 +816,7 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 	if (!px4->streaming_count)
 		it930x_bus_stop_streaming(&px4->it930x.bus);
 
-	ringbuffer_flush(&tsdev->rgbuf);
-	ringbuffer_term(&tsdev->rgbuf);
+	ringbuffer_free(&tsdev->rgbuf);
 
 	if (!avail)
 		return 0;
@@ -1322,6 +1334,7 @@ static void px4_disconnect(struct usb_interface *intf)
 	}
 
 	// uninitialize
+	px4_term(px4);
 	it930x_bus_term(&px4->it930x.bus);
 	kfree(px4);
 
