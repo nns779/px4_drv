@@ -116,10 +116,16 @@ int ringbuffer_write(struct ringbuffer *ringbuffer, const void *data, size_t len
 	size_t buf_size, data_size, tail_pos, write_size;
 	int rr;
 
-	if (!atomic_read(&ringbuffer->avail) || atomic_read(&ringbuffer->wait_cnt))
+	if (!atomic_read(&ringbuffer->avail))
 		return -EIO;
 
 	atomic_add(1, &ringbuffer->rw_cnt);
+
+	if (atomic_read(&ringbuffer->wait_cnt)) {
+		atomic_sub(1, &ringbuffer->rw_cnt);
+		wake_up(&ringbuffer->wait);
+		return -EIO;
+	}
 
 	buf_size = ringbuffer->buf_size;
 	tail_pos = ringbuffer->tail_pos;
@@ -162,10 +168,16 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 	size_t buf_size, l = *len, buf_pos = 0;
 	int rr;
 
-	if (!atomic_read(&ringbuffer->avail) || atomic_read(&ringbuffer->wait_cnt))
+	if (!atomic_read(&ringbuffer->avail))
 		return -EIO;
 
 	atomic_add(1, &ringbuffer->rw_cnt);
+
+	if (atomic_read(&ringbuffer->wait_cnt)) {
+		atomic_sub(1, &ringbuffer->rw_cnt);
+		wake_up(&ringbuffer->wait);
+		return -EIO;
+	}
 
 	buf_size = ringbuffer->buf_size;
 
