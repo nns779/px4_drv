@@ -267,7 +267,6 @@ int tc90522_is_signal_locked_s(struct tc90522_demod *demod, bool *lock)
 	*lock = false;
 
 	ret = tc90522_read_reg(demod, 0xc3, &b);
-	pr_debug("tc90522_is_signal_locked_s: 0xc3: 0x%02X\n", b);
 	if (ret && !(b & 0x10))
 		*lock = true;
 
@@ -326,7 +325,6 @@ int tc90522_is_signal_locked_t(struct tc90522_demod *demod, bool *lock)
 	*lock = false;
 
 	ret = tc90522_read_reg(demod, 0x80, &b);
-	pr_debug("tc90522_is_signal_locked_t: 0x80: 0x%02X\n", b);
 	if (!ret && !(b & 0x08))
 		*lock = true;
 
