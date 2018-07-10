@@ -62,7 +62,7 @@ struct px4_tsdev {
 		struct rt710_tuner rt710;	// for ISDB-S
 	} t;
 	atomic_t streaming;	// 0: not streaming, !0: streaming
-	struct ringbuffer rgbuf;
+	struct ringbuffer *rgbuf;
 };
 
 struct px4_device {
@@ -78,6 +78,7 @@ struct px4_device {
 	struct cdev cdev;
 	unsigned int streaming_count;
 	struct px4_tsdev tsdev[TSDEV_NUM];
+	struct ringbuffer **rgbuf;
 };
 
 MODULE_AUTHOR("nns779");
@@ -93,6 +94,7 @@ static struct px4_device *devs[MAX_DEVICE];
 static bool devs_reserve[MAX_DEVICE];
 static unsigned int xfer_packets = 816;
 static unsigned int max_urbs = 6;
+static unsigned int tsdev_max_packets = 1024;
 static bool no_dma = false;
 
 module_param(xfer_packets, uint, S_IRUSR | S_IWUSR);
@@ -100,6 +102,9 @@ MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (def
 
 module_param(max_urbs, uint, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 6)");
+
+module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR);
+MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of packets buffering in tsdev. (default: 1024)");
 
 module_param(no_dma, bool, S_IRUSR | S_IWUSR);
 
@@ -115,6 +120,7 @@ MODULE_DEVICE_TABLE(usb, px4_usb_ids);
 
 static int px4_init(struct px4_device *px4)
 {
+	int ret = 0;
 	int i;
 
 	atomic_set(&px4->ref, 1);
@@ -132,10 +138,16 @@ static int px4_init(struct px4_device *px4)
 		tsdev->lnb_power = false;
 		tsdev->px4 = px4;
 		atomic_set(&tsdev->streaming, 0);
-		ringbuffer_init(&tsdev->rgbuf);
+
+		ret = ringbuffer_create(&tsdev->rgbuf);
+		if (ret)
+			break;
+		ringbuffer_alloc(tsdev->rgbuf, 188 * tsdev_max_packets);
+
+		px4->rgbuf[i] = tsdev->rgbuf;
 	}
 
-	return 0;
+	return ret;
 }
 
 static int px4_term(struct px4_device *px4)
@@ -145,7 +157,7 @@ static int px4_term(struct px4_device *px4)
 	for (i = 0; i < TSDEV_NUM; i++) {
 		struct px4_tsdev *tsdev = &px4->tsdev[i];
 
-		ringbuffer_term(&tsdev->rgbuf);
+		ringbuffer_destroy(tsdev->rgbuf);
 	}
 
 	return 0;
@@ -345,7 +357,7 @@ static bool px4_ts_sync(u8 **buf, u32 *len, bool *sync_remain)
 	return ret;
 }
 
-static void px4_ts_write(struct px4_device *px4, u8 **buf, u32 *len)
+static void px4_ts_write(struct ringbuffer **rgbuf, u8 **buf, u32 *len)
 {
 	u8 *p = *buf;
 	u32 remain = *len;
@@ -355,7 +367,7 @@ static void px4_ts_write(struct px4_device *px4, u8 **buf, u32 *len)
 
 		if (id && id < 5) {
 			p[0] = 0x47;
-			ringbuffer_write(&px4->tsdev[id - 1].rgbuf, p, 188);
+			ringbuffer_write_atomic(rgbuf[id - 1], p, 188);
 		} else {
 			pr_debug("px4_ts_write: unknown id %d\n", id);
 		}
@@ -372,7 +384,7 @@ static void px4_ts_write(struct px4_device *px4, u8 **buf, u32 *len)
 
 static int px4_on_stream(void *context, void *buf, u32 len)
 {
-	struct px4_device *px4 = context;
+	struct ringbuffer **rgbuf = context;
 	u8 *p = buf;
 	u32 remain = len;
 	bool sync_remain = false;
@@ -381,7 +393,7 @@ static int px4_on_stream(void *context, void *buf, u32 len)
 		if (!px4_ts_sync(&p, &remain, &sync_remain))
 			break;
 
-		px4_ts_write(px4, &p, &remain);
+		px4_ts_write(rgbuf, &p, &remain);
 	}
 
 	if (sync_remain)
@@ -739,7 +751,6 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 {
 	int ret = 0;
-	size_t buf_size;
 	struct px4_device *px4 = tsdev->px4;
 	struct it930x_bus *bus = &px4->it930x.bus;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
@@ -758,8 +769,6 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 
 		it930x_purge_psb(&px4->it930x);
 	}
-
-	buf_size = bus->usb.streaming_xfer_size + bus->usb.streaming_urb_num;
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
@@ -786,13 +795,17 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	if (ret)
 		goto fail;
 
-	ret = ringbuffer_alloc(&tsdev->rgbuf, buf_size);
+	ret = ringbuffer_alloc(tsdev->rgbuf, 188 * tsdev_max_packets);
+	if (ret)
+		goto fail;
+
+	ret = ringbuffer_start(tsdev->rgbuf);
 	if (ret)
 		goto fail;
 
 	if (!px4->streaming_count) {
 		pr_debug("px4_tsdev_start_streaming %d:%u: starting...\n", px4->dev_idx, tsdev->id);
-		ret = it930x_bus_start_streaming(bus, px4_on_stream, px4);
+		ret = it930x_bus_start_streaming(bus, px4_on_stream, px4->rgbuf);
 		if (ret) {
 			pr_debug("px4_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed.\n", px4->dev_idx, tsdev->id);
 			goto fail_after_ringbuffer;
@@ -806,7 +819,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	return ret;
 
 fail_after_ringbuffer:
-	ringbuffer_free(&tsdev->rgbuf);
+	ringbuffer_stop(tsdev->rgbuf);
 fail:
 	atomic_set(&tsdev->streaming, 0);
 
@@ -833,7 +846,7 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 		it930x_bus_stop_streaming(&px4->it930x.bus);
 	}
 
-	ringbuffer_free(&tsdev->rgbuf);
+	ringbuffer_stop(tsdev->rgbuf);
 
 	if (!avail)
 		return 0;
@@ -926,7 +939,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 	if (tsdev->open) {
 		// already used by another
 		ret = -EIO;
-		goto fail;
+		goto fail_already_used;
 	}
 
 	tsdev->open = true;
@@ -974,6 +987,7 @@ fail_after_power:
 		px4_set_power(px4, false);
 fail:
 	tsdev->open = false;
+fail_already_used:
 	mutex_unlock(&px4->lock);
 	px4_unref(px4);
 
@@ -1001,7 +1015,7 @@ static ssize_t px4_tsdev_read(struct file *file, char __user *buf, size_t count,
 		return -EIO;
 
 	rd = count;
-	ret = ringbuffer_read_to_user(&tsdev->rgbuf, buf, &rd);
+	ret = ringbuffer_read_to_user(tsdev->rgbuf, buf, &rd);
 
 	return (ret) ? (ret) : (rd);
 }
@@ -1220,9 +1234,16 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	px4 = kzalloc(sizeof(*px4), GFP_KERNEL);
 	if (!px4) {
-		pr_err("px4_probe: kzalloc returns NULL.\n");
+		pr_err("px4_probe: kzalloc() returns NULL.\n");
 		ret = -ENOMEM;
-		goto fail;
+		goto fail_before_bus;
+	}
+
+	px4->rgbuf = (struct ringbuffer **)kzalloc(sizeof(*px4->rgbuf) * TSDEV_NUM, GFP_ATOMIC);
+	if (!px4->rgbuf) {
+		pr_err("px4_probe: kzalloc() returns NULL (2).\n");
+		ret = -ENOMEM;
+		goto fail_before_bus;
 	}
 
 	px4->dev_idx = dev_idx;
@@ -1245,7 +1266,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	ret = px4_init(px4);
 	if (ret)
-		goto fail;
+		goto fail_before_bus;
 
 	// Initialize bus operator
 
@@ -1256,7 +1277,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	ret = it930x_bus_init(bus);
 	if (ret)
-		goto fail;
+		goto fail_before_bus;
 
 	// Load config from eeprom
 
@@ -1325,13 +1346,20 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	usb_set_intfdata(intf, px4);
 
 	return 0;
+
 fail:
+	it930x_bus_term(&px4->it930x.bus);
+fail_before_bus:
 	if (px4) {
-		it930x_bus_term(&px4->it930x.bus);
+		if (px4->rgbuf)
+			kfree(px4->rgbuf);
+
 		kfree(px4);
 	}
 
+	mutex_lock(&glock);
 	devs_reserve[dev_idx] = false;
+	mutex_unlock(&glock);
 
 	return ret;
 }
@@ -1374,6 +1402,7 @@ static void px4_disconnect(struct usb_interface *intf)
 	// uninitialize
 	px4_term(px4);
 	it930x_bus_term(&px4->it930x.bus);
+	kfree(px4->rgbuf);
 	kfree(px4);
 
 	return;

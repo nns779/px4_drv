@@ -22,11 +22,13 @@ struct ringbuffer {
 	size_t head_pos;	// read
 };
 
-int ringbuffer_init(struct ringbuffer *ringbuffer);
-int ringbuffer_term(struct ringbuffer *ringbuffer);
+int ringbuffer_create(struct ringbuffer **ringbuffer);
+int ringbuffer_destroy(struct ringbuffer *ringbuffer);
 int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size);
 int ringbuffer_free(struct ringbuffer *ringbuffer);
-int ringbuffer_write(struct ringbuffer *ringbuffer, const void *data, size_t len);
+int ringbuffer_start(struct ringbuffer *ringbuffer);
+int ringbuffer_stop(struct ringbuffer *ringbuffer);
+int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, size_t len);
 int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len);
 
 #endif
