@@ -82,7 +82,7 @@ struct px4_device {
 };
 
 MODULE_AUTHOR("nns779");
-MODULE_DESCRIPTION("PLEX PX-W3U4/W3PE4 Unofficial Linux driver");
+MODULE_DESCRIPTION("PLEX PX-W3U4/W3PE4/Q3PE4 Unofficial Linux driver");
 MODULE_LICENSE("GPL v2");
 
 MODULE_FIRMWARE(FIRMWARE_FILENAME);
@@ -1134,14 +1134,6 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 			break;
 		}
 
-#ifdef DISABLE_LNB_POWER_Q4
-		if (px4->vid == 0x511 && (px4->pid == PID_PX_Q3U4 || px4->pid == PID_PX_Q3PE4)) {
-			pr_warn("LNB power supply is disabled.\n");
-			ret = -EINVAL;
-			break;
-		}
-#endif
-
 		if (lnb == 0) {
 			// 0V
 			tsdev->lnb_power = false;
@@ -1164,13 +1156,6 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 			ret = -EINVAL;
 			break;
 		}
-
-#ifdef DISABLE_LNB_POWER_Q4
-		if (px4->vid == 0x511 && (px4->pid == PID_PX_Q3U4 || px4->pid == PID_PX_Q3PE4)) {
-			ret = -EINVAL;
-			break;
-		}
-#endif
 
 		if (!tsdev->lnb_power) {
 			ret = 0;
@@ -1410,7 +1395,7 @@ static void px4_disconnect(struct usb_interface *intf)
 
 static int px4_suspend(struct usb_interface *intf, pm_message_t message)
 {
-	return 0;
+	return -ENOSYS;
 }
 
 static int px4_resume(struct usb_interface *intf)

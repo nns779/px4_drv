@@ -1,14 +1,14 @@
-PLEX PX-W3U4/W3PE4 Unofficial Linux driver
+PLEX PX-W3U4/W3PE4/Q3PE4 Unofficial Linux driver
 
 (現在開発中です。)
 
-PLEX PX-W3U4/W3PE4の非公式版Linux用ドライバです。
+PLEX PX-W3U4/W3PE4/Q3PE4の非公式版Linux用ドライバです。
 PLEX社のWebサイト( http://plex-net.co.jp )にて配布されているドライバのソースコードではありませんのでご注意ください。
 
 このドライバを使用するには、別途ファームウェアファイルを用意する必要があります。
 fwtoolを使用すると、簡単にファームウェアファイルを用意することができます。
 
-このドライバの動作確認にはPX-W3U4を使用しています。
+このドライバの動作確認にはPX-W3U4とPX-Q3PE4を使用しています。
 
 
 [fwtoolを用いたファームウェアファイルの用意]
