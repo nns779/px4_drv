@@ -267,7 +267,7 @@ int tc90522_is_signal_locked_s(struct tc90522_demod *demod, bool *lock)
 	*lock = false;
 
 	ret = tc90522_read_reg(demod, 0xc3, &b);
-	if (ret && !(b & 0x10))
+	if (!ret && !(b & 0x10))
 		*lock = true;
 
 	return ret;

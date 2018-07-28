@@ -57,7 +57,7 @@ static int it930x_usb_ctrl_tx(struct it930x_bus *bus, const void *buf, int len, 
 	if (ret)
 		pr_debug("it930x_usb_ctrl_tx: Failed. (ret: %d)\n", ret);
 
-	msleep(1);
+	mdelay(1);
 
 	return ret;
 }
@@ -77,7 +77,7 @@ static int it930x_usb_ctrl_rx(struct it930x_bus *bus, void *buf, int *len, void 
 
 	*len = rlen;
 
-	msleep(1);
+	mdelay(1);
 
 	return ret;
 }

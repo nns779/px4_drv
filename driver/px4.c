@@ -17,6 +17,7 @@
 #include <linux/cdev.h>
 
 #include "px4.h"
+#include "revision.h"
 #include "ptx_ioctl.h"
 #include "i2c_comm.h"
 #include "it930x-config.h"
@@ -33,6 +34,7 @@
 #endif
 
 #if !defined(MAX_DEVICE) || !MAX_DEVICE
+#undef MAX_DEVICE
 #define MAX_DEVICE	16
 #endif
 #define TSDEV_NUM	4
@@ -55,7 +57,6 @@ struct px4_tsdev {
 	bool init;
 	bool open;
 	bool lnb_power;
-	struct px4_device *px4;
 	struct tc90522_demod tc90522;
 	union {
 		struct r850_tuner r850;		// for ISDB-T
@@ -136,7 +137,6 @@ static int px4_init(struct px4_device *px4)
 		tsdev->init = false;
 		tsdev->open = false;
 		tsdev->lnb_power = false;
-		tsdev->px4 = px4;
 		atomic_set(&tsdev->streaming, 0);
 
 		ret = ringbuffer_create(&tsdev->rgbuf);
@@ -425,6 +425,7 @@ struct tc90522_regbuf tc_init_t[] = {
 static int px4_tsdev_init(struct px4_tsdev *tsdev)
 {
 	int ret = 0;
+	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 
 	if (tsdev->init)
@@ -450,7 +451,7 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 		ret = rt710_init(&tsdev->t.rt710);
 		if (ret) {
-			pr_debug("px4_tsdev_init %d:%u: rt710_init() failed.\n", tsdev->px4->dev_idx, tsdev->id);
+			pr_debug("px4_tsdev_init %d:%u: rt710_init() failed.\n", px4->dev_idx, tsdev->id);
 			break;
 		}
 
@@ -459,6 +460,10 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 	case ISDB_T:
 	{
+#ifdef R850_TEST
+		u8 regs[R850_NUM_REGS - 0x08];
+#endif
+
 		ret = tc90522_write_regs(tc90522, tc_init_t, ARRAY_SIZE(tc_init_t));
 		if (ret)
 			break;
@@ -475,10 +480,39 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 		ret = r850_init(&tsdev->t.r850);
 		if (ret) {
-			pr_debug("px4_tsdev_init %d:%u: r850_init() failed.\n", tsdev->px4->dev_idx, tsdev->id);
+			pr_debug("px4_tsdev_init %d:%u: r850_init() failed.\n", px4->dev_idx, tsdev->id);
 			break;
 		}
 
+#ifdef R850_TEST
+		r850_channel_get_regs(63, regs);
+
+		ret = r850_write_config_regs(&tsdev->t.r850, regs);
+		if (ret) {
+			pr_debug("px4_tsdev_init %d:%u: r850_write_config_regs() 1 failed.\n", px4->dev_idx, tsdev->id);
+			break;
+		}
+
+		if ((tsdev->id == 3) && (px4->tsdev[2].init == false)) {
+			pr_debug("px4_tsdev_init %d:%u: init t0\n", px4->dev_idx, tsdev->id);
+
+			ret = tc90522_set_agc_t(tc90522, false);
+			if (ret)
+				break;
+
+			ret = r850_init(&tsdev->t.r850);
+			if (ret) {
+				pr_debug("px4_tsdev_init %d:%u(*): r850_init() 2 failed.\n", px4->dev_idx, 2);
+				break;
+			}
+
+			ret = r850_write_config_regs(&tsdev->t.r850, regs);
+			if (ret) {
+				pr_debug("px4_tsdev_init %d:%u(*): r850_write_config_regs() 2 failed.\n", px4->dev_idx, 2);
+				break;
+			}
+		}
+#endif
 		break;
 	}
 
@@ -495,26 +529,41 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 static void px4_tsdev_uninit(struct px4_tsdev *tsdev)
 {
+#ifdef R850_TEST
+	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
+#endif
 #if 0
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
+#endif
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
+#if 0
 		tc90522_sleep_s(tc90522, true);
+#endif
 		break;
 
 	case ISDB_T:
+		r850_term(&tsdev->t.r850);
+#ifdef R850_TEST
+		if ((tsdev->id == 3) && (px4->tsdev[2].open == false))
+			r850_term(&px4->tsdev[2].t.r850);
+#endif
+
+#if 0
 		tc90522_sleep_t(tc90522, true);
+#endif
 		break;
 	}
-#endif
+
+	tsdev->init = false;
 
 	return;
 }
 
 static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 {
-	int ret = 0, dev_idx = tsdev->px4->dev_idx;
+	int ret = 0, dev_idx = container_of(tsdev, struct px4_device, tsdev[tsdev->id])->dev_idx;
 	unsigned int tsdev_id = tsdev->id;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 	struct tc90522_regbuf regbuf_tc[3];
@@ -589,10 +638,10 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		// set slot
 
-		i = 50;
+		i = 100;
 		while (i--) {
 			ret = tc90522_tmcc_get_tsid_s(tc90522, freq->slot, &tsid);
-			if (!ret || ret == -EINVAL)
+			if ((!ret && tsid) || ret == -EINVAL)
 				break;
 
 			msleep(10);
@@ -608,7 +657,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		if (ret)
 			break;
 
-		i = 50;
+		i = 100;
 		while(i--) {
 			ret = tc90522_get_tsid_s(tc90522, &tsid2);
 			if (!ret && tsid2 == tsid)
@@ -717,13 +766,13 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		if (ret)
 			break;
 
-		i = 50;
+		i = 300;
 		while (i--) {
 			ret = tc90522_is_signal_locked_t(tc90522, &demod_locked);
 			if (!ret && demod_locked)
 				break;
 
-			msleep(40);
+			msleep(10);
 		}
 		if (ret) {
 			pr_debug("px4_tsdev_set_channel %d:%u: tc90522_is_signal_locked_t() failed.\n", dev_idx, tsdev_id);
@@ -751,7 +800,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 {
 	int ret = 0;
-	struct px4_device *px4 = tsdev->px4;
+	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 	struct it930x_bus *bus = &px4->it930x.bus;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 
@@ -831,7 +880,7 @@ fail:
 static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 {
 	int ret = 0;
-	struct px4_device *px4 = tsdev->px4;
+	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 
 	if (!atomic_read(&tsdev->streaming))
@@ -1009,7 +1058,7 @@ static ssize_t px4_tsdev_read(struct file *file, char __user *buf, size_t count,
 		return -EFAULT;
 	}
 
-	px4 = tsdev->px4;
+	px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 
 	if (!atomic_read(&px4->avail) || !atomic_read(&tsdev->streaming))
 		return -EIO;
@@ -1032,7 +1081,7 @@ static int px4_tsdev_release(struct inode *inode, struct file *file)
 		return -EFAULT;
 	}
 
-	px4 = tsdev->px4;
+	px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 	avail = atomic_read(&px4->avail);
 
 	mutex_lock(&px4->lock);
@@ -1075,7 +1124,7 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 		return -EFAULT;
 	}
 
-	px4 = tsdev->px4;
+	px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 
 	if (!atomic_read(&px4->avail))
 		return -EIO;
@@ -1212,7 +1261,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	if (dev_idx == -1) {
 		pr_err("Unused device index was not found.\n");
 		ret = -ECANCELED;
-		goto fail;
+		goto fail_before_bus;
 	}
 
 	usbdev = interface_to_usbdev(intf);
@@ -1417,7 +1466,14 @@ static int px4_module_init(void)
 	int ret = 0, i;
 
 #ifdef PX4_DRIVER_VERSION
-	pr_info(KBUILD_MODNAME " version " PX4_DRIVER_VERSION "\n");
+	pr_info(KBUILD_MODNAME " version " PX4_DRIVER_VERSION
+#ifdef REVISION_NUMBER
+		", rev: " REVISION_NUMBER
+#endif
+#ifdef COMMIT_HASH
+		", commit: " COMMIT_HASH
+#endif
+		"\n");
 #endif
 
 	for (i = 0; i < MAX_DEVICE; i++) {

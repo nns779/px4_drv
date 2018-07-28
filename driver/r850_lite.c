@@ -81,6 +81,9 @@ int r850_init(struct r850_tuner *t)
 {
 	int ret = 0;
 
+	if (t->init)
+		return 0;
+
 	// should check reg 0x00
 	t->chip = 1;
 
@@ -90,7 +93,23 @@ int r850_init(struct r850_tuner *t)
 	ret = r850_write_regs(t, 0x00, t->regs, R850_NUM_REGS);
 #endif
 
+	t->init = true;
+
 	return ret;
+}
+
+int r850_term(struct r850_tuner *t)
+{
+	if (!t->init)
+		return 0;
+
+	memset(t->regs, 0, sizeof(t->regs));
+
+	t->chip = 0;
+
+	t->init = false;
+
+	return 0;
 }
 
 int r850_write_config_regs(struct r850_tuner *t, u8 *regs)

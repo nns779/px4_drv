@@ -30,6 +30,7 @@ struct r850_system_config {
 struct r850_tuner {
 	struct i2c_comm_master *i2c;
 	u8 i2c_addr;
+	bool init;
 	int chip;
 	u32 xtal;
 	u8 xtal_pwr;
@@ -38,6 +39,7 @@ struct r850_tuner {
 };
 
 int r850_init(struct r850_tuner *t);
+int r850_term(struct r850_tuner *t);
 int r850_write_config_regs(struct r850_tuner *t, u8 *regs);
 int r850_is_pll_locked(struct r850_tuner *t, bool *locked);
 
