@@ -53,6 +53,8 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 		return -EINVAL;
 	}
 
+	mutex_lock(&it930x->ctrl_lock);
+
 	b = it930x->buf;
 	l = 3 + buf->len + 2;
 	seq = it930x->sequence++;
@@ -71,33 +73,36 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 	ret = it930x_bus_ctrl_tx(&it930x->bus, b, l + 1, NULL);
 	if (ret) {
 		pr_debug("it930x_control: it930x_bus_ctrl_tx() failed. (cmd: %04x, len: %u, ret: %d)\n", cmd, buf->len, ret);
-		return ret;
+		goto exit;
 	}
 
 	if (no_rx)
-		return 0;
+		goto exit;
 
 	ret = it930x_bus_ctrl_rx(&it930x->bus, b, &rl, NULL);
 	if (ret) {
 		pr_debug("it930x_control: it930x_bus_ctrl_rx() failed. (cmd: %04x, len: %u, rlen: %u, ret: %d)\n", cmd, buf->len, rl, ret);
-		return ret;
+		goto exit;
 	}
 
 	if (rl < 5) {
 		pr_debug("it930x_control: No enough response length. (cmd: %04x, len: %u, rlen: %u)\n", cmd, buf->len, rl);
-		return -EBADMSG;
+		ret = -EBADMSG;
+		goto exit;
 	}
 
 	csum1 = calc_checksum(&b[1], rl - 3);
 	csum2 = (((b[rl - 2] & 0xff) << 8) | (b[rl - 1] & 0xff));
 	if (csum1 != csum2) {
 		pr_debug("it930x_control: Incorrect checksum! (cmd: %04x, len: %u, rlen: %u, csum1: %04x, csum2: %04x)\n", cmd, buf->len, rl, csum1, csum2);
-		return -EBADMSG;
+		ret = -EBADMSG;
+		goto exit;
 	}
 
 	if (b[1] != seq) {
 		pr_debug("it930x_control: Incorrect sequence number! (cmd: %04x, len: %u, rlen: %u, seq: %02u, rseq: %02u, csum: %04x)\n", cmd, buf->len, rl, seq, b[1], csum1);
-		return -EBADMSG;
+		ret = -EBADMSG;
+		goto exit;
 	}
 
 	if (b[2]) {
@@ -114,6 +119,9 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 
 	if (rcode)
 		*rcode = b[2];
+
+exit:
+	mutex_unlock(&it930x->ctrl_lock);
 
 	return ret;
 }
@@ -533,6 +541,8 @@ static int it930x_config_stream_input(struct it930x_bridge *it930x)
 int it930x_init(struct it930x_bridge *it930x)
 {
 	int i;
+
+	mutex_init(&it930x->ctrl_lock);
 
 	// set i2c operator
 

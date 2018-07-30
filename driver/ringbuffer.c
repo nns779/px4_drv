@@ -108,7 +108,7 @@ exit:
 	// Release lock
 	atomic_sub(1, &ringbuffer->wait_cnt);
 
-	return 0;
+	return ret;
 }
 
 int ringbuffer_free(struct ringbuffer *ringbuffer)
@@ -134,7 +134,7 @@ exit:
 	// Release lock
 	atomic_sub(1, &ringbuffer->wait_cnt);
 
-	return 0;
+	return ret;
 }
 
 int ringbuffer_start(struct ringbuffer *ringbuffer)
@@ -158,7 +158,7 @@ exit:
 	// Release lock
 	atomic_sub(1, &ringbuffer->wait_cnt);
 
-	return 0;
+	return ret;
 }
 
 int ringbuffer_stop(struct ringbuffer *ringbuffer)
@@ -219,7 +219,7 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, siz
 	if (atomic_read(&ringbuffer->wait_cnt) && !rr)
 		wake_up(&ringbuffer->wait);
 
-	return 0;
+	return (write_size != len) ? (-ECANCELED) : (0);
 }
 
 int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len)
