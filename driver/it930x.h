@@ -36,7 +36,6 @@ struct it930x_stream_input {
 };
 
 struct it930x_bridge {
-	struct mutex ctrl_lock;
 	struct it930x_bus bus;
 	u32 fw_version;
 	struct it930x_stream_input input[5];

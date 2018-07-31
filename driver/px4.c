@@ -78,6 +78,7 @@ struct px4_device {
 	unsigned int dev_id;	// 1 or 2
 	struct it930x_bridge it930x;
 	struct cdev cdev;
+	unsigned int lnb_power_count;
 	unsigned int streaming_count;
 	struct px4_tsdev tsdev[TSDEV_NUM];
 	struct ringbuffer **rgbuf;
@@ -129,6 +130,7 @@ static int px4_init(struct px4_device *px4)
 	atomic_set(&px4->avail, 1);
 	init_waitqueue_head(&px4->wait);
 	mutex_init(&px4->lock);
+	px4->lnb_power_count = 0;
 	px4->streaming_count = 0;
 
 	for (i = 0; i < TSDEV_NUM; i++) {
@@ -271,24 +273,6 @@ static int px4_set_power(struct px4_device *px4, bool on)
 	}
 
 	return ret;
-}
-
-static int px4_set_lnb_power(struct px4_device *px4, bool on)
-{
-	int i;
-	bool b = false;
-
-	for (i = 0; i < TSDEV_NUM; i++) {
-		if (px4->tsdev[i].lnb_power) {
-			b = true;
-			break;
-		}
-	}
-
-	if ((b && !on) || (!b && on))
-		return 0;
-
-	return it930x_set_gpio(&px4->it930x, 11, (on) ? true : false);
 }
 
 static bool px4_ts_sync(u8 **buf, u32 *len, bool *sync_remain)
@@ -538,7 +522,8 @@ static void px4_tsdev_term(struct px4_tsdev *tsdev)
 
 static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 {
-	int ret = 0, dev_idx = container_of(tsdev, struct px4_device, tsdev[tsdev->id])->dev_idx;
+	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
+	int ret = 0, dev_idx = px4->dev_idx;
 	unsigned int tsdev_id = tsdev->id;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 	struct tc90522_regbuf regbuf_tc[3];
@@ -571,16 +556,22 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		// set frequency
 
+		mutex_lock(&px4->lock);
 		ret = tc90522_set_agc_s(tc90522, false);
-		if (ret)
+		if (ret) {
+			mutex_unlock(&px4->lock);
 			break;
+		}
 		tc90522_regbuf_set_val(&regbuf_tc[0], 0x8e, 0x06/*0x02*/);
 		tc90522_regbuf_set_val(&regbuf_tc[1], 0xa3, 0xf7);
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 2);
-		if (ret)
+		if (ret) {
+			mutex_unlock(&px4->lock);
 			break;
+		}
 
 		ret = rt710_set_params(&tsdev->t.rt710, real_freq, 28860, 4);
+		mutex_unlock(&px4->lock);
 		if (ret) {
 			pr_debug("px4_tsdev_set_channel %d:%u: rt710_set_params(%u, 28860, 4) failed.\n", dev_idx, tsdev_id, real_freq);
 			break;
@@ -588,7 +579,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		i = 50;
 		while (i--) {
+			mutex_lock(&px4->lock);
 			ret = rt710_get_pll_locked(&tsdev->t.rt710, &tuner_locked);
+			mutex_unlock(&px4->lock);
 			if (!ret && tuner_locked)
 				break;
 
@@ -608,7 +601,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
+		mutex_lock(&px4->lock);
 		ret = tc90522_set_agc_s(tc90522, true);
+		mutex_unlock(&px4->lock);
 		if (ret)
 			break;
 
@@ -616,7 +611,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		i = 100;
 		while (i--) {
+			mutex_lock(&px4->lock);
 			ret = tc90522_tmcc_get_tsid_s(tc90522, freq->slot, &tsid);
+			mutex_unlock(&px4->lock);
 			if ((!ret && tsid) || ret == -EINVAL)
 				break;
 
@@ -635,13 +632,17 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
+		mutex_lock(&px4->lock);
 		ret = tc90522_set_tsid_s(tc90522, tsid);
+		mutex_unlock(&px4->lock);
 		if (ret)
 			break;
 
 		i = 100;
 		while(i--) {
+			mutex_lock(&px4->lock);
 			ret = tc90522_get_tsid_s(tc90522, &tsid2);
+			mutex_unlock(&px4->lock);
 			if (!ret && tsid2 == tsid)
 				break;
 
@@ -690,21 +691,29 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
+		mutex_lock(&px4->lock);
 		tc90522_regbuf_set_val(&regbuf_tc[0], 0x47, 0x30);
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
-		if (ret)
+		if (ret) {
+			mutex_unlock(&px4->lock);
 			break;
+		}
 
 		ret = tc90522_set_agc_t(tc90522, false);
-		if (ret)
+		if (ret) {
+			mutex_unlock(&px4->lock);
 			break;
+		}
 
 		tc90522_regbuf_set_val(&regbuf_tc[0], 0x76, 0x0c);
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
-		if (ret)
+		if (ret) {
+			mutex_unlock(&px4->lock);
 			break;
+		}
 
 		ret = r850_write_config_regs(&tsdev->t.r850, regs);
+		mutex_unlock(&px4->lock);
 		if (ret) {
 			pr_debug("px4_tsdev_set_channel %d:%u: r850_write_config_regs() 1 failed.\n", dev_idx, tsdev_id);
 			break;
@@ -713,7 +722,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		msleep(40);
 
 		regs[0x2f - 0x08] |= 0x02;
+		mutex_lock(&px4->lock);
 		ret = r850_write_config_regs(&tsdev->t.r850, regs);
+		mutex_unlock(&px4->lock);
 		if (ret) {
 			pr_debug("px4_tsdev_set_channel %d:%u: r850_write_config_regs() 2 failed.\n", dev_idx, tsdev_id);
 			break;
@@ -721,7 +732,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		i = 50;
 		while (i--) {
+			mutex_lock(&px4->lock);
 			ret = r850_is_pll_locked(&tsdev->t.r850, &tuner_locked);
+			mutex_unlock(&px4->lock);
 			if (!ret && tuner_locked)
 				break;
 
@@ -741,20 +754,26 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
+		mutex_lock(&px4->lock);
 		ret = tc90522_set_agc_t(tc90522, true);
-		if (ret)
+		if (ret) {
+			mutex_unlock(&px4->lock);
 			break;
+		}
 
 		tc90522_regbuf_set_val(&regbuf_tc[0], 0x71, 0x21);
 		tc90522_regbuf_set_val(&regbuf_tc[1], 0x72, 0x25);
 		tc90522_regbuf_set_val(&regbuf_tc[2], 0x75, 0x08);
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 3);
+		mutex_unlock(&px4->lock);
 		if (ret)
 			break;
 
 		i = 300;
 		while (i--) {
+			mutex_lock(&px4->lock);
 			ret = tc90522_is_signal_locked_t(tc90522, &demod_locked);
+			mutex_unlock(&px4->lock);
 			if (!ret && demod_locked)
 				break;
 
@@ -898,12 +917,12 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 	}
 	streaming_count = px4->streaming_count;
 
-	mutex_unlock(&px4->lock);
-
 	ringbuffer_stop(tsdev->rgbuf);
 
-	if (!avail)
+	if (!avail) {
+		mutex_unlock(&px4->lock);
 		return 0;
+	}
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
@@ -921,6 +940,8 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 		break;
 	}
 
+	mutex_unlock(&px4->lock);
+
 	pr_debug("px4_tsdev_stop_streaming %d:%u: streaming_count: %u\n", px4->dev_idx, tsdev->id, streaming_count);
 
 	return ret;
@@ -929,7 +950,10 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 static int px4_tsdev_get_cn(struct px4_tsdev *tsdev, u32 *cn)
 {
 	int ret = 0;
+	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
+
+	mutex_lock(&px4->lock);
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
@@ -944,6 +968,37 @@ static int px4_tsdev_get_cn(struct px4_tsdev *tsdev, u32 *cn)
 		ret = -EIO;
 		break;
 	}
+
+	mutex_unlock(&px4->lock);
+
+	return ret;
+}
+
+static int px4_tsdev_set_lnb_power(struct px4_tsdev *tsdev, bool enable)
+{
+	int ret = 0;
+	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
+
+	if ((tsdev->lnb_power && enable) || (!tsdev->lnb_power && !enable))
+		return 0;
+
+	mutex_lock(&px4->lock);
+
+	if (enable) {
+		if (!px4->lnb_power_count)
+			ret = it930x_set_gpio(&px4->it930x, 11, true);
+
+		px4->lnb_power_count++;
+	} else {
+		if (px4->lnb_power_count == 1)
+			ret = it930x_set_gpio(&px4->it930x, 11, false);
+
+		px4->lnb_power_count--;
+	}
+
+	mutex_unlock(&px4->lock);
+
+	tsdev->lnb_power = enable;
 
 	return ret;
 }
@@ -1134,18 +1189,16 @@ static int px4_tsdev_release(struct inode *inode, struct file *file)
 
 	px4_tsdev_stop_streaming(tsdev, (avail) ? true : false);
 
-	if (avail)
+	if (avail) {
+		px4_tsdev_set_lnb_power(tsdev, false);
 		px4_tsdev_term(tsdev);
-
-	if (avail)
-		px4_set_lnb_power(px4, false);
+	}
 
 	ref = px4_unref(px4);
 	if (avail && ref <= 1)
 		px4_set_power(px4, false);
 
 	tsdev->open = false;
-	tsdev->lnb_power = false;
 
 	mutex_unlock(&px4->lock);
 	mutex_unlock(&tsdev->lock);
@@ -1221,6 +1274,7 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 	case PTX_ENABLE_LNB_POWER:
 	{
 		int lnb;
+		bool b;
 
 		lnb = (int)arg;
 
@@ -1233,18 +1287,16 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 
 		if (lnb == 0) {
 			// 0V
-			tsdev->lnb_power = false;
+			b = false;
 		} else if (lnb == 2) {
 			// 15V
-			tsdev->lnb_power = true;
+			b = true;
 		} else {
 			ret = -EINVAL;
 			break;
 		}
 
-		mutex_lock(&px4->lock);
-		ret = px4_set_lnb_power(px4, tsdev->lnb_power);
-		mutex_unlock(&px4->lock);
+		ret = px4_tsdev_set_lnb_power(tsdev, b);
 		break;
 	}
 
@@ -1256,16 +1308,7 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 			break;
 		}
 
-		if (!tsdev->lnb_power) {
-			ret = 0;
-			break;
-		}
-
-		tsdev->lnb_power = false;
-
-		mutex_lock(&px4->lock);
-		ret = px4_set_lnb_power(px4, false);
-		mutex_unlock(&px4->lock);
+		ret = px4_tsdev_set_lnb_power(tsdev, false);
 		break;
 
 	default:

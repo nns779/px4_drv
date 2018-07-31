@@ -53,8 +53,6 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 		return -EINVAL;
 	}
 
-	mutex_lock(&it930x->ctrl_lock);
-
 	b = it930x->buf;
 	l = 3 + buf->len + 2;
 	seq = it930x->sequence++;
@@ -73,36 +71,33 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 	ret = it930x_bus_ctrl_tx(&it930x->bus, b, l + 1, NULL);
 	if (ret) {
 		pr_debug("it930x_control: it930x_bus_ctrl_tx() failed. (cmd: %04x, len: %u, ret: %d)\n", cmd, buf->len, ret);
-		goto exit;
+		return ret;
 	}
 
 	if (no_rx)
-		goto exit;
+		return 0;
 
 	ret = it930x_bus_ctrl_rx(&it930x->bus, b, &rl, NULL);
 	if (ret) {
 		pr_debug("it930x_control: it930x_bus_ctrl_rx() failed. (cmd: %04x, len: %u, rlen: %u, ret: %d)\n", cmd, buf->len, rl, ret);
-		goto exit;
+		return ret;
 	}
 
 	if (rl < 5) {
 		pr_debug("it930x_control: No enough response length. (cmd: %04x, len: %u, rlen: %u)\n", cmd, buf->len, rl);
-		ret = -EBADMSG;
-		goto exit;
+		return -EBADMSG;
 	}
 
 	csum1 = calc_checksum(&b[1], rl - 3);
 	csum2 = (((b[rl - 2] & 0xff) << 8) | (b[rl - 1] & 0xff));
 	if (csum1 != csum2) {
 		pr_debug("it930x_control: Incorrect checksum! (cmd: %04x, len: %u, rlen: %u, csum1: %04x, csum2: %04x)\n", cmd, buf->len, rl, csum1, csum2);
-		ret = -EBADMSG;
-		goto exit;
+		return -EBADMSG;
 	}
 
 	if (b[1] != seq) {
 		pr_debug("it930x_control: Incorrect sequence number! (cmd: %04x, len: %u, rlen: %u, seq: %02u, rseq: %02u, csum: %04x)\n", cmd, buf->len, rl, seq, b[1], csum1);
-		ret = -EBADMSG;
-		goto exit;
+		return -EBADMSG;
 	}
 
 	if (b[2]) {
@@ -119,9 +114,6 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 
 	if (rcode)
 		*rcode = b[2];
-
-exit:
-	mutex_unlock(&it930x->ctrl_lock);
 
 	return ret;
 }
@@ -274,6 +266,10 @@ int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val)
 
 static int it930x_i2c_master_write(struct it930x_i2c_master_info *i2c, u8 addr, const u8 *data, int len)
 {
+	int ret = 0;
+#ifdef IT930X_I2C_WRITE_REPEAT
+	int ret2 = 0;
+#endif
 	u8 b[249];
 	struct ctrl_buf sb;
 
@@ -295,7 +291,25 @@ static int it930x_i2c_master_write(struct it930x_i2c_master_info *i2c, u8 addr, 
 	sb.buf = b;
 	sb.len = 3 + len;
 
-	return it930x_control(i2c->it930x, IT930X_CMD_I2C_WRITE, &sb, NULL, NULL, false);
+#ifdef IT930X_I2C_WRITE_REPEAT
+	ret = it930x_write_reg(i2c->it930x, 0xf424, 1);
+	if (ret) {
+		pr_debug("it930x_i2c_master_write: it930x_write_reg(0xf424, 1) failed. (ret: %d)\n", ret);
+		return ret;
+	}
+#endif
+
+	ret = it930x_control(i2c->it930x, IT930X_CMD_I2C_WRITE, &sb, NULL, NULL, false);
+
+#ifdef IT930X_I2C_WRITE_REPEAT
+	ret2 = it930x_write_reg(i2c->it930x, 0xf424, 0);
+	if (ret2)
+		pr_debug("it930x_i2c_master_write: it930x_write_reg(0xf424, 0) failed. (ret: %d)\n", ret);
+
+	return (ret) ? (ret) : (ret2);
+#else
+	return ret;
+#endif
 }
 
 static int it930x_i2c_master_read(struct it930x_i2c_master_info *i2c, u8 addr, u8 *data, int len)
@@ -542,7 +556,7 @@ int it930x_init(struct it930x_bridge *it930x)
 {
 	int i;
 
-	mutex_init(&it930x->ctrl_lock);
+	it930x->sequence = 0;
 
 	// set i2c operator
 
