@@ -97,7 +97,7 @@ static struct px4_device *devs[MAX_DEVICE];
 static bool devs_reserve[MAX_DEVICE];
 static unsigned int xfer_packets = 816;
 static unsigned int max_urbs = 6;
-static unsigned int tsdev_max_packets = 1024;
+static unsigned int tsdev_max_packets = 2048;
 static bool no_dma = false;
 
 module_param(xfer_packets, uint, S_IRUSR | S_IWUSR);
@@ -107,7 +107,7 @@ module_param(max_urbs, uint, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 6)");
 
 module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR);
-MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of packets buffering in tsdev. (default: 1024)");
+MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of packets buffering in tsdev. (default: 2048)");
 
 module_param(no_dma, bool, S_IRUSR | S_IWUSR);
 
