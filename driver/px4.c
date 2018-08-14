@@ -830,7 +830,9 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 
 		pr_debug("px4_tsdev_start_streaming %d:%u: max_urbs: %u, no_dma: %c\n", px4->dev_idx, tsdev->id, bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
 
-		it930x_purge_psb(&px4->it930x);
+		ret = it930x_purge_psb(&px4->it930x);
+		if (ret)
+			goto fail;
 	}
 
 	switch (tsdev->isdb) {
@@ -1185,22 +1187,26 @@ static int px4_tsdev_release(struct inode *inode, struct file *file)
 	avail = atomic_read(&px4->avail);
 
 	mutex_lock(&tsdev->lock);
-	mutex_lock(&px4->lock);
 
 	px4_tsdev_stop_streaming(tsdev, (avail) ? true : false);
 
 	if (avail) {
-		px4_tsdev_set_lnb_power(tsdev, false);
+		if (tsdev->isdb == ISDB_S)
+			px4_tsdev_set_lnb_power(tsdev, false);
+
 		px4_tsdev_term(tsdev);
 	}
+
+	mutex_lock(&px4->lock);
 
 	ref = px4_unref(px4);
 	if (avail && ref <= 1)
 		px4_set_power(px4, false);
 
+	mutex_unlock(&px4->lock);
+
 	tsdev->open = false;
 
-	mutex_unlock(&px4->lock);
 	mutex_unlock(&tsdev->lock);
 
 	wake_up(&px4->wait);
