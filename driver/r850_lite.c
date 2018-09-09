@@ -124,7 +124,7 @@ int r850_is_pll_locked(struct r850_tuner *t, bool *locked)
 
 	ret = r850_read_regs(t, 0x02, &tmp, 1);
 	if (ret) {
-		pr_debug("r850_is_pll_locked: r850_read_regs() failed. (ret: %d)\n", ret);
+		pr_err("r850_is_pll_locked: r850_read_regs() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 

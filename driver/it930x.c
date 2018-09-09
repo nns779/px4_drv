@@ -158,7 +158,7 @@ int it930x_write_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf
 
 		ret = it930x_control(it930x, IT930X_CMD_REG_WRITE, &sb, NULL, NULL, false);
 		if (ret) {
-			pr_debug("it930x_write_regs: it930x_control() failed. (num: %d, i: %d, reg: %x, len: %u)\n", num, i, reg, len);
+			pr_err("it930x_write_regs: it930x_control() failed. (num: %d, i: %d, reg: %x, len: %u)\n", num, i, reg, len);
 			break;
 		}
 	}
@@ -195,7 +195,7 @@ int it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val, u8 pos,
 	if (len < 8) {
 		ret = it930x_read_regs(it930x, &regbuf, 1);
 		if (ret) {
-			pr_debug("it930x_write_reg_bits: it930x_read_regs() failed. (reg: %x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
+			pr_err("it930x_write_reg_bits: it930x_read_regs() failed. (reg: %x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
 			return ret;
 		}
 
@@ -206,7 +206,7 @@ int it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val, u8 pos,
 
 	ret = it930x_write_regs(it930x, &regbuf, 1);
 	if (ret)
-		pr_debug("it930x_write_reg_bits: it930x_write_regs() failed. (reg: %x, val: %u, pos: %u, len: %u, t: %u, ret: %d)\n", reg, val, pos, len, tmp, ret);
+		pr_err("it930x_write_reg_bits: it930x_write_regs() failed. (reg: %x, val: %u, pos: %u, len: %u, t: %u, ret: %d)\n", reg, val, pos, len, tmp, ret);
 
 	return ret;
 }
@@ -246,12 +246,12 @@ int it930x_read_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf,
 
 		ret = it930x_control(it930x, IT930X_CMD_REG_READ, &sb, &rb, NULL, false);
 		if (ret) {
-			pr_debug("it930x_read_regs: it930x_control() failed. (num: %d, i: %d, reg: %x, len: %u, rlen: %u, ret: %d)\n", num, i, reg, regbuf[i].u.len, rb.len, ret);
+			pr_err("it930x_read_regs: it930x_control() failed. (num: %d, i: %d, reg: %x, len: %u, rlen: %u, ret: %d)\n", num, i, reg, regbuf[i].u.len, rb.len, ret);
 			break;
 		}
 
 		if (rb.len != regbuf[i].u.len)
-			pr_debug("it930x_read_regs: Incorrect size! (num: %d, i: %d, reg: %x, len: %u, rlen: %u)\n", num, i, reg, regbuf[i].u.len, rb.len);
+			pr_err("it930x_read_regs: Incorrect size! (num: %d, i: %d, reg: %x, len: %u, rlen: %u)\n", num, i, reg, regbuf[i].u.len, rb.len);
 	}
 
 	return ret;
@@ -294,7 +294,7 @@ static int it930x_i2c_master_write(struct it930x_i2c_master_info *i2c, u8 addr, 
 #ifdef IT930X_I2C_WRITE_REPEAT
 	ret = it930x_write_reg(i2c->it930x, 0xf424, 1);
 	if (ret) {
-		pr_debug("it930x_i2c_master_write: it930x_write_reg(0xf424, 1) failed. (ret: %d)\n", ret);
+		pr_err("it930x_i2c_master_write: it930x_write_reg(0xf424, 1) failed. (ret: %d)\n", ret);
 		return ret;
 	}
 #endif
@@ -304,7 +304,7 @@ static int it930x_i2c_master_write(struct it930x_i2c_master_info *i2c, u8 addr, 
 #ifdef IT930X_I2C_WRITE_REPEAT
 	ret2 = it930x_write_reg(i2c->it930x, 0xf424, 0);
 	if (ret2)
-		pr_debug("it930x_i2c_master_write: it930x_write_reg(0xf424, 0) failed. (ret: %d)\n", ret);
+		pr_err("it930x_i2c_master_write: it930x_write_reg(0xf424, 0) failed. (ret: %d)\n", ret);
 
 	return (ret) ? (ret) : (ret2);
 #else
@@ -532,7 +532,7 @@ static int it930x_config_stream_input(struct it930x_bridge *it930x)
 		if (input->port_number < 2) {
 			ret = it930x_write_reg(it930x, 0xda58 + input->port_number, (input->is_parallel) ? 1 : 0);
 			if (ret) {
-				pr_debug("it930x_config_stream_input: it930x_write_reg(0xda58 + port_number): failed. (idx: %d, ret: %d)\n", i, ret);
+				pr_err("it930x_config_stream_input: it930x_write_reg(0xda58 + port_number): failed. (idx: %d, ret: %d)\n", i, ret);
 				break;
 			}
 		}
@@ -544,7 +544,7 @@ static int it930x_config_stream_input(struct it930x_bridge *it930x)
 		it930x_regbuf_set_val(&regbuf[2], 0xda4c + input->port_number, 1);
 		ret = it930x_write_regs(it930x, regbuf, 3);
 		if (ret) {
-			pr_debug("it930x_config_stream_input: it930x_write_regs() failed. (idx: %d, ret: %d)\n", i, ret);
+			pr_err("it930x_config_stream_input: it930x_write_regs() failed. (idx: %d, ret: %d)\n", i, ret);
 			break;
 		}
 	}
@@ -584,7 +584,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 
 	ret = it930x_get_firmware_version(it930x);
 	if (ret) {
-		pr_debug("it930x_load_firmware: it930x_get_firmware_version() failed. 1 (ret: %d)\n", ret);
+		pr_err("it930x_load_firmware: it930x_get_firmware_version() failed. 1 (ret: %d)\n", ret);
 		goto end;
 	}
 
@@ -593,13 +593,13 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 
 	ret = it930x_write_reg(it930x, 0xf103, IT930X_I2C_SPEED);
 	if (ret) {
-		pr_debug("it930x_load_firmware: it930x_write_reg(0xf103) failed. (ret: %d)\n", ret);
+		pr_err("it930x_load_firmware: it930x_write_reg(0xf103) failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
 	ret = request_firmware(&fw, filename, &it930x->bus.usb.dev->dev);
 	if (ret) {
-		pr_debug("it930x_load_firmware: request_firmware() failed. (ret: %d)\n", ret);
+		pr_err("it930x_load_firmware: request_firmware() failed. (ret: %d)\n", ret);
 		pr_err("Couldn't load firmware from the file.\n");
 		return ret;
 	}
@@ -613,7 +613,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 		len = 0;
 
 		if (p[0] != 0x03) {
-			pr_debug("it930x_load_firmware: Invalid firmware block was found. Abort. (ofs: %zx)\n", i);
+			pr_err("it930x_load_firmware: Invalid firmware block was found. Abort. (ofs: %zx)\n", i);
 			ret = -ECANCELED;
 			goto end;
 		}
@@ -622,7 +622,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 			len += p[6 + (j * 3)];
 
 		if (!len) {
-			pr_debug("it930x_load_firmware: No data in the block. (ofs: %zx)\n", i);
+			pr_warn("it930x_load_firmware: No data in the block. (ofs: %zx)\n", i);
 			continue;
 		}
 
@@ -635,7 +635,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 
 		ret = it930x_control(it930x, IT930X_CMD_FW_SCATTER_WRITE, &sb, NULL, NULL, false);
 		if (ret) {
-			pr_debug("it930x_load_firmware: it930x_control(IT930X_CMD_FW_SCATTER_WRITE) failed. (ofs: %zx, ret: %d)\n", i, ret);
+			pr_err("it930x_load_firmware: it930x_control(IT930X_CMD_FW_SCATTER_WRITE) failed. (ofs: %zx, ret: %d)\n", i, ret);
 			goto end;
 		}
 	}
@@ -645,13 +645,13 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 
 	ret = it930x_control(it930x, IT930X_CMD_BOOT, &sb, NULL, NULL, false);
 	if (ret) {
-		pr_debug("it930x_load_firmware: it930x_control(IT930X_CMD_BOOT) failed. (ret: %d)\n", ret);
+		pr_err("it930x_load_firmware: it930x_control(IT930X_CMD_BOOT) failed. (ret: %d)\n", ret);
 		goto end;
 	}
 
 	ret = it930x_get_firmware_version(it930x);
 	if (ret) {
-		pr_debug("it930x_load_firmware: it930x_get_firmware_version() failed. 2 (ret: %d)\n", ret);
+		pr_err("it930x_load_firmware: it930x_get_firmware_version() failed. 2 (ret: %d)\n", ret);
 		goto end;
 	}
 
@@ -692,13 +692,13 @@ int it930x_init_device(struct it930x_bridge *it930x)
 
 	ret = it930x_enable_dvbt_mode(it930x, true);
 	if (ret) {
-		pr_debug("it930x_init_device: it930x_enable_dvbt_mode() failed.\n");
+		pr_err("it930x_init_device: it930x_enable_dvbt_mode() failed.\n");
 		return ret;
 	}
 
 	ret = it930x_enable_stream_output(it930x, true, it930x->bus.usb.streaming_xfer_size);
 	if (ret) {
-		pr_debug("it930x_init_device: it930x_enable_stream_output() failed.\n");
+		pr_err("it930x_init_device: it930x_enable_stream_output() failed.\n");
 		return ret;
 	}
 
@@ -713,13 +713,13 @@ int it930x_init_device(struct it930x_bridge *it930x)
 
 	ret = it930x_config_i2c(it930x);
 	if (ret) {
-		pr_debug("it930x_init_device: it930x_config_i2c() failed. (ret: %d)\n", ret);
+		pr_err("it930x_init_device: it930x_config_i2c() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
 	ret = it930x_config_stream_input(it930x);
 	if (ret) {
-		pr_debug("it930x_init_device: it930x_config_stream_input() failed. (ret: %d)\n", ret);
+		pr_err("it930x_init_device: it930x_config_stream_input() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
