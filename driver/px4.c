@@ -796,7 +796,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	if (!ret)
 		pr_debug("px4_tsdev_set_channel %d:%u: succeeded.\n", dev_idx, tsdev_id);
 	else
-		pr_err("px4_tsdev_set_channel %d:%u: failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+		pr_debug("px4_tsdev_set_channel %d:%u: failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 
 	return ret;
 }
