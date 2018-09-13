@@ -37,3 +37,20 @@ $ cd ../
 
 $ sudo modprobe -r px4_drv
 $ sudo modprobe px4_drv
+
+[ドライバのアンインストール]
+
+$ sudo make uninstall
+
+[ドライバのインストール (DKMS)]
+
+gcc, make, カーネルソース/ヘッダ, dkmsがインストールされている必要があります
+
+$ sudo cp -a ./ /usr/src/px4_drv-0.1.0
+$ sudo dkms add px4_drv/0.1.0
+$ sudo dkms install px4_drv/0.1.0
+
+[ドライバのアンインストール (DKMS)]
+
+$ sudo dkms remove px4_drv/0.1.0 --all
+$ sudo rm -rf /usr/src/px4_drv-0.1.0

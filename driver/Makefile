@@ -8,14 +8,14 @@ TARGET := px4_drv.ko
 
 drv-MAX_DEVICE := 0
 
-prefix := @
+cmd_prefix := @
 
 ccflags-y := -I$(M)/../include
 ifneq ($(DEBUG),0)
 ccflags-y += -DDEBUG -g
 endif
 ifneq ($(VERBOSE),0)
-prefix :=
+cmd_prefix :=
 endif
 ifneq ($(drv-MAX_DEVICE),0)
 ccflags-y += -DMAX_DEVICE=$(drv-MAX_DEVICE)
@@ -27,10 +27,10 @@ px4_drv-objs := px4.o it930x-bus.o it930x.o tc90522.o rt710.o r850_lite.o r850_c
 all: module
 
 module: revision.h
-	$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) modules
+	$(cmd_prefix)$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) modules
 
 revision.h: FORCE
-	$(prefix)rev=`git rev-list --count HEAD` 2>/dev/null; \
+	$(cmd_prefix)rev=`git rev-list --count HEAD` 2>/dev/null; \
 	commit=`git rev-list --max-count=1 HEAD` 2>/dev/null; \
 	if [ ! -s $@ ] || [ \"`grep -soP '(?<=#define REVISION_NUMBER\\s\\")[0-9]+(?=\\")' $@`.`grep -soP '(?<=#define COMMIT_HASH\\s\\")[0-9A-Fa-f]+(?=\\")' $@`\" != \"$${rev}.$${commit}\" ]; then \
 	echo "// revision.h" > $@; \
@@ -50,16 +50,22 @@ revision.h: FORCE
 	fi
 
 clean:
-	$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) clean
-	rm -f revision.h
+	$(cmd_prefix)$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) clean
+	$(cmd_prefix)rm -f revision.h
 
-install:
+install: copy-udev-rules
+	$(cmd_prefix)install -D -v -m 644 $(TARGET) $(INSTALL_DIR)/$(TARGET)
+	$(cmd_prefix)depmod -a $(KVER)
+
+uninstall: remove-udev-rules
+	$(cmd_prefix)rm -fv $(INSTALL_DIR)/$(TARGET)
+
+copy-udev-rules:
 	@rm -f /etc/udev/rules.d/90-px4.rules
-	install -D -v -m 644 $(TARGET) $(INSTALL_DIR)/$(TARGET)
-	install -D -v -m 644 ../etc/99-px4video.rules /etc/udev/rules.d/99-px4video.rules
-	depmod -a $(KVER)
+	$(cmd_prefix)install -D -v -m 644 ../etc/99-px4video.rules /etc/udev/rules.d/99-px4video.rules
 
-uninstall:
-	rm -fv $(INSTALL_DIR)/$(TARGET) /etc/udev/rules.d/99-px4video.rules /etc/udev/rules.d/90-px4.rules
+remove-udev-rules:
+	@rm -f /etc/udev/rules.d/90-px4.rules
+	$(cmd_prefix)rm -fv /etc/udev/rules.d/99-px4video.rules
 
 FORCE:
