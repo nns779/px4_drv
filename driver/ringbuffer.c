@@ -86,7 +86,7 @@ int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size)
 
 	if (ringbuffer->buf) {
 		if (ringbuffer->buf_size == size)
-			goto exit;
+			goto reset;
 
 		_ringbuffer_free(ringbuffer);
 	}
@@ -100,6 +100,8 @@ int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size)
 	}
 
 	ringbuffer->buf_size = size;
+
+reset:
 	ringbuffer->data_size = 0;
 	ringbuffer->tail_pos = 0;
 	ringbuffer->head_pos = 0;
