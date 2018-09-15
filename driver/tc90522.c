@@ -338,5 +338,5 @@ int tc90522_is_signal_locked_t(struct tc90522_demod *demod, bool *lock)
 
 	*lock = true;
 
-	return ret;
+	return 0;
 }
