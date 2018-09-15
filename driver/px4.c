@@ -807,6 +807,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 	struct it930x_bus *bus = &px4->it930x.bus;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
+	unsigned int ringbuffer_size;
 	unsigned int streaming_count;
 
 	if (atomic_read(&tsdev->streaming))
@@ -827,6 +828,9 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 		if (ret)
 			goto fail;
 	}
+
+	ringbuffer_size = 188 * tsdev_max_packets;
+	pr_debug("px4_tsdev_start_streaming %d:%u: size of ringbuffer: %u\n", px4->dev_idx, tsdev->id, ringbuffer_size);
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
@@ -853,7 +857,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	if (ret)
 		goto fail;
 
-	ret = ringbuffer_alloc(tsdev->rgbuf, 188 * tsdev_max_packets);
+	ret = ringbuffer_alloc(tsdev->rgbuf, ringbuffer_size);
 	if (ret)
 		goto fail;
 

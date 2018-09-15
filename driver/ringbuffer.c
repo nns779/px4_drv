@@ -178,7 +178,7 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, siz
 	size_t buf_size, data_size, tail_pos, write_size;
 	int rr;
 
-	if (!atomic_read(&ringbuffer->avail))
+	if (atomic_read(&ringbuffer->avail) != 2)
 		return -EIO;
 
 	atomic_add(1, &ringbuffer->rw_cnt);
@@ -230,7 +230,7 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 	size_t buf_size, l = *len, buf_pos = 0;
 	int rr;
 
-	if (!atomic_read(&ringbuffer->avail))
+	if (!atomic_cmpxchg(&ringbuffer->avail, 1, 2))
 		return -EIO;
 
 	atomic_add(1, &ringbuffer->rw_cnt);
