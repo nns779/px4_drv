@@ -24,9 +24,9 @@ endif
 obj-m := px4_drv.o
 px4_drv-objs := px4.o it930x-bus.o it930x.o tc90522.o rt710.o r850_lite.o r850_channel.o ringbuffer.o
 
-all: module
+all: $(TARGET)
 
-module: revision.h
+$(TARGET): FORCE revision.h
 	$(cmd_prefix)$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) modules
 
 revision.h: FORCE
@@ -53,19 +53,19 @@ clean:
 	$(cmd_prefix)$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) clean
 	$(cmd_prefix)rm -f revision.h
 
-install: copy-udev-rules
+install:
 	$(cmd_prefix)install -D -v -m 644 $(TARGET) $(INSTALL_DIR)/$(TARGET)
+	$(cmd_prefix)rm -fv /etc/udev/rules.d/90-px4.rules
+	$(cmd_prefix)install -D -v -m 644 ../etc/99-px4video.rules /etc/udev/rules.d/99-px4video.rules
 	$(cmd_prefix)depmod -a $(KVER)
 
-uninstall: remove-udev-rules
+uninstall:
 	$(cmd_prefix)rm -fv $(INSTALL_DIR)/$(TARGET)
-
-copy-udev-rules:
-	@rm -f /etc/udev/rules.d/90-px4.rules
-	$(cmd_prefix)install -D -v -m 644 ../etc/99-px4video.rules /etc/udev/rules.d/99-px4video.rules
-
-remove-udev-rules:
-	@rm -f /etc/udev/rules.d/90-px4.rules
-	$(cmd_prefix)rm -fv /etc/udev/rules.d/99-px4video.rules
+	$(cmd_prefix)if [ `find /lib/modules/ -name px4_drv.ko | wc -l` -eq 0 ]; then \
+	rm -fv /etc/udev/rules.d/90-px4.rules /etc/udev/rules.d/99-px4video.rules; \
+	fi
+	$(cmd_prefix)depmod -a $(KVER)
 
 FORCE:
+
+.PHONY: clean install uninstall FORCE
