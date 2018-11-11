@@ -5,6 +5,6 @@
 
 #include "r850_lite.h"
 
-int r850_channel_get_regs(u32 no, u8 *regs);
+int r850_channel_get_regs(u32 no, u8 regs[2][R850_NUM_REGS - 0x08]);
 
 #endif

@@ -436,7 +436,7 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 			struct px4_tsdev *tsdev_t0 = &container_of(tsdev, struct px4_device, tsdev[tsdev->id])->tsdev[2];
 
 			if (!tsdev_t0->init) {
-				u8 regs[R850_NUM_REGS - 0x08];
+				u8 regs[2][R850_NUM_REGS - 0x08];
 
 				r850_channel_get_regs(63, regs);
 
@@ -448,7 +448,7 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 					break;
 				}
 
-				ret = r850_write_config_regs(&tsdev_t0->t.r850, regs);
+				ret = r850_write_config_regs(&tsdev_t0->t.r850, regs[0]);
 				if (ret) {
 					pr_err("px4_tsdev_init %d:%u(*): r850_write_config_regs() 2 failed.\n", px4->dev_idx, 2);
 					break;
@@ -654,7 +654,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	{
 		int i;
 		bool tuner_locked, demod_locked;
-		u8 regs[R850_NUM_REGS - 0x08];
+		u8 regs[2][R850_NUM_REGS - 0x08];
 
 		if ((freq->freq_no >= 3 && freq->freq_no <= 12) || (freq->freq_no >= 22 && freq->freq_no <= 62)) {
 			// CATV C13-C22ch, C23-63ch
@@ -664,8 +664,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			if (freq->freq_no == 12)
 				real_freq += 2000;
 #else
-			ret = -ENOSYS;
-			break;
+			ret = r850_channel_get_regs(freq->freq_no, regs);
+			if (ret)
+				break;
 #endif
 		} else if (freq->freq_no >= 63 && freq->freq_no <= 102) {
 			// UHF 13-52ch
@@ -703,7 +704,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
-		ret = r850_write_config_regs(&tsdev->t.r850, regs);
+		ret = r850_write_config_regs(&tsdev->t.r850, regs[0]);
 		mutex_unlock(&px4->lock);
 		if (ret) {
 			pr_err("px4_tsdev_set_channel %d:%u: r850_write_config_regs() 1 failed.\n", dev_idx, tsdev_id);
@@ -712,9 +713,8 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		msleep(40);
 
-		regs[0x2f - 0x08] |= 0x02;
 		mutex_lock(&px4->lock);
-		ret = r850_write_config_regs(&tsdev->t.r850, regs);
+		ret = r850_write_config_regs(&tsdev->t.r850, regs[1]);
 		mutex_unlock(&px4->lock);
 		if (ret) {
 			pr_err("px4_tsdev_set_channel %d:%u: r850_write_config_regs() 2 failed.\n", dev_idx, tsdev_id);
