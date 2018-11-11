@@ -73,8 +73,6 @@ struct px4_device {
 	wait_queue_head_t wait;
 	struct mutex lock;
 	int dev_idx;
-	u16 vid;		// Vendor id
-	u16 pid;		// Product id
 	unsigned int dev_id;	// 1 or 2
 	struct it930x_bridge it930x;
 	struct cdev cdev;
@@ -1393,6 +1391,9 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	usbdev = interface_to_usbdev(intf);
 
+	if (usbdev->speed < USB_SPEED_HIGH)
+		pr_warn("This device is operating as USB 1.1 or less.\n");
+
 	px4 = kzalloc(sizeof(*px4), GFP_KERNEL);
 	if (!px4) {
 		pr_err("px4_probe: kzalloc() failed.\n");
@@ -1408,8 +1409,6 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	}
 
 	px4->dev_idx = dev_idx;
-	px4->vid = id->idVendor;
-	px4->pid = id->idProduct;
 	px4->dev_id = 0;
 
 	if (strlen(usbdev->serial) == 15)
@@ -1520,9 +1519,11 @@ fail_before_bus:
 		kfree(px4);
 	}
 
-	mutex_lock(&glock);
-	devs_reserve[dev_idx] = false;
-	mutex_unlock(&glock);
+	if (dev_idx != -1) {
+		mutex_lock(&glock);
+		devs_reserve[dev_idx] = false;
+		mutex_unlock(&glock);
+	}
 
 	return ret;
 }
