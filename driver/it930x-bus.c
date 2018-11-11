@@ -210,7 +210,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 			break;
 		}
 
-		pr_debug("it930x_usb_start_streaming: p: %p, l: %u, dma: %llx\n", p, l, dma);
+		pr_debug("it930x_usb_start_streaming: p: %p, l: %u, dma: %pad\n", p, l, &dma);
 
 		usb_fill_bulk_urb(urbs[i], dev, usb_rcvbulkpipe(dev, 0x84), p, l, it930x_usb_complete, ctx);
 
