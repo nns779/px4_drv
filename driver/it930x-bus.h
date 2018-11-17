@@ -3,6 +3,7 @@
 #ifndef	__IT930X_BUS_H__
 #define __IT930X_BUS_H__
 
+#include <linux/device.h>
 #include <linux/usb.h>
 
 #include "it930x-config.h"
@@ -25,6 +26,7 @@ struct it930x_bus_operations {
 };
 
 struct it930x_bus {
+	struct device *dev;
 	it930x_bus_type_t type;
 	union {
 		struct {

@@ -4,10 +4,12 @@
 #define __TC90522_H__
 
 #include <linux/types.h>
+#include <linux/device.h>
 
 #include "i2c_comm.h"
 
 struct tc90522_demod {
+	struct device *dev;
 	struct i2c_comm_master *i2c;
 	u8 i2c_addr;
 	struct i2c_comm_master i2c_master;
@@ -42,6 +44,7 @@ int tc90522_read_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf
 int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val);
 
 int tc90522_init(struct tc90522_demod *demod);
+int tc90522_term(struct tc90522_demod *demod);
 
 int tc90522_sleep_s(struct tc90522_demod *demod, bool sleep);
 int tc90522_set_agc_s(struct tc90522_demod *demod, bool on);

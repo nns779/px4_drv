@@ -8,6 +8,7 @@
 #include <linux/kernel.h>
 #include <linux/atomic.h>
 #include <linux/slab.h>
+#include <linux/device.h>
 #include <linux/usb.h>
 
 #include "it930x-config.h"
@@ -55,7 +56,7 @@ static int it930x_usb_ctrl_tx(struct it930x_bus *bus, const void *buf, int len, 
 #endif
 
 	if (ret)
-		pr_debug("it930x_usb_ctrl_tx: Failed. (ret: %d)\n", ret);
+		dev_dbg(bus->dev, "it930x_usb_ctrl_tx: Failed. (ret: %d)\n", ret);
 
 	mdelay(1);
 
@@ -73,7 +74,7 @@ static int it930x_usb_ctrl_rx(struct it930x_bus *bus, void *buf, int *len, void 
 	/* Endpoint 0x81: Control OUT */
 	ret = usb_bulk_msg(dev, usb_rcvbulkpipe(dev, 0x81), buf, *len, &rlen, bus->usb.ctrl_timeout);
 	if (ret)
-		pr_debug("it930x_usb_ctrl_rx: Failed. (ret: %d)\n", ret);
+		dev_dbg(bus->dev, "it930x_usb_ctrl_rx: Failed. (ret: %d)\n", ret);
 
 	*len = rlen;
 
@@ -93,7 +94,7 @@ static int it930x_usb_stream_rx(struct it930x_bus *bus, void *buf, int *len, int
 	/* Endpoint 0x84: Stream OUT */
 	ret = usb_bulk_msg(dev, usb_rcvbulkpipe(dev, 0x84), buf, *len, &rlen, timeout);
 	if (ret)
-		pr_debug("it930x_usb_stream_rx: Failed. (ret: %d)\n", ret);
+		dev_dbg(bus->dev, "it930x_usb_stream_rx: Failed. (ret: %d)\n", ret);
 
 	*len = rlen;
 
@@ -136,19 +137,19 @@ static void it930x_usb_complete(struct urb *urb)
 	struct context *ctx = urb->context;
 
 	if (urb->status) {
-		pr_debug("it930x_usb_complete: status: %d\n", urb->status);
+		dev_dbg(ctx->bus->dev, "it930x_usb_complete: status: %d\n", urb->status);
 		return;
 	}
 
 	if (urb->actual_length)
 		ret = ctx->on_stream(ctx->ctx, urb->transfer_buffer, urb->actual_length);
 	else
-		pr_debug("it930x_usb_complete: !urb->actual_length\n");
+		dev_dbg(ctx->bus->dev, "it930x_usb_complete: !urb->actual_length\n");
 
 	if (!ret) {
 		ret = usb_submit_urb(urb, GFP_ATOMIC);
 		if (ret)
-			pr_debug("it930x_usb_complete: usb_submit_urb() failed. (ret: %d)\n", ret);
+			dev_dbg(ctx->bus->dev, "it930x_usb_complete: usb_submit_urb() failed. (ret: %d)\n", ret);
 	}
 
 	return;
@@ -167,7 +168,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	if (!on_stream)
 		return -EINVAL;
 
-	pr_debug("it930x_usb_start_streaming\n");
+	dev_dbg(bus->dev, "it930x_usb_start_streaming\n");
 
 	if (atomic_add_return(2, &priv->start) > 2) {
 		atomic_sub(2, &priv->start);
@@ -193,7 +194,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 
 		urbs[i] = usb_alloc_urb(0, GFP_ATOMIC | __GFP_ZERO);
 		if (!urbs[i]) {
-			pr_debug("it930x_usb_start_streaming: usb_alloc_urb() failed.\n");
+			dev_dbg(bus->dev, "it930x_usb_start_streaming: usb_alloc_urb() failed.\n");
 			break;
 		}
 
@@ -203,14 +204,14 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 			p = kmalloc(l, GFP_ATOMIC);
 
 		if (!p) {
-			pr_debug("it930x_usb_start_streaming: usb_alloc_coherent() failed.\n");
+			dev_dbg(bus->dev, "it930x_usb_start_streaming: usb_alloc_coherent() failed.\n");
 
 			usb_free_urb(urbs[i]);
 			urbs[i] = NULL;
 			break;
 		}
 
-		pr_debug("it930x_usb_start_streaming: p: %p, l: %u, dma: %pad\n", p, l, &dma);
+		dev_dbg(bus->dev, "it930x_usb_start_streaming: p: %p, l: %u, dma: %pad\n", p, l, &dma);
 
 		usb_fill_bulk_urb(urbs[i], dev, usb_rcvbulkpipe(dev, 0x84), p, l, it930x_usb_complete, ctx);
 
@@ -234,7 +235,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 		if (ret) {
 			int j;
 
-			pr_debug("it930x_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
+			dev_dbg(bus->dev, "it930x_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
 
 			for (j = 0; j < i; j++)
 				usb_kill_urb(urbs[j]);
@@ -246,7 +247,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	if (ret)
 		goto fail;
 
-	pr_debug("it930x_usb_start_streaming: n: %u\n", n);
+	dev_dbg(bus->dev, "it930x_usb_start_streaming: n: %u\n", n);
 
 	priv->urbs = urbs;
 	priv->num_urb = n;
@@ -271,7 +272,7 @@ static int it930x_usb_stop_streaming(struct it930x_bus *bus)
 	struct priv_data_usb *priv = bus->usb.priv;
 	struct urb **urbs = priv->urbs;
 
-	pr_debug("it930x_usb_stop_streaming\n");
+	dev_dbg(bus->dev, "it930x_usb_stop_streaming\n");
 
 	if (atomic_read(&priv->start) != 1)
 		return 0;

@@ -4,7 +4,6 @@
 #define __IT930X_H__
 
 #include <linux/types.h>
-#include <linux/mutex.h>
 #include <linux/device.h>
 
 #include "it930x-config.h"
@@ -36,6 +35,7 @@ struct it930x_stream_input {
 };
 
 struct it930x_bridge {
+	struct device *dev;
 	struct it930x_bus bus;
 	u32 fw_version;
 	struct it930x_stream_input input[5];
@@ -75,6 +75,8 @@ int it930x_read_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf,
 int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val);
 
 int it930x_init(struct it930x_bridge *it930x);
+int it930x_term(struct it930x_bridge *it930x);
+
 int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename);
 int it930x_init_device(struct it930x_bridge *it930x);
 int it930x_set_gpio(struct it930x_bridge *it930x, int gpio, bool h);

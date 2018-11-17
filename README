@@ -40,7 +40,9 @@ $ sudo modprobe px4_drv
 
 [ドライバのアンインストール]
 
+$ cd driver
 $ sudo make uninstall
+$ cd ../
 
 [ドライバのインストール (DKMS)]
 

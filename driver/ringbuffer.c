@@ -2,11 +2,11 @@
 
 #include <linux/types.h>
 #include <linux/kernel.h>
-#include <linux/slab.h>
 #include <linux/atomic.h>
 #include <linux/spinlock.h>
 #include <linux/sched.h>
 #include <linux/wait.h>
+#include <linux/slab.h>
 #include <linux/uaccess.h>
 
 #include "ringbuffer.h"

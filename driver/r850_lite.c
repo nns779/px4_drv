@@ -10,6 +10,7 @@
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/string.h>
+#include <linux/device.h>
 
 #include "r850_lite.h"
 
@@ -124,7 +125,7 @@ int r850_is_pll_locked(struct r850_tuner *t, bool *locked)
 
 	ret = r850_read_regs(t, 0x02, &tmp, 1);
 	if (ret) {
-		pr_err("r850_is_pll_locked: r850_read_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev, "r850_is_pll_locked: r850_read_regs() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 

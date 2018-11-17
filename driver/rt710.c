@@ -9,6 +9,7 @@
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/delay.h>
+#include <linux/device.h>
 
 #include "i2c_comm.h"
 #include "rt710.h"
@@ -86,15 +87,20 @@ int rt710_init(struct rt710_tuner *t)
 
 	ret = rt710_read_regs(t, 0x03, &tmp, 1);
 	if (ret) {
-		pr_err("rt710_init: rt710_read_regs() failed.\n");
+		dev_err(t->dev, "rt710_init: rt710_read_regs() failed.\n");
 		return ret;
 	}
 
 	if ((tmp & 0xf0) != 0x70) {
-		pr_err("rt710_init: Unknown chip.\n");
+		dev_err(t->dev, "rt710_init: Unknown chip.\n");
 		return -ENOSYS;
 	}
 
+	return 0;
+}
+
+int rt710_term(struct rt710_tuner *t)
+{
 	return 0;
 }
 
@@ -259,13 +265,13 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 
 	ret = rt710_write_regs(t, 0x00, regs, NUM_REGS);
 	if (ret) {
-		pr_err("rt710_set_params: rt710_write_regs(0x00, NUM_REGS) failed. (ret: %d)", ret);
+		dev_err(t->dev, "rt710_set_params: rt710_write_regs(0x00, NUM_REGS) failed. (ret: %d)", ret);
 		return ret;
 	}
 
 	ret = rt710_set_pll_regs(t, regs, freq);
 	if (ret) {
-		pr_err("rt710_set_params: rt710_set_pll_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev, "rt710_set_params: rt710_set_pll_regs() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
@@ -342,7 +348,7 @@ int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked)
 
 	ret = rt710_read_regs(t, 0x02, &tmp, 1);
 	if (ret) {
-		pr_err("rt710_is_pll_locked: rt710_read_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev, "rt710_is_pll_locked: rt710_read_regs() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
