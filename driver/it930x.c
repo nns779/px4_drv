@@ -617,7 +617,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 		return ret;
 	}
 
-	ret = request_firmware(&fw, filename, &it930x->bus.usb.dev->dev);
+	ret = request_firmware(&fw, filename, it930x->dev);
 	if (ret) {
 		dev_err(it930x->dev, "it930x_load_firmware: request_firmware() failed. (ret: %d)\n", ret);
 		dev_err(it930x->dev, "Couldn't load firmware from the file.\n");
