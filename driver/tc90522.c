@@ -141,6 +141,10 @@ int tc90522_init(struct tc90522_demod *demod)
 
 int tc90522_term(struct tc90522_demod *demod)
 {
+	demod->i2c_master.wr = NULL;
+	demod->i2c_master.rd = NULL;
+	demod->i2c_master.priv = NULL;
+
 	return 0;
 }
 

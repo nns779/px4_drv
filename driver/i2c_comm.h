@@ -11,12 +11,18 @@ struct i2c_comm_master {
 
 static inline int i2c_comm_master_write(struct i2c_comm_master *m, u8 addr, const u8 *data, int len)
 {
-	return m->wr(m->priv, addr, data, len);
+	if (m && m->wr)
+		return m->wr(m->priv, addr, data, len);
+	else
+		return -EFAULT;
 }
 
 static inline int i2c_comm_master_read(struct i2c_comm_master *m, u8 addr, u8 *data, int len)
 {
-	return m->rd(m->priv, addr, data, len);
+	if (m && m->rd)
+		return m->rd(m->priv, addr, data, len);
+	else
+		return -EFAULT;
 }
 
 #endif

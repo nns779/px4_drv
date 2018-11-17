@@ -576,6 +576,19 @@ int it930x_init(struct it930x_bridge *it930x)
 
 int it930x_term(struct it930x_bridge *it930x)
 {
+	int i;
+
+	// clear i2c operator
+
+	for (i = 0; i < 2; i++) {
+		it930x->i2c[i].it930x = NULL;
+		it930x->i2c[i].bus = 0;
+
+		it930x->i2c_master[i].wr = NULL;
+		it930x->i2c_master[i].rd = NULL;
+		it930x->i2c_master[i].priv = NULL;
+	}
+
 	return 0;
 }
 
