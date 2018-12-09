@@ -85,6 +85,7 @@ struct px4_device {
 	struct ringbuffer **rgbuf;
 };
 
+MODULE_VERSION(PX4_DRIVER_VERSION);
 MODULE_AUTHOR("nns779");
 MODULE_DESCRIPTION("PLEX PX-W3U4/W3PE4/Q3PE4 Unofficial Linux driver");
 MODULE_LICENSE("GPL v2");
@@ -1634,7 +1635,12 @@ static int px4_module_init(void)
 #ifdef COMMIT_HASH
 		", commit: " COMMIT_HASH
 #endif
+#ifdef REVISION_NAME
+		" @ " REVISION_NAME
+#endif
 		"\n");
+#else
+	pr_info(KBUILD_MODNAME);
 #endif
 
 	for (i = 0; i < MAX_DEVICE; i++) {

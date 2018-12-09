@@ -31,8 +31,9 @@ $(TARGET): FORCE revision.h
 
 revision.h: FORCE
 	$(cmd_prefix)rev=`git rev-list --count HEAD` 2>/dev/null; \
+	rev_name=`git name-rev --name-only HEAD` 2>/dev/null; \
 	commit=`git rev-list --max-count=1 HEAD` 2>/dev/null; \
-	if [ ! -s $@ ] || [ \"`grep -soP '(?<=#define REVISION_NUMBER\\s\\")[0-9]+(?=\\")' $@`.`grep -soP '(?<=#define COMMIT_HASH\\s\\")[0-9A-Fa-f]+(?=\\")' $@`\" != \"$${rev}.$${commit}\" ]; then \
+	if [ ! -s $@ ] || [ \"`grep -soP '(?<=#define REVISION_NUMBER\\s\\")[0-9]+(?=\\")' $@`.`grep -soP '(?<=#define REVISION_NAME\\s\\")[[:print:]]+(?=\\")' $@`.`grep -soP '(?<=#define COMMIT_HASH\\s\\")[0-9A-Fa-f]+(?=\\")' $@`\" != \"$${rev}.$${rev_name}.$${commit}\" ]; then \
 	echo "// revision.h" > $@; \
 	echo "" >> $@; \
 	echo "#ifndef __REVISION_H__" >> $@; \
@@ -40,6 +41,9 @@ revision.h: FORCE
 	echo "" >> $@; \
 	if [ -n "$${rev}" ]; then \
 	echo "#define REVISION_NUMBER	\"$${rev}\"" >> $@; \
+	fi; \
+	if [ -n "$${rev_name}" ]; then \
+	echo "#define REVISION_NAME	\"$${rev_name}\"" >> $@; \
 	fi; \
 	if [ -n "$${commit}" ]; then \
 	echo "#define COMMIT_HASH	\"$${commit}\"" >> $@; \
