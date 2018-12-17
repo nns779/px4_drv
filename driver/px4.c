@@ -101,6 +101,9 @@ static unsigned int xfer_packets = 816;
 static unsigned int max_urbs = 6;
 static unsigned int tsdev_max_packets = 2048;
 static bool no_dma = false;
+static bool s_agc_negative_mode = false;
+static bool s_vga_atten = false;
+static bool s_low_fine_gain = false;
 
 module_param(xfer_packets, uint, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (default: 816)");
@@ -112,6 +115,10 @@ module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of packets buffering in tsdev. (default: 2048)");
 
 module_param(no_dma, bool, S_IRUSR | S_IWUSR);
+
+module_param(s_agc_negative_mode, bool, S_IRUSR | S_IWUSR);
+module_param(s_vga_atten, bool, S_IRUSR | S_IWUSR);
+module_param(s_low_fine_gain, bool, S_IRUSR | S_IWUSR);
 
 static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, PID_PX_W3U4) },
@@ -539,6 +546,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	case ISDB_S:
 	{
 		int i;
+		struct rt710_tuner *rt710 = &tsdev->t.rt710;
 		bool tuner_locked;
 		u16 tsid, tsid2;
 
@@ -558,9 +566,16 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
+		mutex_lock(&px4->lock);
+
+		rt710->config.agc_mode = (s_agc_negative_mode) ? RT710_AGC_NEGATIVE : RT710_AGC_POSITIVE;
+		rt710->config.vga_atten_mode = (s_vga_atten) ? RT710_VGA_ATTEN_ON : RT710_VGA_ATTEN_OFF;
+		rt710->config.fine_gain = (s_low_fine_gain) ? RT710_FINE_GAIN_LOW : RT710_FINE_GAIN_HIGH;
+
+		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: rt710: agc_mode: %d, vga_atten_mode: %d, fine_gain: %d\n", dev_idx, tsdev_id, rt710->config.agc_mode, rt710->config.vga_atten_mode, rt710->config.fine_gain);
+
 		// set frequency
 
-		mutex_lock(&px4->lock);
 		ret = tc90522_set_agc_s(tc90522, false);
 		if (ret) {
 			mutex_unlock(&px4->lock);
@@ -574,7 +589,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
-		ret = rt710_set_params(&tsdev->t.rt710, real_freq, 28860, 4);
+		ret = rt710_set_params(rt710, real_freq, 28860, 4);
 		mutex_unlock(&px4->lock);
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: rt710_set_params(%u, 28860, 4) failed.\n", dev_idx, tsdev_id, real_freq);
@@ -584,7 +599,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		i = 50;
 		while (i--) {
 			mutex_lock(&px4->lock);
-			ret = rt710_is_pll_locked(&tsdev->t.rt710, &tuner_locked);
+			ret = rt710_is_pll_locked(rt710, &tuner_locked);
 			mutex_unlock(&px4->lock);
 			if (!ret && tuner_locked)
 				break;

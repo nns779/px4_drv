@@ -16,14 +16,51 @@
 
 #define NUM_REGS	0x10
 
+struct rt710_bandwidth_param {
+	u8 coarse;
+	u8 fine;
+};
+
 static const u8 init_regs[NUM_REGS] = {
 	0x40, 0x1d, 0x20, 0x10, 0x41, 0x50, 0xed, 0x25,
-	0x07, 0x58, 0x39, 0x64, 0x38, 0xf7/*0xe7*/, 0x90, 0x35
+	0x07, 0x58, 0x39, 0x64, 0x38, 0xe7, 0x90, 0x35
 };
 
 static const u8 sleep_regs[NUM_REGS] = {
 	0xff, 0x5c, 0x88, 0x30, 0x41, 0xc8, 0xed, 0x25,
 	0x47, 0xfc, 0x48, 0xa2, 0x08, 0x0f, 0xf3, 0x59
+};
+
+static const struct {
+	u32 bandwidth;
+	struct rt710_bandwidth_param param;
+} bandwidth_params[] = {
+	{ 50000, { 0, 0 } },
+	{ 73000, { 0, 1 } },
+	{ 96000, { 1, 0 } },
+	{ 104000, { 1, 1 } },
+	{ 116000, { 2, 0 } },
+	{ 126000, { 2, 1 } },
+	{ 134000, { 3, 0 } },
+	{ 146000, { 3, 1 } },
+	{ 158000, { 4, 0 } },
+	{ 170000, { 4, 1 } },
+	{ 178000, { 5, 0 } },
+	{ 190000, { 5, 1 } },
+	{ 202000, { 6, 0 } },
+	{ 212000, { 6, 1 } },
+	{ 218000, { 7, 0 } },
+	{ 234000, { 7, 1 } },
+	{ 244000, { 9, 1 } },
+	{ 246000, { 10, 0 } },
+	{ 262000, { 10, 1 } },
+	{ 266000, { 11, 0 } },
+	{ 282000, { 11, 1 } },
+	{ 298000, { 12, 1 } },
+	{ 318000, { 13, 1 } },
+	{ 340000, { 14, 1 } },
+	{ 358000, { 15, 1 } },
+	{ 379999, { 16, 1 } },
 };
 
 static u8 reverse_bit(u8 val)
@@ -104,109 +141,109 @@ int rt710_term(struct rt710_tuner *t)
 	return 0;
 }
 
-int rt710_sleep(struct rt710_tuner *t, bool sleep)
+int rt710_sleep(struct rt710_tuner *t)
 {
 	u8 regs[NUM_REGS];
 
 	memcpy(regs, sleep_regs, sizeof(regs));
 
-	if (sleep)
-		regs[0x03] = 0x20;
-
 	return rt710_write_regs(t, 0x00, regs, NUM_REGS);
 }
 
-static int rt710_set_pll_regs(struct rt710_tuner *t, u8 *regs, u32 freq)
+static int rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 {
 	int ret = 0;
-	u32 min, max, b, c;
-	u16 e, g, h;
-	u8 div, a, d, f;
+	u32 vco_min, vco_max, vco_freq;
+	u16 vco_fra, nsdm, sdm;
+	u8 mix_div, div_num, nint, ni, si;
 
-	min = 2350000;
-	max = min * 2;
-	div = 2;
-	a = 0;
-	g = 2;
-	h = 0;
+	vco_min = 2350000;
+	vco_max = vco_min * 2;
+	mix_div = 2;
+	vco_freq = freq * mix_div;
+	nsdm = 2;
+	sdm = 0;
 
-	do {
-		u32 q;
-		q = freq * div;
-		if (q >= min && q <= max) {
-			switch(div) {
-			case 2:
-				a = 1;
-				break;
-			case 4:
-				a = 0;
-				break;
-			case 8:
-				a = 2;
-				break;
-			case 16:
-				a = 3;
-				break;
-			default:
-				return -ECANCELED;
-			}
+	while (mix_div <= 16) {
+		if (vco_freq >= vco_min && vco_freq <= vco_max)
 			break;
-		}
-		div *= 2;
-	} while(div <= 16);
+
+		mix_div *= 2;
+		vco_freq = freq * mix_div;
+	}
+
+	switch (mix_div) {
+	case 2:
+		div_num = 1;
+		break;
+	case 4:
+		div_num = 0;
+		break;
+	case 8:
+		div_num = 2;
+		break;
+	case 16:
+		div_num = 3;
+		break;
+	default:
+		div_num = 0;
+		break;
+	}
 
 	regs[4] &= 0xfe;
-	regs[4] |= (a & 1);
+	regs[4] |= (div_num & 1);
 
 	ret = rt710_write_regs(t, 0x04, &regs[0x04], 1);
 	if (ret)
 		return ret;
 
-	b = freq * div;
-	c = (b / 2) / 24000;
-	d = (c & 0xff);
-	e = (d * 17536) + (b & 0xffff);
+	nint = (vco_freq / 2) / 24000;
+	vco_fra = vco_freq - (24000 * 2 * nint);
 
-	if (e < 375) {
-		e = 0;
-	} else if (e > 47625) {
-		e = 0;
-		d++;
-	} else if (e > 23812 && e < 24000) {
-		e = 23812;
-	} else if (e > 24000 && e < 24187) {
-		e = 24187;
+	if (vco_fra < 375) {
+		vco_fra = 0;
+	} else if (vco_fra > 47625) {
+		vco_fra = 0;
+		nint++;
+	} else if (vco_fra > 23812 && vco_fra < 24000) {
+		vco_fra = 23812;
+	} else if (vco_fra > 24000 && vco_fra < 24187) {
+		vco_fra = 24187;
 	}
 
-	f = (d - 13) / 4;
-	regs[0x05] = f + ((d - (f * 4) - 13) << 6);
+	ni = (nint - 13) / 4;
+	si = nint - (ni * 4) - 13;
+
+	regs[0x05] = ni + (si << 6);
 
 	ret = rt710_write_regs(t, 0x05, &regs[0x05], 1);
 	if (ret)
 		return ret;
 
-	if (!e)
+	if (!vco_fra)
 		regs[0x04] |= 0x02;
 
 	ret = rt710_write_regs(t, 0x04, &regs[0x04], 1);
 	if (ret)
 		return ret;
 
-	while (e > 1) {
-		u32 s;
-		s = (24000 * 2) / g;
-		if (e > s) {
-			h += (32768 / (g / 2));
-			e -= s;
-			if (g >= 32768) {
+	while (vco_fra > 1) {
+		u32 t;
+
+		t = (24000 * 2) / nsdm;
+		if (vco_fra > t) {
+			sdm += (0x8000 / (nsdm / 2));
+			vco_fra -= t;
+
+			if (nsdm >= 0x8000)
 				break;
-			}
 		}
-		g *= 2;
+
+		nsdm *= 2;
 	}
 
-	regs[0x07] = ((h >> 8) & 0xff);
-	regs[0x06] = (h & 0xff);
+	regs[0x07] = ((sdm >> 8) & 0xff);
+	regs[0x06] = (sdm & 0xff);
 
 	ret = rt710_write_regs(t, 0x07, &regs[0x07], 1);
 	if (ret)
@@ -223,45 +260,43 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 {
 	int ret = 0;
 	u8 regs[NUM_REGS];
-	u32 a;
-	u8 b = 0, f = 0;
-	struct {
-		u32 a;
-		u8 b;
-		u8 f;
-	} c[] = {
-		{ 50000, 0, 0 },
-		{ 73000, 0, 1 },
-		{ 96000, 1, 0 },
-		{ 104000, 1, 1 },
-		{ 116000, 2, 0 },
-		{ 126000, 2, 1 },
-		{ 134000, 3, 0 },
-		{ 146000, 3, 1 },
-		{ 158000, 4, 0 },
-		{ 170000, 4, 1 },
-		{ 178000, 5, 0 },
-		{ 190000, 5, 1 },
-		{ 202000, 6, 0 },
-		{ 212000, 6, 1 },
-		{ 218000, 7, 0 },
-		{ 234000, 7, 1 },
-		{ 244000, 9, 1 },
-		{ 246000, 10, 0 },
-		{ 262000, 10, 1 },
-		{ 266000, 11, 0 },
-		{ 282000, 11, 1 },
-		{ 298000, 12, 1 },
-		{ 318000, 13, 1 },
-		{ 340000, 14, 1 },
-		{ 358000, 15, 1 },
-		{ 379999, 16, 1 }
-	};
+	u32 bandwidth;
+	struct rt710_bandwidth_param bw_param = {};
 
 	if (rolloff > 5)
 		return -EINVAL;
 
 	memcpy(regs, init_regs, sizeof(regs));
+
+	switch (t->config.agc_mode) {
+	case RT710_AGC_POSITIVE:
+		regs[0x0d] |= 0x10;
+		break;
+
+	case RT710_AGC_NEGATIVE:
+	default:
+		break;
+	}
+
+	switch (t->config.vga_atten_mode) {
+	case RT710_VGA_ATTEN_ON:
+		regs[0x0b] |= 0x08;
+		break;
+
+	case RT710_VGA_ATTEN_OFF:
+	default:
+		break;
+	}
+
+	switch (t->config.fine_gain) {
+	case RT710_FINE_GAIN_LOW:
+		regs[0x0e] |= 0x01;
+		break;
+
+	case RT710_FINE_GAIN_HIGH:
+	default:
+		break;
+	}
 
 	ret = rt710_write_regs(t, 0x00, regs, NUM_REGS);
 	if (ret) {
@@ -269,9 +304,9 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 		return ret;
 	}
 
-	ret = rt710_set_pll_regs(t, regs, freq);
+	ret = rt710_set_pll(t, regs, freq);
 	if (ret) {
-		dev_err(t->dev, "rt710_set_params: rt710_set_pll_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev, "rt710_set_params: rt710_set_pll() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
@@ -308,31 +343,29 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	if (ret)
 		return ret;
 
-	a = (symbol_rate * (0x73 + (rolloff * 5))) / 10;
+	bandwidth = (symbol_rate * (0x73 + (rolloff * 5))) / 10;
 
-	if (!a)
+	if (!bandwidth)
 		return -ECANCELED;
 
-	if (a >= 380000) {
-		a -= 380000;
-		if (a % 17400)
-			b++;
-		a /= 17400;
-		b += (a & 0xff) + 0x10;
-		f = 1;
+	if (bandwidth >= 380000) {
+		bandwidth -= 380000;
+		if (bandwidth % 17400)
+			bw_param.coarse++;
+		bw_param.coarse += ((bandwidth / 17400) & 0xff) + 0x10;
+		bw_param.fine = 1;
 	} else {
 		int i;
 
-		for (i = 0; i < (sizeof(c) / sizeof(c[0])); i++) {
-			if (a <= c[i].a) {
-				b = c[i].b;
-				f = c[i].f;
+		for (i = 0; i < (sizeof(bandwidth_params) / sizeof(bandwidth_params[0])); i++) {
+			if (bandwidth <= bandwidth_params[i].bandwidth) {
+				bw_param = bandwidth_params[i].param;
 				break;
 			}
 		}
 	}
 
-	regs[0x0f] = (b << 2) | f;
+	regs[0x0f] = (bw_param.coarse << 2) | bw_param.fine;
 
 	ret = rt710_write_regs(t, 0x0f, &regs[0x0f], 1);
 	if (ret)
