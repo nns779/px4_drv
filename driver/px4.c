@@ -48,8 +48,8 @@
 #define PID_PX_Q3U4	0x084a
 #define PID_PX_Q3PE4	0x024a
 
-#define ISDB_T	0
-#define ISDB_S	1
+#define ISDB_T	1
+#define ISDB_S	2
 
 #define TS_SYNC_COUNT	4
 
