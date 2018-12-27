@@ -548,6 +548,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		int i;
 		struct rt710_tuner *rt710 = &tsdev->t.rt710;
 		bool tuner_locked;
+		s32 ss = 0;
 		u16 tsid, tsid2;
 
 		if (freq->freq_no < 0) {
@@ -612,7 +613,11 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
-		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: rt710_is_pll_locked() locked: %d, count: %d\n", dev_idx, tsdev_id, tuner_locked, i);
+		mutex_lock(&px4->lock);
+		rt710_get_rf_signal_strength(rt710, &ss);
+		mutex_unlock(&px4->lock);
+
+		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: PLL is locked. count: %d, signal strength: %ddBm\n", dev_idx, tsdev_id, i, ss);
 
 		if (!tuner_locked) {
 			// PLL error
@@ -765,7 +770,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
-		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: r850_is_pll_locked() locked: %d, count: %d\n", dev_idx, tsdev_id, tuner_locked, i);
+		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: PLL is locked. count: %d\n", dev_idx, tsdev_id, i);
 
 		if (!tuner_locked) {
 			// PLL error
