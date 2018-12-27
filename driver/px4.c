@@ -1642,21 +1642,26 @@ static int px4_module_init(void)
 {
 	int ret = 0, i;
 
+	pr_info(KBUILD_MODNAME
 #ifdef PX4_DRIVER_VERSION
-	pr_info(KBUILD_MODNAME " version " PX4_DRIVER_VERSION
+		" version " PX4_DRIVER_VERSION
+#endif
 #ifdef REVISION_NUMBER
-		", rev: " REVISION_NUMBER
+#if defined(PX4_DRIVER_VERSION)
+		","
+#endif
+		" rev: " REVISION_NUMBER
 #endif
 #ifdef COMMIT_HASH
-		", commit: " COMMIT_HASH
+#if defined(PX4_DRIVER_VERSION) || defined(REVISION_NUMBER)
+		","
+#endif
+		" commit: " COMMIT_HASH
 #endif
 #ifdef REVISION_NAME
 		" @ " REVISION_NAME
 #endif
 		"\n");
-#else
-	pr_info(KBUILD_MODNAME);
-#endif
 
 	for (i = 0; i < MAX_DEVICE; i++) {
 		devs[i] = NULL;
