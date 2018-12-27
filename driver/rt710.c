@@ -63,6 +63,12 @@ static const struct {
 	{ 379999, { 16, 1 } },
 };
 
+static const u16 lna_acc_gain[] = {
+	0, 26, 42, 74, 103, 129, 158, 181,
+	188, 200, 220, 248, 280, 312, 341, 352,
+	366, 389, 409
+};
+
 static u8 reverse_bit(u8 val)
 {
 	u8 t = val;
@@ -133,6 +139,8 @@ int rt710_init(struct rt710_tuner *t)
 		return -ENOSYS;
 	}
 
+	memset(&t->priv, 0, sizeof(t->priv));
+
 	return 0;
 }
 
@@ -154,15 +162,14 @@ static int rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 {
 	int ret = 0;
 	u32 vco_min, vco_max, vco_freq;
-	u16 vco_fra, nsdm, sdm;
-	u8 mix_div, div_num, nint, ni, si;
+	u16 vco_fra, nsdm = 2, sdm = 0;
+	u8 mix_div = 2, div_num, nint, ni, si;
 
 	vco_min = 2350000;
 	vco_max = vco_min * 2;
-	mix_div = 2;
 	vco_freq = freq * mix_div;
-	nsdm = 2;
-	sdm = 0;
+
+	t->priv.freq = 0;
 
 	while (mix_div <= 16) {
 		if (vco_freq >= vco_min && vco_freq <= vco_max)
@@ -252,6 +259,8 @@ static int rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 	ret = rt710_write_regs(t, 0x06, &regs[0x06], 1);
 	if (ret)
 		return ret;
+
+	t->priv.freq = freq;
 
 	return 0;
 }
@@ -371,7 +380,7 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	if (ret)
 		return ret;
 
-	return ret;
+	return 0;
 }
 
 int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked)
@@ -388,4 +397,59 @@ int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked)
 	*locked = (tmp & 0x80) ? true : false;
 
 	return ret;
+}
+
+int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
+{
+	int ret = 0;
+	u8 tmp, g;
+
+	ret = rt710_read_regs(t, 0x01, &tmp, 1);
+	if (ret) {
+		dev_err(t->dev, "rt710_get_rf_gain: rt710_read_regs() failed. (ret: %d)\n", ret);
+		return ret;
+	}
+
+	g = ((tmp & 0xf0) >> 4) | ((tmp & 0x01) << 4);
+
+	if (g <= 2) {
+		*gain = 0;
+	} else if (g <= 9) {
+		// 1 - 7
+		*gain = g - 2;
+	} else if (g <= 12) {
+		*gain = 7;
+	} else if (g <= 22) {
+		// 8 - 17
+		*gain = g - 5;
+	} else {
+		*gain = 18;
+	}
+
+	return ret;
+}
+
+int rt710_get_rf_signal_strength(struct rt710_tuner *t, s32 *ss)
+{
+	int ret = 0;
+	u8 gain;
+	s32 tmp;
+
+	ret = rt710_get_rf_gain(t, &gain);
+	if (ret) {
+		dev_err(t->dev, "rt710_get_rf_signal_strength: rt710_get_rf_gain() failed. (ret: %d)\n", ret);
+		return ret;
+	}
+
+	if (t->priv.freq < 1200000) {
+		tmp = 190;
+	} else if (t->priv.freq < 1800000) {
+		tmp = 170;
+	} else {
+		tmp = 140;
+	}
+
+	*ss = (tmp + lna_acc_gain[gain]) * -100;
+
+	return 0;
 }
