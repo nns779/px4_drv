@@ -33,11 +33,6 @@ $ make
 $ sudo make install
 $ cd ../
 
-ドライバがカーネルにロードされている状態で再度インストールを行った場合には以下を実行してください
-
-$ sudo modprobe -r px4_drv
-$ sudo modprobe px4_drv
-
 [ドライバのアンインストール]
 
 $ cd driver

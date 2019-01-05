@@ -58,12 +58,19 @@ clean:
 	$(cmd_prefix)rm -f revision.h
 
 install:
+	$(cmd_prefix)if [ `grep -e '^px4_drv' /proc/modules | wc -l` -ne 0 ]; then \
+	modprobe -r px4_drv; \
+	fi
 	$(cmd_prefix)install -D -v -m 644 $(TARGET) $(INSTALL_DIR)/$(TARGET)
 	$(cmd_prefix)rm -fv /etc/udev/rules.d/90-px4.rules
 	$(cmd_prefix)install -D -v -m 644 ../etc/99-px4video.rules /etc/udev/rules.d/99-px4video.rules
 	$(cmd_prefix)depmod -a $(KVER)
+	$(cmd_prefix)modprobe px4_drv
 
 uninstall:
+	$(cmd_prefix)if [ `grep -e '^px4_drv' /proc/modules | wc -l` -ne 0 ]; then \
+	modprobe -r px4_drv; \
+	fi
 	$(cmd_prefix)rm -fv $(INSTALL_DIR)/$(TARGET)
 	$(cmd_prefix)if [ `find /lib/modules/ -name px4_drv.ko | wc -l` -eq 0 ]; then \
 	rm -fv /etc/udev/rules.d/90-px4.rules /etc/udev/rules.d/99-px4video.rules; \
