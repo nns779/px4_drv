@@ -608,8 +608,10 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 		goto end;
 	}
 
-	if (it930x->fw_version)
+	if (it930x->fw_version) {
+		dev_info(it930x->dev, "Firmware is already loaded. version: %d.%d.%d.%d\n", ((it930x->fw_version >> 24) & 0xff), ((it930x->fw_version >> 16) & 0xff), ((it930x->fw_version >> 8) & 0xff), (it930x->fw_version & 0xff));
 		return 0;
+	}
 
 	ret = it930x_write_reg(it930x, 0xf103, IT930X_I2C_SPEED);
 	if (ret) {
@@ -680,7 +682,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 		goto end;
 	}
 
-	dev_info(it930x->dev, "Firmware loaded. version: %x.%x.%x.%x\n", ((it930x->fw_version >> 24) & 0xff), ((it930x->fw_version >> 16) & 0xff), ((it930x->fw_version >> 8) & 0xff), (it930x->fw_version & 0xff));
+	dev_info(it930x->dev, "Firmware loaded. version: %d.%d.%d.%d\n", ((it930x->fw_version >> 24) & 0xff), ((it930x->fw_version >> 16) & 0xff), ((it930x->fw_version >> 8) & 0xff), (it930x->fw_version & 0xff));
 
 end:
 	release_firmware(fw);
