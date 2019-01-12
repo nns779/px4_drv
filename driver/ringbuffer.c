@@ -176,7 +176,6 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, siz
 	unsigned long flags;
 	const u8 *p = data;
 	size_t buf_size, data_size, tail_pos, write_size;
-	int rr;
 
 	if (atomic_read(&ringbuffer->avail) != 2)
 		return -EIO;
@@ -217,8 +216,7 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, siz
 		wake_up(&ringbuffer->data_wait);
 	}
 
-	rr = atomic_sub_return(1, &ringbuffer->rw_cnt);
-	if (atomic_read(&ringbuffer->wait_cnt) && !rr)
+	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) && atomic_read(&ringbuffer->wait_cnt))
 		wake_up(&ringbuffer->wait);
 
 	return (write_size != len) ? (-ECANCELED) : (0);
@@ -228,10 +226,8 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 {
 	u8 *p = buf;
 	size_t buf_size, l = *len, buf_pos = 0;
-	int rr;
 
-	if (!atomic_cmpxchg(&ringbuffer->avail, 1, 2))
-		return -EIO;
+	atomic_cmpxchg(&ringbuffer->avail, 1, 2);
 
 	atomic_add(1, &ringbuffer->rw_cnt);
 
@@ -243,7 +239,7 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 
 	buf_size = ringbuffer->buf_size;
 
-	while (l > buf_pos && atomic_read(&ringbuffer->avail)) {
+	while (l > buf_pos) {
 		size_t data_size, head_pos, read_size, t;
 		unsigned long r;
 
@@ -286,9 +282,8 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 
 	*len = buf_pos;
 
-	rr = atomic_sub_return(1, &ringbuffer->rw_cnt);
-	if (atomic_read(&ringbuffer->wait_cnt) && !rr)
+	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) && atomic_read(&ringbuffer->wait_cnt))
 		wake_up(&ringbuffer->wait);
 
-	return 0;
+	return (!buf_pos) ? (-EIO) : (0);
 }
