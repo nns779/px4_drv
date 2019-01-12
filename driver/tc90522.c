@@ -196,14 +196,6 @@ int tc90522_tmcc_get_tsid_s(struct tc90522_demod *demod, u8 idx, u16 *tsid)
 	if (idx >= 12)
 		return -EINVAL;
 
-	tc90522_regbuf_set_buf(&regbuf[0], 0xc3, &b[0], 1);
-	ret = tc90522_read_regs(demod, regbuf, 1);
-	if (ret)
-		return ret;
-
-	if (b[0] & 0x10)
-		return -EAGAIN;
-
 	tc90522_regbuf_set_buf(&regbuf[0], 0xce + (idx * 2), &b[0], 2);
 	ret = tc90522_read_regs(demod, regbuf, 1);
 	if (!ret)

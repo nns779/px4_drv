@@ -559,7 +559,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	{
 		int i;
 		struct rt710_tuner *rt710 = &tsdev->t.rt710;
-		bool tuner_locked;
+		bool tuner_locked, demod_locked;
 		s32 ss = 0;
 		u16 tsid, tsid2;
 
@@ -647,6 +647,31 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
+		// check lock
+
+		i = 300;
+		while (i--) {
+			mutex_lock(&px4->lock);
+			ret = tc90522_is_signal_locked_s(tc90522, &demod_locked);
+			mutex_unlock(&px4->lock);
+			if (!ret && demod_locked)
+				break;
+
+			msleep(10);
+		}
+
+		if (ret) {
+			dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_is_signal_locked_s() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			break;
+		}
+
+		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_is_signal_locked_s() locked: %d, count: %d\n", dev_idx, tsdev_id, demod_locked, i);
+
+		if (!demod_locked) {
+			ret = -EAGAIN;
+			break;
+		}
+
 		// set slot
 
 		i = 100;
@@ -679,6 +704,8 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_tsid_s(0x%x) failed. (ret: %d)\n", dev_idx, tsdev_id, tsid, ret);
 			break;
 		}
+
+		// check slot
 
 		i = 100;
 		while(i--) {
@@ -733,6 +760,8 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			ret = -EINVAL;
 			break;
 		}
+
+		// set frequency
 
 		mutex_lock(&px4->lock);
 		tc90522_regbuf_set_val(&regbuf_tc[0], 0x47, 0x30);
@@ -816,6 +845,8 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() 3 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
+
+		// check lock
 
 		i = 300;
 		while (i--) {
