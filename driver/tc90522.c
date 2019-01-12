@@ -28,7 +28,7 @@ int tc90522_write_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbu
 		if (regbuf[i].buf) {
 			len = regbuf[i].u.len;
 			if (!len || len > 254) {
-				dev_dbg(demod->dev, "tc90522_write_regs: Buffer too large. (num: %d, i: %d, addr: %x, reg: %x)\n", num, i, demod->i2c_addr, regbuf[i].reg);
+				dev_dbg(demod->dev, "tc90522_write_regs: Buffer too large. (num: %d, i: %d, addr: 0x%x, reg: 0x%x)\n", num, i, demod->i2c_addr, regbuf[i].reg);
 				continue;
 			}
 			memcpy(&b[1], regbuf[i].buf, len);
@@ -39,7 +39,7 @@ int tc90522_write_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbu
 
 		ret = i2c_comm_master_write(demod->i2c, demod->i2c_addr, b, len + 1);
 		if (ret) {
-			dev_err(demod->dev, "tc90522_write_regs: i2c_comm_master_write() failed. (num: %d, i: %d, addr: %x, reg: %x, ret: %d)\n", num, i, demod->i2c_addr, regbuf[i].reg, ret);
+			dev_err(demod->dev, "tc90522_write_regs: i2c_comm_master_write() failed. (num: %d, i: %d, addr: 0x%x, reg: 0x%x, ret: %d)\n", num, i, demod->i2c_addr, regbuf[i].reg, ret);
 			break;
 		}
 	}
@@ -67,7 +67,7 @@ int tc90522_read_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf
 		u8 b[1];
 
 		if (!regbuf[i].buf || !regbuf[i].u.len) {
-			dev_dbg(demod->dev, "tc90522_read_regs: Invalid buffer. (num: %d, i: %d, addr: %x, reg: %x)\n", num, i, demod->i2c_addr, regbuf[i].reg);
+			dev_dbg(demod->dev, "tc90522_read_regs: Invalid buffer. (num: %d, i: %d, addr: 0x%x, reg: 0x%x)\n", num, i, demod->i2c_addr, regbuf[i].reg);
 			continue;
 		}
 
@@ -75,13 +75,13 @@ int tc90522_read_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf
 
 		ret = i2c_comm_master_write(demod->i2c, demod->i2c_addr, b, 1);
 		if (ret) {
-			dev_err(demod->dev, "tc90522_read_regs: i2c_comm_master_write() failed. (num: %d, i: %d, addr: %x, reg: %x, ret: %d)\n", num, i, demod->i2c_addr, regbuf[i].reg, ret);
+			dev_err(demod->dev, "tc90522_read_regs: i2c_comm_master_write() failed. (num: %d, i: %d, addr: 0x%x, reg: 0x%x, ret: %d)\n", num, i, demod->i2c_addr, regbuf[i].reg, ret);
 			break;
 		}
 
 		ret = i2c_comm_master_read(demod->i2c, demod->i2c_addr, regbuf[i].buf, regbuf[i].u.len);
 		if (ret) {
-			dev_err(demod->dev, "tc90522_read_regs: i2c_comm_master_read() failed. (num: %d, i: %d, addr: %x, reg: %x, ret: %d)\n", num, i, demod->i2c_addr, regbuf[i].reg, ret);
+			dev_err(demod->dev, "tc90522_read_regs: i2c_comm_master_read() failed. (num: %d, i: %d, addr: 0x%x, reg: 0x%x, ret: %d)\n", num, i, demod->i2c_addr, regbuf[i].reg, ret);
 			break;
 		}
 	}

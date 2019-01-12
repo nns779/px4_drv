@@ -130,7 +130,7 @@ int rt710_init(struct rt710_tuner *t)
 
 	ret = rt710_read_regs(t, 0x03, &tmp, 1);
 	if (ret) {
-		dev_err(t->dev, "rt710_init: rt710_read_regs() failed.\n");
+		dev_err(t->dev, "rt710_init: rt710_read_regs() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 

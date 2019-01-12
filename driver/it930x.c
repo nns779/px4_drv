@@ -71,7 +71,7 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 
 	ret = it930x_bus_ctrl_tx(&it930x->bus, b, l + 1, NULL);
 	if (ret) {
-		dev_dbg(it930x->dev, "it930x_control: it930x_bus_ctrl_tx() failed. (cmd: %04x, len: %u, ret: %d)\n", cmd, buf->len, ret);
+		dev_err(it930x->dev, "it930x_control: it930x_bus_ctrl_tx() failed. (cmd: 0x%04x, len: %u, ret: %d)\n", cmd, buf->len, ret);
 		return ret;
 	}
 
@@ -80,29 +80,29 @@ static int it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_buf
 
 	ret = it930x_bus_ctrl_rx(&it930x->bus, b, &rl, NULL);
 	if (ret) {
-		dev_dbg(it930x->dev, "it930x_control: it930x_bus_ctrl_rx() failed. (cmd: %04x, len: %u, rlen: %u, ret: %d)\n", cmd, buf->len, rl, ret);
+		dev_err(it930x->dev, "it930x_control: it930x_bus_ctrl_rx() failed. (cmd: 0x%04x, len: %u, rlen: %u, ret: %d)\n", cmd, buf->len, rl, ret);
 		return ret;
 	}
 
 	if (rl < 5) {
-		dev_dbg(it930x->dev, "it930x_control: No enough response length. (cmd: %04x, len: %u, rlen: %u)\n", cmd, buf->len, rl);
+		dev_err(it930x->dev, "it930x_control: No enough response length. (cmd: 0x%04x, len: %u, rlen: %u)\n", cmd, buf->len, rl);
 		return -EBADMSG;
 	}
 
 	csum1 = calc_checksum(&b[1], rl - 3);
 	csum2 = (((b[rl - 2] & 0xff) << 8) | (b[rl - 1] & 0xff));
 	if (csum1 != csum2) {
-		dev_dbg(it930x->dev, "it930x_control: Incorrect checksum! (cmd: %04x, len: %u, rlen: %u, csum1: %04x, csum2: %04x)\n", cmd, buf->len, rl, csum1, csum2);
+		dev_err(it930x->dev, "it930x_control: Incorrect checksum! (cmd: 0x%04x, len: %u, rlen: %u, csum1: 0x%04x, csum2: 0x%04x)\n", cmd, buf->len, rl, csum1, csum2);
 		return -EBADMSG;
 	}
 
 	if (b[1] != seq) {
-		dev_dbg(it930x->dev, "it930x_control: Incorrect sequence number! (cmd: %04x, len: %u, rlen: %u, seq: %02u, rseq: %02u, csum: %04x)\n", cmd, buf->len, rl, seq, b[1], csum1);
+		dev_err(it930x->dev, "it930x_control: Incorrect sequence number! (cmd: 0x%04x, len: %u, rlen: %u, seq: %02u, rseq: %02u, csum: 0x%04x)\n", cmd, buf->len, rl, seq, b[1], csum1);
 		return -EBADMSG;
 	}
 
 	if (b[2]) {
-		dev_dbg(it930x->dev, "it930x_control: Failed. (cmd: %04x, len: %u, rlen: %u, rcode: %u, csum: %04x)\n", cmd, buf->len, rl, b[2], csum1);
+		dev_err(it930x->dev, "it930x_control: Command failed. (cmd: 0x%04x, len: %u, rlen: %u, rcode: %u, csum: 0x%04x)\n", cmd, buf->len, rl, b[2], csum1);
 		ret = -EIO;
 	} else if (rbuf) {
 		if (rbuf->buf) {
@@ -138,7 +138,7 @@ int it930x_write_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf
 			len = regbuf[i].u.len;
 
 			if (!len || len > (249 - 6)) {
-				dev_dbg(it930x->dev, "it930x_write_regs: Buffer too large. (num: %d, i: %d, reg: %x)\n", num, i, reg);
+				dev_dbg(it930x->dev, "it930x_write_regs: Buffer too large. (num: %d, i: %d, reg: 0x%x)\n", num, i, reg);
 				continue;
 			}
 			memcpy(&b[6], regbuf[i].buf, len);
@@ -159,7 +159,7 @@ int it930x_write_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf
 
 		ret = it930x_control(it930x, IT930X_CMD_REG_WRITE, &sb, NULL, NULL, false);
 		if (ret) {
-			dev_err(it930x->dev, "it930x_write_regs: it930x_control() failed. (num: %d, i: %d, reg: %x, len: %u)\n", num, i, reg, len);
+			dev_err(it930x->dev, "it930x_write_regs: it930x_control() failed. (num: %d, i: %d, reg: 0x%x, len: %u)\n", num, i, reg, len);
 			break;
 		}
 	}
@@ -196,7 +196,7 @@ int it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val, u8 pos,
 	if (len < 8) {
 		ret = it930x_read_regs(it930x, &regbuf, 1);
 		if (ret) {
-			dev_err(it930x->dev, "it930x_write_reg_bits: it930x_read_regs() failed. (reg: %x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
+			dev_err(it930x->dev, "it930x_write_reg_bits: it930x_read_regs() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
 			return ret;
 		}
 
@@ -207,7 +207,7 @@ int it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val, u8 pos,
 
 	ret = it930x_write_regs(it930x, &regbuf, 1);
 	if (ret)
-		dev_err(it930x->dev, "it930x_write_reg_bits: it930x_write_regs() failed. (reg: %x, val: %u, pos: %u, len: %u, t: %u, ret: %d)\n", reg, val, pos, len, tmp, ret);
+		dev_err(it930x->dev, "it930x_write_reg_bits: it930x_write_regs() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, t: %u, ret: %d)\n", reg, val, pos, len, tmp, ret);
 
 	return ret;
 }
@@ -228,7 +228,7 @@ int it930x_read_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf,
 		struct ctrl_buf sb, rb;
 
 		if (!regbuf[i].buf || !regbuf[i].u.len) {
-			dev_dbg(it930x->dev, "it930x_read_regs: Invalid buffer. (num: %d, i: %d, reg: %x)\n", num, i, reg);
+			dev_dbg(it930x->dev, "it930x_read_regs: Invalid buffer. (num: %d, i: %d, reg: 0x%x)\n", num, i, reg);
 			continue;
 		}
 
@@ -247,12 +247,12 @@ int it930x_read_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf,
 
 		ret = it930x_control(it930x, IT930X_CMD_REG_READ, &sb, &rb, NULL, false);
 		if (ret) {
-			dev_err(it930x->dev, "it930x_read_regs: it930x_control() failed. (num: %d, i: %d, reg: %x, len: %u, rlen: %u, ret: %d)\n", num, i, reg, regbuf[i].u.len, rb.len, ret);
+			dev_err(it930x->dev, "it930x_read_regs: it930x_control() failed. (num: %d, i: %d, reg: 0x%x, len: %u, rlen: %u, ret: %d)\n", num, i, reg, regbuf[i].u.len, rb.len, ret);
 			break;
 		}
 
 		if (rb.len != regbuf[i].u.len)
-			dev_err(it930x->dev, "it930x_read_regs: Incorrect size! (num: %d, i: %d, reg: %x, len: %u, rlen: %u)\n", num, i, reg, regbuf[i].u.len, rb.len);
+			dev_err(it930x->dev, "it930x_read_regs: Incorrect size! (num: %d, i: %d, reg: 0x%x, len: %u, rlen: %u)\n", num, i, reg, regbuf[i].u.len, rb.len);
 	}
 
 	return ret;

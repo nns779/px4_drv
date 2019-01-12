@@ -405,22 +405,28 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 	case ISDB_S:
 	{
 		ret = tc90522_write_regs(tc90522, tc_init_s, ARRAY_SIZE(tc_init_s));
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_write_regs(tc_init_s) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
+		}
 
 		// disable ts pins
 		ret = tc90522_enable_ts_pins_s(tc90522, false);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_enable_ts_pins_s(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
+		}
 
 		// wake up
 		ret = tc90522_sleep_s(tc90522, false);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_sleep_s(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
+		}
 
 		ret = rt710_init(&tsdev->t.rt710);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_init %d:%u: rt710_init() failed.\n", px4->dev_idx, tsdev->id);
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: rt710_init() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
 		}
 
@@ -430,18 +436,24 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 	case ISDB_T:
 	{
 		ret = tc90522_write_regs(tc90522, tc_init_t, ARRAY_SIZE(tc_init_t));
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_write_regs(tc_init_t) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
+		}
 
 		// disable ts pins
 		ret = tc90522_enable_ts_pins_t(tc90522, false);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_enable_ts_pins_s(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
+		}
 
 		// wake up
 		ret = tc90522_sleep_t(tc90522, false);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_sleep_s(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
+		}
 
 		ret = r850_init(&tsdev->t.r850);
 		if (ret) {
@@ -580,6 +592,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		ret = tc90522_set_agc_s(tc90522, false);
 		if (ret) {
 			mutex_unlock(&px4->lock);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_agc_s(false) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 		tc90522_regbuf_set_val(&regbuf_tc[0], 0x8e, 0x06/*0x02*/);
@@ -587,13 +600,14 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 2);
 		if (ret) {
 			mutex_unlock(&px4->lock);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
 		ret = rt710_set_params(rt710, real_freq, 28860, 4);
 		mutex_unlock(&px4->lock);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: rt710_set_params(%u, 28860, 4) failed.\n", dev_idx, tsdev_id, real_freq);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: rt710_set_params(%u, 28860, 4) failed. (ret: %d)\n", dev_idx, tsdev_id, real_freq, ret);
 			break;
 		}
 
@@ -609,7 +623,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		}
 
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: rt710_is_pll_locked() failed.\n", dev_idx, tsdev_id);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: rt710_is_pll_locked() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -628,8 +642,10 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		mutex_lock(&px4->lock);
 		ret = tc90522_set_agc_s(tc90522, true);
 		mutex_unlock(&px4->lock);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_agc_s(true) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
+		}
 
 		// set slot
 
@@ -645,11 +661,11 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		}
 
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_tmcc_get_tsid_s() failed.\n", dev_idx, tsdev_id);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_tmcc_get_tsid_s() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
-		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_tmcc_get_tsid_s() tsid: %04x, count: %d\n", dev_idx, tsdev_id, tsid, i);
+		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_tmcc_get_tsid_s() tsid: 0x%04x, count: %d\n", dev_idx, tsdev_id, tsid, i);
 
 		if (!tsid) {
 			ret = -EAGAIN;
@@ -659,8 +675,10 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		mutex_lock(&px4->lock);
 		ret = tc90522_set_tsid_s(tc90522, tsid);
 		mutex_unlock(&px4->lock);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_tsid_s(0x%x) failed. (ret: %d)\n", dev_idx, tsdev_id, tsid, ret);
 			break;
+		}
 
 		i = 100;
 		while(i--) {
@@ -673,7 +691,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			msleep(10);
 		}
 
-		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_get_tsid_s() tsid2: %04x, count: %d\n", dev_idx, tsdev_id, tsid2, i);
+		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_get_tsid_s() tsid2: 0x%04x, count: %d\n", dev_idx, tsdev_id, tsid2, i);
 
 		if (tsid2 != tsid) {
 			ret = -EAGAIN;
@@ -721,12 +739,14 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
 		if (ret) {
 			mutex_unlock(&px4->lock);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() 1 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
 		ret = tc90522_set_agc_t(tc90522, false);
 		if (ret) {
 			mutex_unlock(&px4->lock);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_agc_t(false) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -734,13 +754,14 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
 		if (ret) {
 			mutex_unlock(&px4->lock);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() 2 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
 		ret = r850_write_config_regs(&tsdev->t.r850, regs[0]);
 		mutex_unlock(&px4->lock);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_write_config_regs() 1 failed.\n", dev_idx, tsdev_id);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_write_config_regs() 1 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -750,7 +771,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		ret = r850_write_config_regs(&tsdev->t.r850, regs[1]);
 		mutex_unlock(&px4->lock);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_write_config_regs() 2 failed.\n", dev_idx, tsdev_id);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_write_config_regs() 2 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -766,7 +787,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		}
 
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_is_pll_locked() failed.\n", dev_idx, tsdev_id);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_is_pll_locked() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -782,6 +803,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		ret = tc90522_set_agc_t(tc90522, true);
 		if (ret) {
 			mutex_unlock(&px4->lock);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_agc_t(true) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -790,8 +812,10 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		tc90522_regbuf_set_val(&regbuf_tc[2], 0x75, 0x08);
 		ret = tc90522_write_regs(tc90522, regbuf_tc, 3);
 		mutex_unlock(&px4->lock);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() 3 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
+		}
 
 		i = 300;
 		while (i--) {
@@ -805,7 +829,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		}
 
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_is_signal_locked_t() failed.\n", dev_idx, tsdev_id);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_is_signal_locked_t() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -856,8 +880,10 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: max_urbs: %u, no_dma: %c\n", px4->dev_idx, tsdev->id, bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
 
 		ret = it930x_purge_psb(&px4->it930x);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_purge_psb() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			goto fail;
+		}
 	}
 
 	ringbuffer_size = 188 * tsdev_max_packets;
@@ -867,17 +893,23 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	case ISDB_S:
 		// enable ts pins
 		ret = tc90522_enable_ts_pins_s(tc90522, true);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: tc90522_enable_ts_pins_s(true) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
+
 			// disable ts pins
 			tc90522_enable_ts_pins_s(tc90522, false);
+		}
 		break;
 
 	case ISDB_T:
 		// enable ts pins
 		ret = tc90522_enable_ts_pins_t(tc90522, true);
-		if (ret)
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: tc90522_enable_ts_pins_t(true) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
+
 			// disable ts pins
 			tc90522_enable_ts_pins_t(tc90522, false);
+		}
 		break;
 
 	default:
@@ -900,7 +932,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: starting...\n", px4->dev_idx, tsdev->id);
 		ret = it930x_bus_start_streaming(bus, px4_on_stream, px4->rgbuf);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed.\n", px4->dev_idx, tsdev->id);
+			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			goto fail_after_ringbuffer;
 		}
 	}
@@ -1110,10 +1142,14 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 				switch (t->isdb) {
 				case ISDB_S:
 					ret = tc90522_sleep_s(&t->tc90522, true);
+					if (ret)
+						dev_err(px4->dev, "px4_tsdev_open %d:%u: tc90522_sleep_s(%d, true) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
 					break;
 
 				case ISDB_T:
 					ret = tc90522_sleep_t(&t->tc90522, true);
+					if (ret)
+						dev_err(px4->dev, "px4_tsdev_open %d:%u: tc90522_sleep_t(%d, true) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
 					break;
 
 				default:
@@ -1371,7 +1407,7 @@ static long px4_tsdev_unlocked_ioctl(struct file *file, unsigned int cmd, unsign
 		break;
 
 	default:
-		dev_dbg(px4->dev, "px4_tsdev_unlocked_ioctl %d:%u: unknown ioctl %08x\n", dev_idx, tsdev_id, cmd);
+		dev_dbg(px4->dev, "px4_tsdev_unlocked_ioctl %d:%u: unknown ioctl 0x%08x\n", dev_idx, tsdev_id, cmd);
 		ret = -ENOSYS;
 		break;
 	}

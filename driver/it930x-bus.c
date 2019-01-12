@@ -194,7 +194,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 
 		urbs[i] = usb_alloc_urb(0, GFP_ATOMIC | __GFP_ZERO);
 		if (!urbs[i]) {
-			dev_dbg(bus->dev, "it930x_usb_start_streaming: usb_alloc_urb() failed.\n");
+			dev_err(bus->dev, "it930x_usb_start_streaming: usb_alloc_urb() failed.\n");
 			break;
 		}
 
@@ -204,7 +204,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 			p = kmalloc(l, GFP_ATOMIC);
 
 		if (!p) {
-			dev_dbg(bus->dev, "it930x_usb_start_streaming: usb_alloc_coherent() failed.\n");
+			dev_err(bus->dev, "it930x_usb_start_streaming: usb_alloc_coherent() failed.\n");
 
 			usb_free_urb(urbs[i]);
 			urbs[i] = NULL;
@@ -235,7 +235,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 		if (ret) {
 			int j;
 
-			dev_dbg(bus->dev, "it930x_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
+			dev_err(bus->dev, "it930x_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
 
 			for (j = 0; j < i; j++)
 				usb_kill_urb(urbs[j]);
