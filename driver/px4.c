@@ -1190,9 +1190,6 @@ static ssize_t px4_tsdev_read(struct file *file, char __user *buf, size_t count,
 
 	px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 
-	if (!atomic_read(&px4->avail) || !atomic_read(&tsdev->streaming))
-		return -EIO;
-
 	rd = count;
 	ret = ringbuffer_read_to_user(tsdev->rgbuf, buf, &rd);
 
