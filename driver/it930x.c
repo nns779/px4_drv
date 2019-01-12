@@ -795,7 +795,7 @@ int it930x_purge_psb(struct it930x_bridge *it930x)
 	int len;
 
 	if (it930x->bus.type != IT930X_BUS_USB)
-		return 0;
+		return -EINVAL;
 
 	ret = it930x_write_reg_bits(it930x, 0xda1d, 1, 0, 1);
 	if (ret)
