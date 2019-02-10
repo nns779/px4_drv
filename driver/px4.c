@@ -262,6 +262,8 @@ static int px4_set_power(struct px4_device *px4, bool on)
 		if (ret)
 			return ret;
 
+		msleep(100);
+
 		ret = it930x_set_gpio(it930x, 2, false);
 		if (ret)
 			return ret;
@@ -275,6 +277,7 @@ static int px4_set_power(struct px4_device *px4, bool on)
 		msleep(10);
 	} else {
 		it930x_set_gpio(it930x, 7, true);
+		msleep(50);
 		it930x_set_gpio(it930x, 2, false);
 	}
 
@@ -870,6 +873,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			ret = -EAGAIN;
 			break;
 		}
+
+		if (i > 265)
+			msleep((i - 265) * 10);
 
 		break;
 	}
