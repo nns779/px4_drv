@@ -52,11 +52,12 @@
 #define ISDB_S	2
 
 #define TS_SYNC_COUNT	4
+#define TS_SYNC_SIZE	(188 * TS_SYNC_COUNT)
 
 struct px4_tsdev {
 	struct mutex lock;
 	unsigned int id;
-	int isdb;	// ISDB_T or ISDB_S
+	int isdb;				// ISDB_T or ISDB_S
 	bool init;
 	bool open;
 	bool lnb_power;
@@ -65,24 +66,30 @@ struct px4_tsdev {
 		struct r850_tuner r850;		// for ISDB-T
 		struct rt710_tuner rt710;	// for ISDB-S
 	} t;
-	atomic_t streaming;	// 0: not streaming, !0: streaming
-	struct ringbuffer *rgbuf;
+	atomic_t streaming;			// 0: not streaming, !0: streaming
+	struct ringbuffer *ringbuf;
+};
+
+struct px4_stream_context {
+	struct ringbuffer *ringbuf[TSDEV_NUM];
+	u8 remain_buf[TS_SYNC_SIZE];
+	size_t remain_len;
 };
 
 struct px4_device {
 	struct device *dev;
-	atomic_t ref;		// reference counter
-	atomic_t avail;		// availability flag
+	atomic_t ref;				// reference counter
+	atomic_t avail;				// availability flag
 	wait_queue_head_t wait;
 	struct mutex lock;
 	int dev_idx;
-	unsigned int dev_id;	// 1 or 2
+	unsigned int dev_id;			// 1 or 2
 	struct it930x_bridge it930x;
 	struct cdev cdev;
 	unsigned int lnb_power_count;
 	unsigned int streaming_count;
 	struct px4_tsdev tsdev[TSDEV_NUM];
-	struct ringbuffer **rgbuf;
+	struct px4_stream_context *stream_context;
 };
 
 MODULE_VERSION(PX4_DRIVER_VERSION);
@@ -152,15 +159,15 @@ static int px4_init(struct px4_device *px4)
 		tsdev->lnb_power = false;
 		atomic_set(&tsdev->streaming, 0);
 
-		ret = ringbuffer_create(&tsdev->rgbuf);
+		ret = ringbuffer_create(&tsdev->ringbuf);
 		if (ret)
 			break;
 
-		ret = ringbuffer_alloc(tsdev->rgbuf, 188 * tsdev_max_packets);
+		ret = ringbuffer_alloc(tsdev->ringbuf, 188 * tsdev_max_packets);
 		if (ret)
 			break;
 
-		px4->rgbuf[i] = tsdev->rgbuf;
+		px4->stream_context->ringbuf[i] = tsdev->ringbuf;
 	}
 
 	return ret;
@@ -173,7 +180,7 @@ static int px4_term(struct px4_device *px4)
 	for (i = 0; i < TSDEV_NUM; i++) {
 		struct px4_tsdev *tsdev = &px4->tsdev[i];
 
-		ringbuffer_destroy(tsdev->rgbuf);
+		ringbuffer_destroy(tsdev->ringbuf);
 	}
 
 	return 0;
@@ -294,21 +301,18 @@ static bool px4_ts_sync(u8 **buf, u32 *len, bool *sync_remain)
 	while (remain) {
 		u32 i;
 
-		b = true;
 		for (i = 0; i < TS_SYNC_COUNT; i++) {
-			if (remain > (i * 188)) {
-				if ((p[i * 188] & 0x8f) != 0x07) {
-					b = false;
+			if (((i + 1) * 188) <= remain) {
+				if ((p[i * 188] & 0x8f) != 0x07)
 					break;
-				}
 			} else {
+				b = true;
 				break;
 			}
 		}
 
 		if (i == TS_SYNC_COUNT) {
 			// ok
-			b = false;
 			ret = true;
 			break;
 		}
@@ -327,7 +331,7 @@ static bool px4_ts_sync(u8 **buf, u32 *len, bool *sync_remain)
 	return ret;
 }
 
-static void px4_ts_write(struct ringbuffer **rgbuf, u8 **buf, u32 *len)
+static void px4_ts_write(struct ringbuffer **ringbuf, u8 **buf, u32 *len)
 {
 	u8 *p = *buf;
 	u32 remain = *len;
@@ -337,7 +341,7 @@ static void px4_ts_write(struct ringbuffer **rgbuf, u8 **buf, u32 *len)
 
 		if (id && id < 5) {
 			p[0] = 0x47;
-			ringbuffer_write_atomic(rgbuf[id - 1], p, 188);
+			ringbuffer_write_atomic(ringbuf[id - 1], p, 188);
 		} else {
 			pr_debug("px4_ts_write: unknown id %d\n", id);
 		}
@@ -354,20 +358,49 @@ static void px4_ts_write(struct ringbuffer **rgbuf, u8 **buf, u32 *len)
 
 static int px4_on_stream(void *context, void *buf, u32 len)
 {
-	struct ringbuffer **rgbuf = context;
+	struct px4_stream_context *stream_context = context;
+	u8 *context_remain_buf = stream_context->remain_buf;
+	u32 context_remain_len = stream_context->remain_len;
 	u8 *p = buf;
 	u32 remain = len;
 	bool sync_remain = false;
+
+	if (context_remain_len) {
+		if ((context_remain_len + len) >= TS_SYNC_SIZE) {
+			u32 l;
+
+			l = TS_SYNC_SIZE - context_remain_len;
+
+			memcpy(context_remain_buf + context_remain_len, p, l);
+			context_remain_len = TS_SYNC_SIZE;
+
+			if (px4_ts_sync(&context_remain_buf, &context_remain_len, &sync_remain)) {
+				px4_ts_write(stream_context->ringbuf, &context_remain_buf, &context_remain_len);
+
+				p += l;
+				remain -= l;
+			}
+
+			stream_context->remain_len = 0;
+		} else {
+			memcpy(context_remain_buf + context_remain_len, p, len);
+			stream_context->remain_len += len;
+
+			return 0;
+		}
+	}
 
 	while (remain) {
 		if (!px4_ts_sync(&p, &remain, &sync_remain))
 			break;
 
-		px4_ts_write(rgbuf, &p, &remain);
+		px4_ts_write(stream_context->ringbuf, &p, &remain);
 	}
 
-	if (sync_remain)
-		pr_debug("px4_on_stream: sync_remain remain: %u\n", remain);
+	if (sync_remain) {
+		memcpy(stream_context->remain_buf, p, remain);
+		stream_context->remain_len = remain;
+	}
 
 	return 0;
 }
@@ -957,17 +990,19 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	if (ret)
 		goto fail;
 
-	ret = ringbuffer_alloc(tsdev->rgbuf, ringbuffer_size);
+	ret = ringbuffer_alloc(tsdev->ringbuf, ringbuffer_size);
 	if (ret)
 		goto fail;
 
-	ret = ringbuffer_start(tsdev->rgbuf);
+	ret = ringbuffer_start(tsdev->ringbuf);
 	if (ret)
 		goto fail;
 
 	if (!px4->streaming_count) {
+		px4->stream_context->remain_len = 0;
+
 		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: starting...\n", px4->dev_idx, tsdev->id);
-		ret = it930x_bus_start_streaming(bus, px4_on_stream, px4->rgbuf);
+		ret = it930x_bus_start_streaming(bus, px4_on_stream, px4->stream_context);
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			goto fail_after_ringbuffer;
@@ -984,7 +1019,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	return ret;
 
 fail_after_ringbuffer:
-	ringbuffer_stop(tsdev->rgbuf);
+	ringbuffer_stop(tsdev->ringbuf);
 fail:
 	mutex_unlock(&px4->lock);
 	atomic_set(&tsdev->streaming, 0);
@@ -1016,7 +1051,7 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 	}
 	streaming_count = px4->streaming_count;
 
-	ringbuffer_stop(tsdev->rgbuf);
+	ringbuffer_stop(tsdev->ringbuf);
 
 	if (!avail) {
 		mutex_unlock(&px4->lock);
@@ -1264,7 +1299,7 @@ static ssize_t px4_tsdev_read(struct file *file, char __user *buf, size_t count,
 	px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 
 	rd = count;
-	ret = ringbuffer_read_to_user(tsdev->rgbuf, buf, &rd);
+	ret = ringbuffer_read_to_user(tsdev->ringbuf, buf, &rd);
 
 	return (ret) ? (ret) : (rd);
 }
@@ -1505,8 +1540,8 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 		goto fail_before_base;
 	}
 
-	px4->rgbuf = (struct ringbuffer **)kzalloc(sizeof(*px4->rgbuf) * TSDEV_NUM, GFP_ATOMIC);
-	if (!px4->rgbuf) {
+	px4->stream_context = (struct px4_stream_context *)kzalloc(sizeof(*px4->stream_context), GFP_ATOMIC);
+	if (!px4->stream_context) {
 		dev_err(dev, "px4_probe: kzalloc() failed. (2)\n");
 		ret = -ENOMEM;
 		goto fail_before_base;
@@ -1622,8 +1657,8 @@ fail_before_bus:
 	px4_term(px4);
 fail_before_base:
 	if (px4) {
-		if (px4->rgbuf)
-			kfree(px4->rgbuf);
+		if (px4->stream_context)
+			kfree(px4->stream_context);
 
 		kfree(px4);
 	}
@@ -1688,7 +1723,7 @@ static void px4_disconnect(struct usb_interface *intf)
 	it930x_term(&px4->it930x);
 	it930x_bus_term(&px4->it930x.bus);
 	px4_term(px4);
-	kfree(px4->rgbuf);
+	kfree(px4->stream_context);
 	kfree(px4);
 
 	return;
