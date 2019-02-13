@@ -807,12 +807,12 @@ int it930x_purge_psb(struct it930x_bridge *it930x)
 	if (!p)
 		return -ENOMEM;
 
-	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 2000);
+	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 100);
 	dev_dbg(it930x->dev, "it930x_purge_psb: len: %d\n", len);
 
 	kfree(p);
 
 	it930x_write_reg_bits(it930x, 0xda1d, 0, 0, 1);
 
-	return ret;
+	return (len == 512) ? 0 : ret;
 }
