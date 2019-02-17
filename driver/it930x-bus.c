@@ -4,6 +4,7 @@
 
 #include "print_format.h"
 
+#include <linux/version.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/atomic.h>
@@ -113,7 +114,11 @@ static void free_urb_buffers(struct usb_device *dev, struct urb **urbs, u32 n, b
 		if (urb != NULL) {
 			if (urb->transfer_buffer) {
 				if (!no_dma)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 					usb_free_coherent(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
+#else
+					usb_buffer_free(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
+#endif
 				else
 					kfree(urb->transfer_buffer);
 
@@ -199,7 +204,11 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 		}
 
 		if (!no_dma)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 			p = usb_alloc_coherent(dev, l, GFP_ATOMIC, &dma);
+#else
+			p = usb_buffer_alloc(dev, l, GFP_ATOMIC, &dma);
+#endif
 		else
 			p = kmalloc(l, GFP_ATOMIC);
 
