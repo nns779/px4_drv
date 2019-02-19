@@ -1299,7 +1299,7 @@ static ssize_t px4_tsdev_read(struct file *file, char __user *buf, size_t count,
 	px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 
 	rd = count;
-	ret = ringbuffer_read_to_user(tsdev->ringbuf, buf, &rd);
+	ret = ringbuffer_read_user(tsdev->ringbuf, buf, &rd);
 
 	return (ret) ? (ret) : (rd);
 }
