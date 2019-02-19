@@ -224,6 +224,7 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, siz
 
 int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len)
 {
+	int ret = 0;
 	u8 *p = buf;
 	size_t buf_size, l = *len, buf_pos = 0;
 
@@ -243,14 +244,21 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 		size_t data_size, head_pos, read_size, t;
 		unsigned long r;
 
-		wait_event(ringbuffer->data_wait, (ringbuffer->data_size || !atomic_read(&ringbuffer->avail)));
+		if (wait_event_interruptible(ringbuffer->data_wait, (ringbuffer->data_size || !atomic_read(&ringbuffer->avail)))) {
+			if (!buf_pos)
+				ret = -EINTR;
+			break;
+		}
 
 		spin_lock(&ringbuffer->lock);
 		data_size = ringbuffer->data_size;
 		spin_unlock(&ringbuffer->lock);
 
-		if (!data_size)
+		if (!data_size) {
+			if (!buf_pos)
+				ret = -EIO;
 			break;
+		}
 
 		head_pos = ringbuffer->head_pos;
 
@@ -285,5 +293,5 @@ int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, siz
 	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) && atomic_read(&ringbuffer->wait_cnt))
 		wake_up(&ringbuffer->wait);
 
-	return (!buf_pos) ? (-EIO) : (0);
+	return ret;
 }
