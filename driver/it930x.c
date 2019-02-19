@@ -807,7 +807,7 @@ int it930x_purge_psb(struct it930x_bridge *it930x)
 	if (!p)
 		return -ENOMEM;
 
-	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 100);
+	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 200);
 	dev_dbg(it930x->dev, "it930x_purge_psb: len: %d\n", len);
 
 	kfree(p);
