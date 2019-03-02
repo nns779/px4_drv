@@ -13,6 +13,7 @@ struct tc90522_demod {
 	struct i2c_comm_master *i2c;
 	u8 i2c_addr;
 	struct i2c_comm_master i2c_master;
+	bool is_secondary;
 };
 
 struct tc90522_regbuf {

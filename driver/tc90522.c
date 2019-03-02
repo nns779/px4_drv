@@ -177,6 +177,9 @@ int tc90522_set_agc_s(struct tc90522_demod *demod, bool on)
 		{ 0x03, NULL, { 0x01 } }
 	};
 
+	if (demod->is_secondary)
+		regbuf[1].u.val = 0x30;
+
 	if (on) {
 		// on
 		regbuf[0].u.val = 0xff;
