@@ -8,25 +8,25 @@
 
 #include "i2c_comm.h"
 
-typedef enum {
+enum rt710_agc_mode {
 	RT710_AGC_NEGATIVE = 0,
 	RT710_AGC_POSITIVE,
-} rt710_agc_mode_t;
+};
 
-typedef enum {
+enum rt710_vga_attenuate_mode{
 	RT710_VGA_ATTEN_OFF = 0,
 	RT710_VGA_ATTEN_ON,
-} rt710_vga_attenuate_mode_t;
+};
 
-typedef enum {
+enum rt710_fine_gain {
 	RT710_FINE_GAIN_HIGH = 0,
 	RT710_FINE_GAIN_LOW,
-} rt710_fine_gain_t;
+};
 
 struct rt710_config {
-	rt710_agc_mode_t agc_mode;
-	rt710_vga_attenuate_mode_t vga_atten_mode;
-	rt710_fine_gain_t fine_gain;
+	enum rt710_agc_mode agc_mode;
+	enum rt710_vga_attenuate_mode vga_atten_mode;
+	enum rt710_fine_gain fine_gain;
 };
 
 struct rt710_priv {
