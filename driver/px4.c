@@ -262,7 +262,7 @@ static int px4_load_config(struct px4_device *px4)
 
 static int px4_set_power(struct px4_device *px4, bool on)
 {
-	int ret = 0;
+	int ret = 0, i;
 	struct it930x_bridge *it930x = &px4->it930x;
 
 	if (on) {
@@ -283,7 +283,52 @@ static int px4_set_power(struct px4_device *px4, bool on)
 			return ret;
 
 		msleep(10);
+
+		for (i = 0; i < TSDEV_NUM; i++) {
+			struct px4_tsdev *t = &px4->tsdev[i];
+
+			ret = tc90522_init(&t->tc90522);
+			if (ret) {
+				dev_err(px4->dev, "px4_set_power: tc90522_init(%d) failed. (ret: %d)\n", i, ret);
+				break;
+			}
+
+			switch (t->isdb) {
+			case ISDB_S:
+				ret = rt710_init(&t->t.rt710);
+				if (ret)
+					dev_err(px4->dev, "px4_set_power: rt710_init(%d) failed. (ret: %d)\n", i, ret);
+				break;
+
+			case ISDB_T:
+				ret = r850_init(&t->t.r850);
+				if (ret)
+					dev_err(px4->dev, "px4_set_power: r850_init(%d) failed. (ret: %d)\n", i, ret);
+				break;
+
+			default:
+				break;
+			}
+		}
 	} else {
+		for (i = 0; i < TSDEV_NUM; i++) {
+			struct px4_tsdev *t = &px4->tsdev[i];
+
+			switch (t->isdb) {
+			case ISDB_S:
+				rt710_term(&t->t.rt710);
+				break;
+
+			case ISDB_T:
+				r850_term(&t->t.r850);
+				break;
+
+			default:
+				break;
+			}
+
+			tc90522_term(&t->tc90522);
+		}
 		it930x_set_gpio(it930x, 7, true);
 		msleep(50);
 		it930x_set_gpio(it930x, 2, false);
@@ -436,8 +481,6 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 		// already initialized
 		return 0;
 
-	tc90522_init(tc90522);
-
 	switch (tsdev->isdb) {
 	case ISDB_S:
 	{
@@ -458,12 +501,6 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 		ret = tc90522_sleep_s(tc90522, false);
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_sleep_s(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
-			break;
-		}
-
-		ret = rt710_init(&tsdev->t.rt710);
-		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_init %d:%u: rt710_init() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
 		}
 
@@ -492,11 +529,13 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 			break;
 		}
 
-		ret = r850_init(&tsdev->t.r850);
+#if 0
+		ret = r850_wakeup(&tsdev->t.r850);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_init %d:%u: r850_init() failed.\n", px4->dev_idx, tsdev->id);
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: r850_wakeup() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
 		}
+#endif
 
 		if (tsdev->id == 3) {
 			struct px4_tsdev *tsdev_t0 = &container_of(tsdev, struct px4_device, tsdev[tsdev->id])->tsdev[2];
@@ -531,8 +570,6 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 	if (!ret)
 		tsdev->init = true;
-	else
-		tc90522_term(tc90522);
 
 	return ret;
 }
@@ -547,19 +584,15 @@ static void px4_tsdev_term(struct px4_tsdev *tsdev)
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
-		rt710_term(&tsdev->t.rt710);
-#if 0
+		rt710_sleep(&tsdev->t.rt710);
 		tc90522_sleep_s(tc90522, true);
-#endif
-		tc90522_term(tc90522);
 		break;
 
 	case ISDB_T:
-		r850_term(&tsdev->t.r850);
 #if 0
+		r850_sleep(&tsdev->t.r850);
 		tc90522_sleep_t(tc90522, true);
 #endif
-		tc90522_term(tc90522);
 
 		if (tsdev->id == 3) {
 			struct px4_tsdev *tsdev_t0 = &container_of(tsdev, struct px4_device, tsdev[tsdev->id])->tsdev[2];
@@ -1214,15 +1247,35 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 			if (!t->open) {
 				switch (t->isdb) {
 				case ISDB_S:
+					ret = rt710_sleep(&tsdev->t.rt710);
+					if (ret) {
+						dev_err(px4->dev, "px4_tsdev_open %d:%u: rt710_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
+						break;
+					}
+
 					ret = tc90522_sleep_s(&t->tc90522, true);
-					if (ret)
+					if (ret) {
 						dev_err(px4->dev, "px4_tsdev_open %d:%u: tc90522_sleep_s(%d, true) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
+						break;
+					}
+
 					break;
 
 				case ISDB_T:
+#if 0
+					ret = r850_sleep(&tsdev->t.r850);
+					if (ret) {
+						dev_err(px4->dev, "px4_tsdev_open %d:%u: rt850_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
+						break;
+					}
+#endif
+
 					ret = tc90522_sleep_t(&t->tc90522, true);
-					if (ret)
+					if (ret) {
 						dev_err(px4->dev, "px4_tsdev_open %d:%u: tc90522_sleep_t(%d, true) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
+						break;
+					}
+					
 					break;
 
 				default:
