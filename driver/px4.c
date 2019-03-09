@@ -547,7 +547,7 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 				ret = px4_tsdev_init(tsdev_t0);
 				if (ret) {
-					dev_err(px4->dev, "px4_tsdev_init %d:%u(*): px4_tsdev_init() 2 failed.\n", px4->dev_idx, 2);
+					dev_err(px4->dev, "px4_tsdev_init %d:%u(*): px4_tsdev_init() t0 failed.\n", px4->dev_idx, 2);
 					break;
 				}
 
@@ -555,11 +555,12 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 				ret = r850_write_config_regs(&tsdev_t0->t.r850, regs[0]);
 				if (ret) {
-					dev_err(px4->dev, "px4_tsdev_init %d:%u(*): r850_write_config_regs() 2 failed.\n", px4->dev_idx, 2);
+					dev_err(px4->dev, "px4_tsdev_init %d:%u(*): r850_write_config_regs() t0 failed.\n", px4->dev_idx, 2);
 					break;
 				}
 			}
 		}
+
 		break;
 	}
 
@@ -602,6 +603,7 @@ static void px4_tsdev_term(struct px4_tsdev *tsdev)
 				px4_tsdev_term(tsdev_t0);
 			}
 		}
+
 		break;
 
 	default:
@@ -1241,7 +1243,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 		for (i = 0; i < TSDEV_NUM; i++) {
 			struct px4_tsdev *t = &px4->tsdev[i];
 
-			if (i == tsdev->id)
+			if (i == tsdev->id || (tsdev->id == 3 && i == 2))
 				continue;
 
 			if (!t->open) {
@@ -1275,7 +1277,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 						dev_err(px4->dev, "px4_tsdev_open %d:%u: tc90522_sleep_t(%d, true) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
 						break;
 					}
-					
+
 					break;
 
 				default:
