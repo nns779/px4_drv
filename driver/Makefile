@@ -33,7 +33,7 @@ revision.h: FORCE
 	$(cmd_prefix)rev=`git rev-list --count HEAD` 2>/dev/null; \
 	rev_name=`git name-rev --name-only HEAD` 2>/dev/null; \
 	commit=`git rev-list --max-count=1 HEAD` 2>/dev/null; \
-	if [ ! -s $@ ] || [ \"`grep -soP '(?<=#define REVISION_NUMBER\\s\\")[0-9]+(?=\\")' $@`.`grep -soP '(?<=#define REVISION_NAME\\s\\")[[:print:]]+(?=\\")' $@`.`grep -soP '(?<=#define COMMIT_HASH\\s\\")[0-9A-Fa-f]+(?=\\")' $@`\" != \"$${rev}.$${rev_name}.$${commit}\" ]; then \
+	if [ ! -s $@ ] || [ \"`grep -soE '^#define REVISION_NUMBER[[:blank:]]+"[0-9]+"$$' $@ | sed -E 's/^.+"(.*)"$$/\1/g'`.`grep -soE '^#define REVISION_NAME[[:blank:]]+"[[:print:]]+"$$' $@ | sed -E 's/^.+"(.*)"$$/\1/g'`.`grep -soE '^#define COMMIT_HASH[[:blank:]]+"[0-9A-Fa-f]+"$$' $@ | sed -E 's/^.+"(.*)"$$/\1/g'`\" != \"$${rev}.$${rev_name}.$${commit}\" ]; then \
 	echo "// revision.h" > $@; \
 	echo "" >> $@; \
 	echo "#ifndef __REVISION_H__" >> $@; \
