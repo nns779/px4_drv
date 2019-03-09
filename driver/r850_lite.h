@@ -10,20 +10,20 @@
 
 #define R850_NUM_REGS	0x30
 
-typedef enum {
+enum r850_system {
 	R850_SYSTEM_STANDARD = 0,
 	R850_SYSTEM_ISDB_T,
-} r850_system_t;
+};
 
-typedef enum {
+enum r850_bandwidth{
 	R850_BANDWIDTH_6M = 0,
 	R850_BANDWIDTH_7M,
 	R850_BANDWIDTH_8M,
-} r850_bandwidth_t;
+};
 
 struct r850_system_config {
-	r850_system_t system;
-	r850_bandwidth_t bandwidth;
+	enum r850_system system;
+	enum r850_bandwidth bandwidth;
 	u32 if_freq;
 	bool is_cable_system;	// DVB-C, J38B
 };
@@ -36,7 +36,7 @@ struct r850_tuner {
 	int chip;
 	u32 xtal;
 	u8 xtal_pwr;
-	struct r850_system_config config;
+	struct r850_system_config system_config;
 	u8 regs[R850_NUM_REGS];
 };
 
