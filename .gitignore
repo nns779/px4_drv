@@ -9,6 +9,8 @@ modules.order
 *.mod.c
 *.mod.o
 
+/driver/revision.h
+
 *.bin
 *.sys
 *.zip
