@@ -518,14 +518,14 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 		// disable ts pins
 		ret = tc90522_enable_ts_pins_t(tc90522, false);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_enable_ts_pins_s(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_enable_ts_pins_t(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
 		}
 
 		// wake up
 		ret = tc90522_sleep_t(tc90522, false);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_sleep_s(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_sleep_t(false) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
 		}
 
@@ -592,8 +592,8 @@ static void px4_tsdev_term(struct px4_tsdev *tsdev)
 	case ISDB_T:
 #if 0
 		r850_sleep(&tsdev->t.r850);
-		tc90522_sleep_t(tc90522, true);
 #endif
+		tc90522_sleep_t(tc90522, true);
 
 		if (tsdev->id == 3) {
 			struct px4_tsdev *tsdev_t0 = &container_of(tsdev, struct px4_device, tsdev[tsdev->id])->tsdev[2];
@@ -1381,14 +1381,13 @@ static int px4_tsdev_release(struct inode *inode, struct file *file)
 
 	px4_tsdev_stop_streaming(tsdev, (avail) ? true : false);
 
-	if (avail) {
-		if (tsdev->isdb == ISDB_S)
-			px4_tsdev_set_lnb_power(tsdev, false);
-
-		px4_tsdev_term(tsdev);
-	}
+	if (avail && tsdev->isdb == ISDB_S)
+		px4_tsdev_set_lnb_power(tsdev, false);
 
 	mutex_lock(&px4->lock);
+
+	if (avail)
+		px4_tsdev_term(tsdev);
 
 	ref = px4_unref(px4);
 	if (avail && ref <= 1)
