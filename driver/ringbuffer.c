@@ -1,5 +1,7 @@
 // ringbuffer.c
 
+#include "print_format.h"
+
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/atomic.h>
@@ -24,6 +26,8 @@ static int _ringbuffer_init(struct ringbuffer *ringbuffer)
 	ringbuffer->data_size = 0;
 	ringbuffer->tail_pos = 0;
 	ringbuffer->head_pos = 0;
+	ringbuffer->write_size = 0;
+	ringbuffer->write_threshold_size = 0;
 
 	return 0;
 }
@@ -68,6 +72,8 @@ static void _ringbuffer_free(struct ringbuffer *ringbuffer)
 	ringbuffer->data_size = 0;
 	ringbuffer->tail_pos = 0;
 	ringbuffer->head_pos = 0;
+	ringbuffer->write_size = 0;
+	ringbuffer->write_threshold_size = 0;
 }
 
 int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size)
@@ -100,11 +106,13 @@ int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size)
 	}
 
 	ringbuffer->buf_size = size;
+	ringbuffer->write_threshold_size = (size / 10);
 
 reset:
 	ringbuffer->data_size = 0;
 	ringbuffer->tail_pos = 0;
 	ringbuffer->head_pos = 0;
+	ringbuffer->write_size = 0;
 
 exit:
 	// Release lock
@@ -213,7 +221,13 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, siz
 		ringbuffer->data_size += write_size;
 		spin_unlock_irqrestore(&ringbuffer->lock, flags);
 
-		wake_up(&ringbuffer->data_wait);
+		if (ringbuffer->write_size >= ringbuffer->write_threshold_size) {
+			if (atomic_read(&ringbuffer->rw_cnt) > 1) {
+				wake_up(&ringbuffer->data_wait);
+				ringbuffer->write_size = 0;
+			}
+		} else
+			ringbuffer->write_size += write_size;
 	}
 
 	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) && atomic_read(&ringbuffer->wait_cnt))

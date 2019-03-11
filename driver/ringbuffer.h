@@ -20,6 +20,8 @@ struct ringbuffer {
 	size_t data_size;
 	size_t tail_pos;	// write
 	size_t head_pos;	// read
+	size_t write_size;
+	size_t write_threshold_size;
 };
 
 int ringbuffer_create(struct ringbuffer **ringbuffer);
