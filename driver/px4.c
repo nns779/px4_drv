@@ -697,6 +697,11 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: rt710_is_pll_locked() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
+		} else if (!tuner_locked) {
+			// PLL error
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: PLL is NOT locked.\n", dev_idx, tsdev_id);
+			ret = -EAGAIN;
+			break;
 		}
 
 		mutex_lock(&px4->lock);
@@ -704,12 +709,6 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		mutex_unlock(&px4->lock);
 
 		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: PLL is locked. count: %d, signal strength: %ddBm\n", dev_idx, tsdev_id, i, ss);
-
-		if (!tuner_locked) {
-			// PLL error
-			ret = -EIO;
-			break;
-		}
 
 		mutex_lock(&px4->lock);
 		ret = tc90522_set_agc_s(tc90522, true);
@@ -890,15 +889,14 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_is_pll_locked() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
-		}
-
-		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: PLL is locked. count: %d\n", dev_idx, tsdev_id, i);
-
-		if (!tuner_locked) {
+		} else if (!tuner_locked) {
 			// PLL error
+			dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: PLL is NOT locked.\n", dev_idx, tsdev_id);
 			ret = -EAGAIN;
 			break;
 		}
+
+		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: PLL is locked. count: %d\n", dev_idx, tsdev_id, i);
 
 		mutex_lock(&px4->lock);
 		ret = tc90522_set_agc_t(tc90522, true);
