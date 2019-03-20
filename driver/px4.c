@@ -112,20 +112,20 @@ static bool s_agc_negative_mode = false;
 static bool s_vga_atten = false;
 static unsigned int s_fine_gain = 3;
 
-module_param(xfer_packets, uint, S_IRUSR | S_IWUSR);
+module_param(xfer_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (default: 816)");
 
-module_param(max_urbs, uint, S_IRUSR | S_IWUSR);
+module_param(max_urbs, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 6)");
 
-module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR);
+module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of packets buffering in tsdev. (default: 2048)");
 
-module_param(no_dma, bool, S_IRUSR | S_IWUSR);
+module_param(no_dma, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-module_param(s_agc_negative_mode, bool, S_IRUSR | S_IWUSR);
-module_param(s_vga_atten, bool, S_IRUSR | S_IWUSR);
-module_param(s_fine_gain, uint, S_IRUSR | S_IWUSR);
+module_param(s_agc_negative_mode, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+module_param(s_vga_atten, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+module_param(s_fine_gain, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, PID_PX_W3U4) },
