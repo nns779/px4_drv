@@ -7,6 +7,7 @@ DEBUG := 0
 TARGET := px4_drv.ko
 
 drv-MAX_DEVICE := 0
+drv-RINGBUFFER_USE_SPINLOCK := 0
 
 cmd_prefix := @
 
@@ -19,6 +20,9 @@ cmd_prefix :=
 endif
 ifneq ($(drv-MAX_DEVICE),0)
 ccflags-y += -DMAX_DEVICE=$(drv-MAX_DEVICE)
+endif
+ifneq ($(drv-RINGBUFFER_USE_SPINLOCK),0)
+ccflags-y += -DRINGBUFFER_USE_SPINLOCK
 endif
 
 obj-m := px4_drv.o
