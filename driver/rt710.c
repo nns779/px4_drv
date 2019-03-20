@@ -277,6 +277,9 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 
 	memcpy(regs, init_regs, sizeof(regs));
 
+	if (t->config.loop_through)
+		regs[0x01] |= 0xfb;
+
 	switch (t->config.agc_mode) {
 	case RT710_AGC_POSITIVE:
 		regs[0x0d] |= 0x10;
@@ -297,15 +300,8 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 		break;
 	}
 
-	switch (t->config.fine_gain) {
-	case RT710_FINE_GAIN_LOW:
-		regs[0x0e] |= 0x01;
-		break;
-
-	case RT710_FINE_GAIN_HIGH:
-	default:
-		break;
-	}
+	if (t->config.fine_gain >= RT710_FINE_GAIN_3DB && t->config.fine_gain <= RT710_FINE_GAIN_0DB)
+		regs[0x0e] |= t->config.fine_gain;
 
 	ret = rt710_write_regs(t, 0x00, regs, NUM_REGS);
 	if (ret) {

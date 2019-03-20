@@ -110,7 +110,7 @@ static unsigned int tsdev_max_packets = 2048;
 static bool no_dma = false;
 static bool s_agc_negative_mode = false;
 static bool s_vga_atten = false;
-static bool s_low_fine_gain = false;
+static unsigned int s_fine_gain = 3;
 
 module_param(xfer_packets, uint, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (default: 816)");
@@ -125,7 +125,7 @@ module_param(no_dma, bool, S_IRUSR | S_IWUSR);
 
 module_param(s_agc_negative_mode, bool, S_IRUSR | S_IWUSR);
 module_param(s_vga_atten, bool, S_IRUSR | S_IWUSR);
-module_param(s_low_fine_gain, bool, S_IRUSR | S_IWUSR);
+module_param(s_fine_gain, uint, S_IRUSR | S_IWUSR);
 
 static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, PID_PX_W3U4) },
@@ -245,6 +245,7 @@ static int px4_load_config(struct px4_device *px4)
 			tsdev->t.rt710.dev = dev;
 			tsdev->t.rt710.i2c = &tsdev->tc90522.i2c_master;
 			tsdev->t.rt710.i2c_addr = 0x7a;
+			tsdev->t.rt710.config.loop_through = false;
 			break;
 
 		case ISDB_T:
@@ -655,7 +656,7 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		rt710->config.agc_mode = (s_agc_negative_mode) ? RT710_AGC_NEGATIVE : RT710_AGC_POSITIVE;
 		rt710->config.vga_atten_mode = (s_vga_atten) ? RT710_VGA_ATTEN_ON : RT710_VGA_ATTEN_OFF;
-		rt710->config.fine_gain = (s_low_fine_gain) ? RT710_FINE_GAIN_LOW : RT710_FINE_GAIN_HIGH;
+		rt710->config.fine_gain = (s_fine_gain < 0 || s_fine_gain > 3) ? (RT710_FINE_GAIN_3DB) : (3 - s_fine_gain);
 
 		dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: rt710: agc_mode: %d, vga_atten_mode: %d, fine_gain: %d\n", dev_idx, tsdev_id, rt710->config.agc_mode, rt710->config.vga_atten_mode, rt710->config.fine_gain);
 

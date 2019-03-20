@@ -19,11 +19,14 @@ enum rt710_vga_attenuate_mode{
 };
 
 enum rt710_fine_gain {
-	RT710_FINE_GAIN_HIGH = 0,
-	RT710_FINE_GAIN_LOW,
+	RT710_FINE_GAIN_3DB = 0,
+	RT710_FINE_GAIN_2DB,
+	RT710_FINE_GAIN_1DB,
+	RT710_FINE_GAIN_0DB,
 };
 
 struct rt710_config {
+	bool loop_through;
 	enum rt710_agc_mode agc_mode;
 	enum rt710_vga_attenuate_mode vga_atten_mode;
 	enum rt710_fine_gain fine_gain;
