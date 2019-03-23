@@ -273,17 +273,11 @@ static int px4_set_power(struct px4_device *px4, bool on)
 
 		msleep(100);
 
-		ret = it930x_set_gpio(it930x, 2, false);
-		if (ret)
-			return ret;
-
-		msleep(10);
-
 		ret = it930x_set_gpio(it930x, 2, true);
 		if (ret)
 			return ret;
 
-		msleep(10);
+		msleep(20);
 
 		for (i = 0; i < TSDEV_NUM; i++) {
 			struct px4_tsdev *t = &px4->tsdev[i];
@@ -310,6 +304,9 @@ static int px4_set_power(struct px4_device *px4, bool on)
 			default:
 				break;
 			}
+
+			if (ret)
+				break;
 		}
 	} else {
 		for (i = 0; i < TSDEV_NUM; i++) {
@@ -330,9 +327,10 @@ static int px4_set_power(struct px4_device *px4, bool on)
 
 			tc90522_term(&t->tc90522);
 		}
+
+		it930x_set_gpio(it930x, 2, false);
 		it930x_set_gpio(it930x, 7, true);
 		msleep(50);
-		it930x_set_gpio(it930x, 2, false);
 	}
 
 	return ret;
