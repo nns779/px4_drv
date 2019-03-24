@@ -34,9 +34,14 @@ struct it930x_stream_input {
 	u8 sync_byte;
 };
 
+struct it930x_config {
+	u32 xfer_size;
+};
+
 struct it930x_bridge {
 	struct device *dev;
 	struct it930x_bus bus;
+	struct it930x_config config;
 	u32 fw_version;
 	struct it930x_stream_input input[5];
 	struct it930x_i2c_master_info i2c[2];

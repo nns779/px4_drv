@@ -378,7 +378,7 @@ static int it930x_enable_dvbt_mode(struct it930x_bridge *it930x, bool enable)
 	return 0;
 }
 
-static int it930x_enable_stream_output(struct it930x_bridge *it930x, bool enable, u32 xfer_size)
+static int it930x_enable_stream_output(struct it930x_bridge *it930x, bool enable)
 {
 	int ret = 0, ret2 = 0;
 
@@ -408,7 +408,7 @@ static int it930x_enable_stream_output(struct it930x_bridge *it930x, bool enable
 			u16 x;
 			u8 b[2];
 
-			x = (xfer_size / 4) & 0xffff;
+			x = (it930x->config.xfer_size / 4) & 0xffff;
 
 			b[0] = (x & 0xff);
 			b[1] = ((x >> 8) & 0xff);
@@ -718,7 +718,7 @@ int it930x_init_device(struct it930x_bridge *it930x)
 		return ret;
 	}
 
-	ret = it930x_enable_stream_output(it930x, true, it930x->bus.usb.streaming_xfer_size);
+	ret = it930x_enable_stream_output(it930x, true);
 	if (ret) {
 		dev_err(it930x->dev, "it930x_init_device: it930x_enable_stream_output() failed.\n");
 		return ret;
@@ -801,7 +801,7 @@ int it930x_purge_psb(struct it930x_bridge *it930x)
 	if (ret)
 		return ret;
 
-	len = it930x->bus.usb.streaming_xfer_size;
+	len = it930x->config.xfer_size;
 
 	p = kmalloc(len, GFP_KERNEL);
 	if (!p)

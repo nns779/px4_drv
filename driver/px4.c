@@ -105,6 +105,7 @@ static dev_t px4_dev_first;
 static struct px4_device *devs[MAX_DEVICE];
 static bool devs_reserve[MAX_DEVICE];
 static unsigned int xfer_packets = 816;
+static unsigned int urb_max_packets = 816;
 static unsigned int max_urbs = 6;
 static unsigned int tsdev_max_packets = 2048;
 static bool no_dma = false;
@@ -115,11 +116,14 @@ static unsigned int s_fine_gain = 3;
 module_param(xfer_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (default: 816)");
 
+module_param(urb_max_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(urb_max_packets, "Maximum number of TS packets per URB. (default: 816)");
+
 module_param(max_urbs, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 6)");
 
 module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of packets buffering in tsdev. (default: 2048)");
+MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of TS packets buffering in tsdev. (default: 2048)");
 
 module_param(no_dma, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
@@ -977,10 +981,11 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	mutex_lock(&px4->lock);
 
 	if (!px4->streaming_count) {
+		bus->usb.streaming_urb_buffer_size = 188 * urb_max_packets;
 		bus->usb.streaming_urb_num = max_urbs;
 		bus->usb.streaming_no_dma = no_dma;
 
-		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: max_urbs: %u, no_dma: %c\n", px4->dev_idx, tsdev->id, bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
+		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: urb_buffer_size: %u, urb_num: %u, no_dma: %c\n", px4->dev_idx, tsdev->id, bus->usb.streaming_urb_buffer_size, bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
 
 		ret = it930x_purge_psb(&px4->it930x);
 		if (ret) {
@@ -1626,7 +1631,6 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	bus->type = IT930X_BUS_USB;
 	bus->usb.dev = usbdev;
 	bus->usb.ctrl_timeout = 3000;
-	bus->usb.streaming_xfer_size = xfer_packets * 188;
 
 	ret = it930x_bus_init(bus);
 	if (ret)
@@ -1647,6 +1651,8 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 		goto fail;
 
 	// Initialize IT930x bridge
+
+	it930x->config.xfer_size = 188 * xfer_packets;
 
 	ret = it930x_load_firmware(it930x, FIRMWARE_FILENAME);
 	if (ret)
