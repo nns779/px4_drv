@@ -222,13 +222,13 @@ static int px4_load_config(struct px4_device *px4)
 	px4->tsdev[2].isdb = ISDB_T;
 	px4->tsdev[3].isdb = ISDB_T;
 
-	it930x->input[0].i2c_addr = 0x22;
-	it930x->input[1].i2c_addr = 0x26;
-	it930x->input[2].i2c_addr = 0x20;
-	it930x->input[3].i2c_addr = 0x24;
+	it930x->config.input[0].i2c_addr = 0x22;
+	it930x->config.input[1].i2c_addr = 0x26;
+	it930x->config.input[2].i2c_addr = 0x20;
+	it930x->config.input[3].i2c_addr = 0x24;
 
 	for (i = 0; i < TSDEV_NUM; i++) {
-		struct it930x_stream_input *input = &it930x->input[i];
+		struct it930x_stream_input *input = &it930x->config.input[i];
 		struct px4_tsdev *tsdev = &px4->tsdev[i];
 
 		input->enable = true;
@@ -260,7 +260,7 @@ static int px4_load_config(struct px4_device *px4)
 		}
 	}
 
-	it930x->input[4].enable = false;
+	it930x->config.input[4].enable = false;
 
 	return 0;
 }

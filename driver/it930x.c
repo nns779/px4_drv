@@ -495,7 +495,7 @@ static int it930x_config_i2c(struct it930x_bridge *it930x)
 	// set i2c address and bus
 
 	for(i = 0, j = 0; i < 5; i++) {
-		struct it930x_stream_input *input = &it930x->input[i];
+		struct it930x_stream_input *input = &it930x->config.input[i];
 		if (input->enable) {
 			it930x_regbuf_set_val(&regbuf[j], i2c_regs[input->slave_number][0], input->i2c_addr);
 			j++;
@@ -518,7 +518,7 @@ static int it930x_config_stream_input(struct it930x_bridge *it930x)
 	int ret = 0, i;
 
 	for (i = 0; i < 5; i++) {
-		struct it930x_stream_input *input = &it930x->input[i];
+		struct it930x_stream_input *input = &it930x->config.input[i];
 		struct it930x_regbuf regbuf[3];
 
 		if (!input->enable) {
@@ -785,7 +785,7 @@ int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool 
 	if (input_idx >= 5)
 		return -EINVAL;
 
-	return it930x_write_reg(it930x, 0xda4c + it930x->input[input_idx].port_number, (enable) ? 1 : 0);
+	return it930x_write_reg(it930x, 0xda4c + it930x->config.input[input_idx].port_number, (enable) ? 1 : 0);
 }
 
 int it930x_purge_psb(struct it930x_bridge *it930x)

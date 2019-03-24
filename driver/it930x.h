@@ -36,6 +36,7 @@ struct it930x_stream_input {
 
 struct it930x_config {
 	u32 xfer_size;
+	struct it930x_stream_input input[5];
 };
 
 struct it930x_bridge {
@@ -43,7 +44,6 @@ struct it930x_bridge {
 	struct it930x_bus bus;
 	struct it930x_config config;
 	u32 fw_version;
-	struct it930x_stream_input input[5];
 	struct it930x_i2c_master_info i2c[2];
 	struct i2c_comm_master i2c_master[2];
 	u8 buf[255];
