@@ -90,6 +90,10 @@ struct px4_device {
 	unsigned int streaming_count;
 	struct px4_tsdev tsdev[TSDEV_NUM];
 	struct px4_stream_context *stream_context;
+#ifdef PSB_DEBUG
+	struct workqueue_struct *wq;
+	struct delayed_work w;
+#endif
 };
 
 MODULE_VERSION(PX4_DRIVER_VERSION);
@@ -963,6 +967,33 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	return ret;
 }
 
+#ifdef PSB_DEBUG
+static void px4_workqueue_handler(struct work_struct *w)
+{
+	int ret = 0;
+	struct px4_device *px4 = container_of(to_delayed_work(w), struct px4_device, w);
+	struct it930x_bridge *it930x = &px4->it930x;
+	struct it930x_regbuf regbuf[1];
+	u8 val[2];
+
+	mutex_lock(&px4->lock);
+
+	it930x_regbuf_set_buf(&regbuf[0], 0xda98, val, 2);
+	ret = it930x_read_regs(it930x, regbuf, 1);
+	if (ret)
+		goto exit;
+
+	dev_info(px4->dev, "psb count: 0x%x\n", (val[0] | (val[1] << 8)));
+
+	if (px4->streaming_count)
+		queue_delayed_work(px4->wq, to_delayed_work(w), msecs_to_jiffies(1000));
+
+exit:
+	mutex_unlock(&px4->lock);
+	return;
+}
+#endif
+
 static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 {
 	int ret = 0;
@@ -1045,6 +1076,16 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			goto fail_after_ringbuffer;
 		}
+
+#ifdef PSB_DEBUG
+		INIT_DELAYED_WORK(&px4->w, px4_workqueue_handler);
+
+		if (!px4->wq)
+			px4->wq = create_singlethread_workqueue("px4_workqueue");
+
+		if (px4->wq)
+			queue_delayed_work(px4->wq, &px4->w, msecs_to_jiffies(1000));
+#endif
 	}
 
 	px4->streaming_count++;
@@ -1086,6 +1127,15 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 	if (!px4->streaming_count) {
 		dev_dbg(px4->dev, "px4_tsdev_stop_streaming %d:%u: stopping...\n", px4->dev_idx, tsdev->id);
 		it930x_bus_stop_streaming(&px4->it930x.bus);
+
+#ifdef PSB_DEBUG
+		if (px4->wq) {
+			cancel_delayed_work_sync(&px4->w);
+			flush_workqueue(px4->wq);
+			destroy_workqueue(px4->wq);
+			px4->wq = NULL;
+		}
+#endif
 	}
 	streaming_count = px4->streaming_count;
 
