@@ -4,8 +4,8 @@
 #define __I2C_COMM_H__
 
 struct i2c_comm_master {
-	int (*wr) (void *priv, u8 addr, const u8 * data, int len);
-	int (*rd) (void *priv, u8 addr, u8 *data, int len);
+	int (*wr) (void *i2c_priv, u8 addr, const u8 * data, int len);
+	int (*rd) (void *i2c_priv, u8 addr, u8 *data, int len);
 	void *priv;
 };
 
