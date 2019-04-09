@@ -4,6 +4,7 @@
 #define __RT710_H__
 
 #include <linux/types.h>
+#include <linux/mutex.h>
 #include <linux/device.h>
 
 #include "i2c_comm.h"
@@ -33,6 +34,7 @@ struct rt710_config {
 };
 
 struct rt710_priv {
+	struct mutex lock;
 	u32 freq;
 };
 

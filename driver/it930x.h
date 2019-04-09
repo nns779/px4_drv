@@ -4,6 +4,7 @@
 #define __IT930X_H__
 
 #include <linux/types.h>
+#include <linux/mutex.h>
 #include <linux/device.h>
 
 #include "it930x-config.h"
@@ -36,18 +37,23 @@ struct it930x_stream_input {
 
 struct it930x_config {
 	u32 xfer_size;
+	u8 i2c_speed;
 	struct it930x_stream_input input[5];
+};
+
+struct it930x_priv {
+	struct it930x_i2c_master_info i2c[2];
+	struct mutex lock;
+	u8 *buf;
+	u8 sequence;
 };
 
 struct it930x_bridge {
 	struct device *dev;
 	struct it930x_bus bus;
 	struct it930x_config config;
-	u32 fw_version;
-	struct it930x_i2c_master_info i2c[2];
 	struct i2c_comm_master i2c_master[2];
-	u8 buf[255];
-	u8 sequence;
+	struct it930x_priv priv;
 };
 
 struct it930x_regbuf {
