@@ -537,10 +537,17 @@ static int _it930x_set_xfer_size(struct it930x_bridge *it930x, u32 xfer_size)
 	b[0] = (x & 0xff);
 	b[1] = ((x >> 8) & 0xff);
 
-	it930x_regbuf_set_buf(&regbuf[0], 0xdd88, b, 2);
-	it930x_regbuf_set_val(&regbuf[1], 0xdd0c, 512 / 4/* USB2.0 */);
-	ret = _it930x_write_regs(it930x, regbuf, 2);
+	// transfer size
+	ret = _it930x_write_regs(it930x, 0xdd88, b, 2);
+	if (ret)
+		goto exit;
 
+	// max packet size
+	ret = _it930x_write_reg(it930x, 0xdd0c, 512 / 4 /* USB 2.0 */);
+	if (ret)
+		goto exit;
+
+exit:
 	ret2 = _it930x_write_reg_bits(it930x, 0xda1d, 0, 0, 1);
 
 	return (ret) ? ret : ret2;
