@@ -948,7 +948,7 @@ int it930x_purge_psb(struct it930x_bridge *it930x)
 		goto exit;
 	}
 
-	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 200);
+	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 350);
 	kfree(p);
 
 	_it930x_write_reg_bits(it930x, 0xda1d, 0, 0, 1);
