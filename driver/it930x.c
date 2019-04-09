@@ -272,14 +272,14 @@ static int _it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val,
 	u8 tmp;
 
 	if (len > 8) {
-		dev_dbg(it930x->dev, "it930x_write_reg_bits: Invalid parameter.\n");
+		dev_dbg(it930x->dev, "_it930x_write_reg_bits: Invalid parameter.\n");
 		return -EINVAL;
 	}
 
 	if (len < 8) {
 		ret = _it930x_read_regs(it930x, reg, &tmp, 1);
 		if (ret) {
-			dev_err(it930x->dev, "it930x_write_reg_bits: _it930x_read_regs() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
+			dev_err(it930x->dev, "_it930x_write_reg_bits: _it930x_read_regs() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
 			return ret;
 		}
 
@@ -290,7 +290,7 @@ static int _it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val,
 
 	ret = _it930x_write_reg(it930x, reg, tmp);
 	if (ret)
-		dev_err(it930x->dev, "it930x_write_reg_bits: _it930x_write_reg() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, t: %u, ret: %d)\n", reg, val, pos, len, tmp, ret);
+		dev_err(it930x->dev, "_it930x_write_reg_bits: _it930x_write_reg() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, t: %u, ret: %d)\n", reg, val, pos, len, tmp, ret);
 
 	return ret;
 }
