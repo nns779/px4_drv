@@ -41,11 +41,23 @@ struct it930x_config {
 	struct it930x_stream_input input[5];
 };
 
+enum it930x_gpio_mode {
+	IT930X_GPIO_UNDEFINED = 0,
+	IT930X_GPIO_IN,
+	IT930X_GPIO_OUT,
+};
+
+struct it930x_gpio_state {
+	bool enable;
+	enum it930x_gpio_mode mode;
+};
+
 struct it930x_priv {
 	struct it930x_i2c_master_info i2c[2];
 	struct mutex lock;
 	u8 *buf;
 	u8 sequence;
+	struct it930x_gpio_state status[16];
 };
 
 struct it930x_bridge {
@@ -90,7 +102,10 @@ int it930x_term(struct it930x_bridge *it930x);
 
 int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename);
 int it930x_init_device(struct it930x_bridge *it930x);
-int it930x_set_gpio(struct it930x_bridge *it930x, int gpio, bool h);
+int it930x_set_gpio_mode(struct it930x_bridge *it930x, int gpio, enum it930x_gpio_mode mode, bool enable);
+int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable);
+int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high);
+int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high);
 int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool enable);
 int it930x_purge_psb(struct it930x_bridge *it930x);
 

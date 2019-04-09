@@ -885,7 +885,7 @@ exit:
 	return 0;
 }
 
-int it930x_set_gpio(struct it930x_bridge *it930x, int gpio, bool h)
+int it930x_set_gpio_mode(struct it930x_bridge *it930x, int gpio, enum it930x_gpio_mode mode, bool enable)
 {
 	u32 gpio_en_regs[] = {
 		0xd8b0,		// gpioh1
@@ -905,16 +905,139 @@ int it930x_set_gpio(struct it930x_bridge *it930x, int gpio, bool h)
 		0xd8e8,		// gpioh15
 		0xd8ec,		// gpioh16
 	};
-	struct it930x_regbuf regbuf[3];
+	u8 val;
+	struct it930x_regbuf regbuf[2];
+	int num = 1;
 
 	if (gpio <= 0 || gpio > (sizeof(gpio_en_regs) / sizeof(gpio_en_regs[0])))
 		return -EINVAL;
 
-	it930x_regbuf_set_val(&regbuf[0], gpio_en_regs[gpio - 1], 1);
-	it930x_regbuf_set_val(&regbuf[1], gpio_en_regs[gpio - 1] + 0x01, 1);
-	it930x_regbuf_set_val(&regbuf[2], gpio_en_regs[gpio - 1] - 0x01, (h) ? 1 : 0);
+	switch (mode) {
+	case IT930X_GPIO_IN:
+		val = 0;
+		break;
 
-	return it930x_write_regs(it930x, regbuf, 3);
+	case IT930X_GPIO_OUT:
+		val = 1;
+		break;
+
+	default:
+		return -EINVAL;
+	}
+
+	gpio--;
+
+	if (it930x->priv.status[gpio].mode == mode)
+		return 0;
+
+	it930x->priv.status[gpio].mode = mode;
+
+	it930x_regbuf_set_val(&regbuf[0], gpio_en_regs[gpio], val);
+	if (enable && !it930x->priv.status[gpio].enable) {
+		it930x_regbuf_set_val(&regbuf[1], gpio_en_regs[gpio] + 1, 1);
+		it930x->priv.status[gpio].enable = true;
+		num++;
+	}
+
+	return it930x_write_regs(it930x, regbuf, num);
+}
+
+int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable)
+{
+	u32 gpio_on_regs[] = {
+		0xd8b1,		// gpioh1
+		0xd8b9,		// gpioh2
+		0xd8b5,		// gpioh3
+		0xd8c1,		// gpioh4
+		0xd8bd,		// gpioh5
+		0xd8c9,		// gpioh6
+		0xd8c5,		// gpioh7
+		0xd8d1,		// gpioh8
+		0xd8cd,		// gpioh9
+		0xd8d9,		// gpioh10
+		0xd8d5,		// gpioh11
+		0xd8e1,		// gpioh12
+		0xd8dd,		// gpioh13
+		0xd8e5,		// gpioh14
+		0xd8e9,		// gpioh15
+		0xd8ed,		// gpioh16
+	};
+
+	if (gpio <= 0 || gpio > (sizeof(gpio_on_regs) / sizeof(gpio_on_regs[0])))
+		return -EINVAL;
+
+	gpio--;
+
+	if ((!it930x->priv.status[gpio].enable && !enable) || (it930x->priv.status[gpio].enable && enable))
+		return 0;
+
+	it930x->priv.status[gpio].enable = (enable) ? true : false;
+
+	return it930x_write_reg(it930x, gpio_on_regs[gpio], (enable) ? 1 : 0);
+}
+
+int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high)
+{
+	int ret = 0;
+	u32 gpio_i_regs[] = {
+		0xd8ae,		// gpioh1
+		0xd8b6,		// gpioh2
+		0xd8b2,		// gpioh3
+		0xd8be,		// gpioh4
+		0xd8ba,		// gpioh5
+		0xd8c6,		// gpioh6
+		0xd8c2,		// gpioh7
+		0xd8ce,		// gpioh8
+		0xd8ca,		// gpioh9
+		0xd8d6,		// gpioh10
+		0xd8d2,		// gpioh11
+		0xd8de,		// gpioh12
+		0xd8da,		// gpioh13
+		0xd8e2,		// gpioh14
+		0xd8e6,		// gpioh15
+		0xd8ea,		// gpioh16
+	};
+	u8 tmp;
+
+	if (gpio <= 0 || gpio > (sizeof(gpio_i_regs) / sizeof(gpio_i_regs[0])))
+		return -EINVAL;
+
+	gpio--;
+
+	ret = it930x_read_reg(it930x, gpio_i_regs[gpio], &tmp);
+	if (!ret)
+		*high = (tmp) ? true : false;
+
+	return ret;
+}
+
+int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high)
+{
+	u32 gpio_o_regs[] = {
+		0xd8af,		// gpioh1
+		0xd8b7,		// gpioh2
+		0xd8b3,		// gpioh3
+		0xd8bf,		// gpioh4
+		0xd8bb,		// gpioh5
+		0xd8c7,		// gpioh6
+		0xd8c3,		// gpioh7
+		0xd8cf,		// gpioh8
+		0xd8cb,		// gpioh9
+		0xd8d7,		// gpioh10
+		0xd8d3,		// gpioh11
+		0xd8df,		// gpioh12
+		0xd8db,		// gpioh13
+		0xd8e3,		// gpioh14
+		0xd8e7,		// gpioh15
+		0xd8eb,		// gpioh16
+	};
+
+	if (gpio <= 0 || gpio > (sizeof(gpio_o_regs) / sizeof(gpio_o_regs[0])))
+		return -EINVAL;
+
+	gpio--;
+
+	return it930x_write_reg(it930x, gpio_o_regs[gpio], (high) ? 1 : 0);
 }
 
 int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool enable)
