@@ -939,7 +939,6 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		ret = tc90522_set_agc_t(tc90522, true);
 		if (ret) {
-			mutex_unlock(&px4->lock);
 			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_agc_t(true) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
