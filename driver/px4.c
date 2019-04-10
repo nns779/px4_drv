@@ -688,7 +688,6 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	int ret = 0, dev_idx = px4->dev_idx;
 	unsigned int tsdev_id = tsdev->id;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
-	struct tc90522_regbuf regbuf_tc[3];
 	u32 real_freq;
 
 	dev_dbg(px4->dev, "px4_tsdev_set_channel %d:%u: freq_no: %d, slot: %d\n", dev_idx, tsdev_id, freq->freq_no, freq->slot);
@@ -731,11 +730,14 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_set_agc_s(false) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
-		tc90522_regbuf_set_val(&regbuf_tc[0], 0x8e, 0x06/*0x02*/);
-		tc90522_regbuf_set_val(&regbuf_tc[1], 0xa3, 0xf7);
-		ret = tc90522_write_regs(tc90522, regbuf_tc, 2);
+		ret = tc90522_write_reg(tc90522, 0x8e, 0x06/*0x02*/);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_reg(0x8e, 0x06) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			break;
+		}
+		ret = tc90522_write_reg(tc90522, 0xa3, 0xf7);
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_reg(0xa3, 0xf7) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -882,10 +884,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 
 		// set frequency
 
-		tc90522_regbuf_set_val(&regbuf_tc[0], 0x47, 0x30);
-		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
+		ret = tc90522_write_reg(tc90522, 0x47, 0x30);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() 1 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_reg(0x47, 0x30) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -895,10 +896,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
-		tc90522_regbuf_set_val(&regbuf_tc[0], 0x76, 0x0c);
-		ret = tc90522_write_regs(tc90522, regbuf_tc, 1);
+		ret = tc90522_write_reg(tc90522, 0x76, 0x0c);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() 2 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_reg(0x76, 0x0c) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
@@ -944,12 +944,19 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
-		tc90522_regbuf_set_val(&regbuf_tc[0], 0x71, 0x21);
-		tc90522_regbuf_set_val(&regbuf_tc[1], 0x72, 0x25);
-		tc90522_regbuf_set_val(&regbuf_tc[2], 0x75, 0x08);
-		ret = tc90522_write_regs(tc90522, regbuf_tc, 3);
+		ret = tc90522_write_reg(tc90522, 0x71, 0x21);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_regs() 3 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_reg(0x71, 0x21) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			break;
+		}
+		ret = tc90522_write_reg(tc90522, 0x72, 0x25);
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_reg(0x72, 0x25) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			break;
+		}
+		ret = tc90522_write_reg(tc90522, 0x75, 0x08);
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: tc90522_write_reg(0x75, 0x08) failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 			break;
 		}
 
