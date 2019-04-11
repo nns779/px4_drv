@@ -9,6 +9,7 @@
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/delay.h>
+#include <linux/mutex.h>
 #include <linux/device.h>
 
 #include "i2c_comm.h"
@@ -80,8 +81,9 @@ static u8 reverse_bit(u8 val)
 	return t;
 }
 
-static int rt710_write_regs(struct rt710_tuner *t, u8 reg, const u8 *buf, int len)
+static int _rt710_write_regs(struct rt710_tuner *t, u8 reg, const u8 *buf, int len)
 {
+	int ret = 0;
 	u8 b[1 + NUM_REGS];
 
 	if (!t || !buf || !len)
@@ -93,10 +95,18 @@ static int rt710_write_regs(struct rt710_tuner *t, u8 reg, const u8 *buf, int le
 	b[0] = reg;
 	memcpy(&b[1], buf, len);
 
-	return i2c_comm_master_write(t->i2c, t->i2c_addr, b, len + 1);
+	ret = i2c_comm_master_lock(t->i2c);
+	if (ret)
+		return ret;
+
+	ret = i2c_comm_master_write(t->i2c, t->i2c_addr, b, len + 1);
+
+	i2c_comm_master_unlock(t->i2c);
+
+	return ret;
 }
 
-static int rt710_read_regs(struct rt710_tuner *t, u8 reg, u8 *buf, int len)
+static int _rt710_read_regs(struct rt710_tuner *t, u8 reg, u8 *buf, int len)
 {
 	int ret = 0, i;
 	u8 b[1 + NUM_REGS];
@@ -109,18 +119,25 @@ static int rt710_read_regs(struct rt710_tuner *t, u8 reg, u8 *buf, int len)
 
 	b[0] = 0x00;
 
-	ret = i2c_comm_master_write(t->i2c, t->i2c_addr, b, 1);
+	ret = i2c_comm_master_lock(t->i2c);
 	if (ret)
 		return ret;
 
+	ret = i2c_comm_master_write(t->i2c, t->i2c_addr, b, 1);
+	if (ret)
+		goto exit;
+
 	ret = i2c_comm_master_read(t->i2c, t->i2c_addr, &b[0], len + reg);
 	if (ret)
-		return ret;
+		goto exit;
 
 	for (i = reg; i < (reg + len); i++)
 		buf[i - reg] = reverse_bit(b[i]);
 
-	return 0;
+exit:
+	i2c_comm_master_unlock(t->i2c);
+
+	return ret;
 }
 
 int rt710_init(struct rt710_tuner *t)
@@ -128,7 +145,7 @@ int rt710_init(struct rt710_tuner *t)
 	int ret = 0;
 	u8 tmp;
 
-	ret = rt710_read_regs(t, 0x03, &tmp, 1);
+	ret = _rt710_read_regs(t, 0x03, &tmp, 1);
 	if (ret) {
 		dev_err(t->dev, "rt710_init: rt710_read_regs() failed. (ret: %d)\n", ret);
 		return ret;
@@ -139,26 +156,36 @@ int rt710_init(struct rt710_tuner *t)
 		return -ENOSYS;
 	}
 
-	memset(&t->priv, 0, sizeof(t->priv));
+	mutex_init(&t->priv.lock);
+	t->priv.freq = 0;
 
 	return 0;
 }
 
 int rt710_term(struct rt710_tuner *t)
 {
+	mutex_destroy(&t->priv.lock);
+
 	return 0;
 }
 
 int rt710_sleep(struct rt710_tuner *t)
 {
+	int ret = 0;
 	u8 regs[NUM_REGS];
 
 	memcpy(regs, sleep_regs, sizeof(regs));
 
-	return rt710_write_regs(t, 0x00, regs, NUM_REGS);
+	mutex_lock(&t->priv.lock);
+
+	ret = _rt710_write_regs(t, 0x00, regs, NUM_REGS);
+
+	mutex_unlock(&t->priv.lock);
+
+	return ret;
 }
 
-static int rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
+static int _rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 {
 	int ret = 0;
 	u32 vco_min, vco_max, vco_freq;
@@ -200,7 +227,7 @@ static int rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 	regs[4] &= 0xfe;
 	regs[4] |= (div_num & 1);
 
-	ret = rt710_write_regs(t, 0x04, &regs[0x04], 1);
+	ret = _rt710_write_regs(t, 0x04, &regs[0x04], 1);
 	if (ret)
 		return ret;
 
@@ -223,14 +250,14 @@ static int rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 
 	regs[0x05] = ni + (si << 6);
 
-	ret = rt710_write_regs(t, 0x05, &regs[0x05], 1);
+	ret = _rt710_write_regs(t, 0x05, &regs[0x05], 1);
 	if (ret)
 		return ret;
 
 	if (!vco_fra)
 		regs[0x04] |= 0x02;
 
-	ret = rt710_write_regs(t, 0x04, &regs[0x04], 1);
+	ret = _rt710_write_regs(t, 0x04, &regs[0x04], 1);
 	if (ret)
 		return ret;
 
@@ -252,11 +279,11 @@ static int rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 	regs[0x07] = ((sdm >> 8) & 0xff);
 	regs[0x06] = (sdm & 0xff);
 
-	ret = rt710_write_regs(t, 0x07, &regs[0x07], 1);
+	ret = _rt710_write_regs(t, 0x07, &regs[0x07], 1);
 	if (ret)
 		return ret;
 
-	ret = rt710_write_regs(t, 0x06, &regs[0x06], 1);
+	ret = _rt710_write_regs(t, 0x06, &regs[0x06], 1);
 	if (ret)
 		return ret;
 
@@ -303,16 +330,18 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	if (t->config.fine_gain >= RT710_FINE_GAIN_3DB && t->config.fine_gain <= RT710_FINE_GAIN_0DB)
 		regs[0x0e] |= t->config.fine_gain;
 
-	ret = rt710_write_regs(t, 0x00, regs, NUM_REGS);
+	mutex_lock(&t->priv.lock);
+
+	ret = _rt710_write_regs(t, 0x00, regs, NUM_REGS);
 	if (ret) {
 		dev_err(t->dev, "rt710_set_params: rt710_write_regs(0x00, NUM_REGS) failed. (ret: %d)", ret);
-		return ret;
+		goto fail;
 	}
 
-	ret = rt710_set_pll(t, regs, freq);
+	ret = _rt710_set_pll(t, regs, freq);
 	if (ret) {
 		dev_err(t->dev, "rt710_set_params: rt710_set_pll() failed. (ret: %d)\n", ret);
-		return ret;
+		goto fail;
 	}
 
 	msleep(10);
@@ -327,31 +356,33 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 		regs[0x08] |= 0x80;
 	}
 
-	ret = rt710_write_regs(t, 0x0a, &regs[0x0a], 1);
+	ret = _rt710_write_regs(t, 0x0a, &regs[0x0a], 1);
 	if (ret)
-		return ret;
+		goto fail;
 
-	ret = rt710_write_regs(t, 0x02, &regs[0x02], 1);
+	ret = _rt710_write_regs(t, 0x02, &regs[0x02], 1);
 	if (ret)
-		return ret;
+		goto fail;
 
-	ret = rt710_write_regs(t, 0x08, &regs[0x08], 1);
+	ret = _rt710_write_regs(t, 0x08, &regs[0x08], 1);
 	if (ret)
-		return ret;
+		goto fail;
 
 	regs[0x0e] &= 0xf3;
 
 	if (freq >= 2000000)
 		regs[0x0e] |= 0x08;
 
-	ret = rt710_write_regs(t, 0x0e, &regs[0x0e], 1);
+	ret = _rt710_write_regs(t, 0x0e, &regs[0x0e], 1);
 	if (ret)
-		return ret;
+		goto fail;
 
 	bandwidth = (symbol_rate * (0x73 + (rolloff * 5))) / 10;
 
-	if (!bandwidth)
-		return -ECANCELED;
+	if (!bandwidth) {
+		ret = -ECANCELED;
+		goto fail;
+	}
 
 	if (bandwidth >= 380000) {
 		bandwidth -= 380000;
@@ -372,11 +403,18 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 
 	regs[0x0f] = (bw_param.coarse << 2) | bw_param.fine;
 
-	ret = rt710_write_regs(t, 0x0f, &regs[0x0f], 1);
+	ret = _rt710_write_regs(t, 0x0f, &regs[0x0f], 1);
 	if (ret)
-		return ret;
+		goto fail;
+
+	mutex_unlock(&t->priv.lock);
 
 	return 0;
+
+fail:
+	mutex_unlock(&t->priv.lock);
+
+	return ret;
 }
 
 int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked)
@@ -384,15 +422,20 @@ int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked)
 	int ret = 0;
 	u8 tmp;
 
-	ret = rt710_read_regs(t, 0x02, &tmp, 1);
+	mutex_lock(&t->priv.lock);
+
+	ret = _rt710_read_regs(t, 0x02, &tmp, 1);
+
+	mutex_unlock(&t->priv.lock);
+
 	if (ret) {
-		dev_err(t->dev, "rt710_is_pll_locked: rt710_read_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev, "rt710_is_pll_locked: _rt710_read_regs() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
 	*locked = (tmp & 0x80) ? true : false;
 
-	return ret;
+	return 0;
 }
 
 int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
@@ -400,9 +443,14 @@ int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
 	int ret = 0;
 	u8 tmp, g;
 
-	ret = rt710_read_regs(t, 0x01, &tmp, 1);
+	mutex_lock(&t->priv.lock);
+
+	ret = _rt710_read_regs(t, 0x01, &tmp, 1);
+
+	mutex_unlock(&t->priv.lock);
+
 	if (ret) {
-		dev_err(t->dev, "rt710_get_rf_gain: rt710_read_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev, "rt710_get_rf_gain: _rt710_read_regs() failed. (ret: %d)\n", ret);
 		return ret;
 	}
 
@@ -422,7 +470,7 @@ int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
 		*gain = 18;
 	}
 
-	return ret;
+	return 0;
 }
 
 int rt710_get_rf_signal_strength(struct rt710_tuner *t, s32 *ss)

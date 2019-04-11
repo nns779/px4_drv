@@ -1,9 +1,10 @@
-// r850_lite.h
+// r850.h
 
-#ifndef __R850_LITE_H__
-#define __R850_LITE_H__
+#ifndef __R850_H__
+#define __R850_H__
 
 #include <linux/types.h>
+#include <linux/mutex.h>
 #include <linux/device.h>
 
 #include "i2c_comm.h"
@@ -28,16 +29,21 @@ struct r850_system_config {
 	bool is_cable_system;	// DVB-C, J38B
 };
 
+struct r850_priv {
+	struct mutex lock;
+	bool init;
+	int chip;
+	u8 xtal_pwr;
+	u8 regs[R850_NUM_REGS];
+};
+
 struct r850_tuner {
 	struct device *dev;
 	struct i2c_comm_master *i2c;
 	u8 i2c_addr;
-	bool init;
-	int chip;
 	u32 xtal;
-	u8 xtal_pwr;
 	struct r850_system_config system_config;
-	u8 regs[R850_NUM_REGS];
+	struct r850_priv priv;
 };
 
 int r850_init(struct r850_tuner *t);

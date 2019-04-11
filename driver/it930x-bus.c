@@ -210,7 +210,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 		return 0;
 	}
 
-	l = bus->usb.streaming_xfer_size;
+	l = bus->usb.streaming_urb_buffer_size;
 	n = bus->usb.streaming_urb_num;
 	no_dma = bus->usb.streaming_no_dma;
 

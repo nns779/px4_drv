@@ -4,9 +4,14 @@
 #define __TC90522_H__
 
 #include <linux/types.h>
+#include <linux/mutex.h>
 #include <linux/device.h>
 
 #include "i2c_comm.h"
+
+struct tc90522_priv {
+	struct mutex lock;
+};
 
 struct tc90522_demod {
 	struct device *dev;
@@ -14,6 +19,7 @@ struct tc90522_demod {
 	u8 i2c_addr;
 	struct i2c_comm_master i2c_master;
 	bool is_secondary;
+	struct tc90522_priv priv;
 };
 
 struct tc90522_regbuf {
