@@ -1,7 +1,7 @@
-// r850_lite.h
+// r850.h
 
-#ifndef __R850_LITE_H__
-#define __R850_LITE_H__
+#ifndef __R850_H__
+#define __R850_H__
 
 #include <linux/types.h>
 #include <linux/mutex.h>

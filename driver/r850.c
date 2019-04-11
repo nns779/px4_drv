@@ -1,4 +1,4 @@
-// r850_lite.c
+// r850.c
 
 // Rafael Micro R850 driver (lite version)
 
@@ -13,7 +13,7 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 
-#include "r850_lite.h"
+#include "r850.h"
 
 /* Some versions, the first 8 bytes are zero. */
 static const u8 init_regs[R850_NUM_REGS] = {
