@@ -152,8 +152,8 @@ module_param(s_fine_gain, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, PID_PX_W3U4) },
-	{ USB_DEVICE(0x0511, PID_PX_W3PE4) },
 	{ USB_DEVICE(0x0511, PID_PX_Q3U4) },
+	{ USB_DEVICE(0x0511, PID_PX_W3PE4) },
 	{ USB_DEVICE(0x0511, PID_PX_Q3PE4) },
 	{ 0 },
 };
