@@ -125,6 +125,7 @@ static unsigned int urb_max_packets = 816;
 static unsigned int max_urbs = 6;
 static unsigned int tsdev_max_packets = 2048;
 static bool no_dma = false;
+static bool disable_multi_device_power_control = false;
 static bool s_agc_negative_mode = false;
 static bool s_vga_atten = false;
 static unsigned int s_fine_gain = 3;
@@ -142,6 +143,8 @@ module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of TS packets buffering in tsdev. (default: 2048)");
 
 module_param(no_dma, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+module_param(disable_multi_device_power_control, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 module_param(s_agc_negative_mode, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 module_param(s_vga_atten, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -1704,39 +1707,45 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 		dev_warn(dev, "px4_probe: Invalid serial number length.\n");
 
 	if (id->idVendor == 0x0511 && (id->idProduct == PID_PX_Q3U4 || id->idProduct == PID_PX_Q3PE4)) {
-		int multi_dev_idx = -1;
+		if (disable_multi_device_power_control)
+			dev_info(dev, "Multi device power control: disabled\n");
+		else {
+			int multi_dev_idx = -1;
 
-		for (i = 0; i < MAX_DEVICE; i++) {
-			if (devs[i] != NULL && devs[i]->serial_number == px4->serial_number) {
-				multi_dev_idx = i;
-				break;
-			}
-		}
+			dev_info(dev, "Multi device power control: enabled\n");
 
-		if (multi_dev_idx != -1) {
-			px4->multi_dev = devs[multi_dev_idx]->multi_dev;
-		} else {
-			px4->multi_dev = kzalloc(sizeof(*px4->multi_dev), GFP_KERNEL);
-			if (!px4->multi_dev) {
-				dev_err(dev, "px4_probe: kzalloc(sizeof(*px4->multi_dev), GFP_KERNEL) failed. ");
-				ret = -ENOMEM;
-				goto fail_before_base;
+			for (i = 0; i < MAX_DEVICE; i++) {
+				if (devs[i] != NULL && devs[i]->serial_number == px4->serial_number) {
+					multi_dev_idx = i;
+					break;
+				}
 			}
 
-			mutex_init(&px4->multi_dev->lock);
-		}
+			if (multi_dev_idx != -1) {
+				px4->multi_dev = devs[multi_dev_idx]->multi_dev;
+			} else {
+				px4->multi_dev = kzalloc(sizeof(*px4->multi_dev), GFP_KERNEL);
+				if (!px4->multi_dev) {
+					dev_err(dev, "px4_probe: kzalloc(sizeof(*px4->multi_dev), GFP_KERNEL) failed. ");
+					ret = -ENOMEM;
+					goto fail_before_base;
+				}
 
-		if (px4->multi_dev) {
-			struct px4_multi_device *multi_dev = px4->multi_dev;
+				mutex_init(&px4->multi_dev->lock);
+			}
 
-			mutex_lock(&multi_dev->lock);
+			if (px4->multi_dev) {
+				struct px4_multi_device *multi_dev = px4->multi_dev;
 
-			if (multi_dev->ref > 2)
-				px4->multi_dev = NULL;
-			else
-				multi_devs_idx = multi_dev->ref++;
+				mutex_lock(&multi_dev->lock);
 
-			mutex_unlock(&multi_dev->lock);
+				if (multi_dev->ref > 2)
+					px4->multi_dev = NULL;
+				else
+					multi_devs_idx = multi_dev->ref++;
+
+				mutex_unlock(&multi_dev->lock);
+			}
 		}
 	}
 
