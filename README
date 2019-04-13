@@ -1,8 +1,8 @@
-PLEX PX-W3U4/W3PE4/Q3PE4 Unofficial Linux driver
+Unofficial Linux driver for PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4 ISDB-T/S receivers
 
 (現在開発中です。)
 
-PLEX PX-W3U4/W3PE4/Q3PE4の非公式版Linux用ドライバです。
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4の非公式版Linux用ドライバです。
 PLEX社のWebサイト( http://plex-net.co.jp )にて配布されているドライバのソースコードではありませんのでご注意ください。
 
 このドライバを使用するには、別途ファームウェアファイルを用意する必要があります。
