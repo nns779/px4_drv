@@ -28,7 +28,6 @@
 #include "it930x.h"
 #include "tc90522.h"
 #include "r850.h"
-#include "r850_channel.h"
 #include "rt710.h"
 #include "ringbuffer.h"
 
