@@ -124,6 +124,7 @@ static unsigned int xfer_packets = 816;
 static unsigned int urb_max_packets = 816;
 static unsigned int max_urbs = 6;
 static unsigned int tsdev_max_packets = 2048;
+static int psb_purge_timeout = 2000;
 static bool no_dma = false;
 static bool disable_multi_device_power_control = false;
 static bool s_agc_negative_mode = false;
@@ -141,6 +142,8 @@ MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 6)");
 
 module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of TS packets buffering in tsdev. (default: 2048)");
+
+module_param(psb_purge_timeout, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 module_param(no_dma, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
@@ -1055,7 +1058,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 
 		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: urb_buffer_size: %u, urb_num: %u, no_dma: %c\n", px4->dev_idx, tsdev->id, bus->usb.streaming_urb_buffer_size, bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
 
-		ret = it930x_purge_psb(&px4->it930x);
+		ret = it930x_purge_psb(&px4->it930x, psb_purge_timeout);
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_purge_psb() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			goto fail;

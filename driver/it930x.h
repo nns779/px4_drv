@@ -107,6 +107,6 @@ int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable);
 int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high);
 int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high);
 int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool enable);
-int it930x_purge_psb(struct it930x_bridge *it930x);
+int it930x_purge_psb(struct it930x_bridge *it930x, int timeout);
 
 #endif

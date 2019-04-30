@@ -1048,7 +1048,7 @@ int it930x_enable_stream_input(struct it930x_bridge *it930x, u8 input_idx, bool 
 	return it930x_write_reg(it930x, 0xda4c + it930x->config.input[input_idx].port_number, (enable) ? 1 : 0);
 }
 
-int it930x_purge_psb(struct it930x_bridge *it930x)
+int it930x_purge_psb(struct it930x_bridge *it930x, int timeout)
 {
 	int ret = 0;
 	void *p;
@@ -1071,7 +1071,7 @@ int it930x_purge_psb(struct it930x_bridge *it930x)
 		goto exit;
 	}
 
-	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, 750);
+	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, timeout);
 	kfree(p);
 
 	_it930x_write_reg_bits(it930x, 0xda1d, 0, 0, 1);
