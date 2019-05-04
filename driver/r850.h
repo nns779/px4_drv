@@ -57,6 +57,7 @@ struct r850_priv {
 	int chip;
 	u8 xtal_pwr;
 	u8 regs[R850_NUM_REGS];
+	bool sleep;
 	struct r850_system_config sys;
 	u8 mixer_mode;
 	u8 mixer_amp_lpf_imr_cal;

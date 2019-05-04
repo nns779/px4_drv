@@ -605,13 +605,11 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 			break;
 		}
 
-#if 0
 		ret = r850_wakeup(&tsdev->t.r850);
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_init %d:%u: r850_wakeup() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
 		}
-#endif
 
 		sys.system = R850_SYSTEM_ISDB_T;
 		sys.bandwidth = R850_BANDWIDTH_6M;
@@ -651,9 +649,7 @@ static void px4_tsdev_term(struct px4_tsdev *tsdev)
 		break;
 
 	case ISDB_T:
-#if 0
 		r850_sleep(&tsdev->t.r850);
-#endif
 		tc90522_sleep_t(tc90522, true);
 
 		break;
@@ -1307,13 +1303,11 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 					break;
 
 				case ISDB_T:
-#if 0
 					ret = r850_sleep(&tsdev->t.r850);
 					if (ret) {
 						dev_err(px4->dev, "px4_tsdev_open %d:%u: rt850_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
 						break;
 					}
-#endif
 
 					ret = tc90522_sleep_t(&t->tc90522, true);
 					if (ret) {
