@@ -278,7 +278,7 @@ static int px4_load_config(struct px4_device *px4)
 			tsdev->t.r850.i2c = &tsdev->tc90522.i2c_master;
 			tsdev->t.r850.i2c_addr = 0x7c;
 			tsdev->t.r850.config.xtal = 24000;
-			tsdev->t.r850.config.loop_through = true;
+			tsdev->t.r850.config.loop_through = (i % 2) ? false : true;
 			tsdev->t.r850.config.clock_out = false;
 			tsdev->t.r850.config.no_imr_calibration = true;
 			tsdev->t.r850.config.no_lpf_calibration = true;
@@ -1285,7 +1285,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 		for (i = 0; i < TSDEV_NUM; i++) {
 			struct px4_tsdev *t = &px4->tsdev[i];
 
-			if (i == tsdev->id || (tsdev->id == 3 && i == 2))
+			if (i == tsdev->id)
 				continue;
 
 			if (!t->open) {
