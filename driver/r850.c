@@ -27,26 +27,6 @@ enum r850_calibration {
 	R850_CALIBRATION_LPF,
 };
 
-struct r850_lpf_params {
-	u8 code;
-	u8 bandwidth;
-	u8 lsb;
-};
-
-struct r850_system_params {
-	enum r850_bandwidth bandwidth;
-	u32 if_freq;
-	u32 filt_cal_if;
-	u8 bw;
-	u8 filt_ext_ena;
-	u8 hpf_notch;
-	u8 hpf_cor;
-	u8 filt_comp;
-	u8 img_gain;
-	u8 agc_clk;
-	struct r850_lpf_params lpf;
-};
-
 static const u8 init_regs[R850_NUM_REGS] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0xca, 0xc0, 0x72, 0x50, 0x00, 0xe0, 0x00, 0x30,
@@ -90,6 +70,26 @@ static const u8 lpf_cal_regs[R850_NUM_REGS] = {
 	0x00, 0x04, 0x81, 0x11, 0xef, 0xee, 0x17, 0x07,
 	0x31, 0x71, 0x54, 0xb2, 0xee, 0xa9, 0xbb, 0x0b,
 	0xa3, 0x00, 0x0b, 0x44, 0x92, 0x1f, 0xe6, 0x80
+};
+
+struct r850_lpf_params {
+	u8 code;
+	u8 bandwidth;
+	u8 lsb;
+};
+
+struct r850_system_params {
+	enum r850_bandwidth bandwidth;
+	u32 if_freq;
+	u32 filt_cal_if;
+	u8 bw;
+	u8 filt_ext_ena;
+	u8 hpf_notch;
+	u8 hpf_cor;
+	u8 filt_comp;
+	u8 img_gain;
+	u8 agc_clk;
+	struct r850_lpf_params lpf;
 };
 
 static const struct r850_system_params dvb_t_t2_params[2][6] = {
@@ -185,6 +185,257 @@ static const int sys_param_num[10][2] = {
 	{ 0, 0 },
 	{ 0, 0 },
 	{ 0, 0 },
+};
+
+struct r850_system_frequency_params {
+	u32 if_freq;
+	u32 rf_freq_min;
+	u32 rf_freq_max;
+	u8 lna_top;
+	u8 lna_vtl_h;
+	u8 lna_nrb_det;
+	u8 lna_rf_dis_mode;
+	u8 lna_rf_charge_cur;
+	u8 lna_rf_dis_curr;
+	u8 lna_dis_slow_fast;
+	u8 rf_top;
+	u8 rf_vtl_h;
+	u8 rf_gain_limit;
+	u8 rf_dis_slow_fast;
+	u8 rf_lte_psg;
+	u8 nrb_top;
+	u8 nrb_bw_hpf;
+	u8 nrb_bw_lpf;
+	u8 mixer_top;
+	u8 mixer_vth;
+	u8 mixer_vtl;
+	u8 mixer_amp_lpf;
+	u8 mixer_gain_limit;
+	u8 mixer_detbw_lpf;
+	u8 mixer_filter_dis;
+	u8 filter_top;
+	u8 filter_vth;
+	u8 filter_vtl;
+	u8 filt_3th_lpf_cur;
+	u8 filt_3th_lpf_gain;
+	u8 bb_dis_curr;
+	u8 bb_det_mode;
+	u8 na_pwr_det;
+	u8 enb_poly_gain;
+	u8 img_nrb_adder;
+	u8 hpf_comp;
+	u8 fb_res_1st;
+};
+
+static const struct r850_system_frequency_params dvb_t_t2_freq_params[4] = {
+	{
+		0, 0, 340000,
+		5, 0x5a, 0, 1, 1, 1, 0x05,
+		4, 0x5a, 0, 0x05, 1,
+		5, 0, 2,
+		9, 0x09, 0x04, 4, 3, 0, 2,
+		4, 0x09, 0x04,
+		1, 3, 0, 0, 1, 0, 2, 1, 1
+	},
+	{
+		0, 662001, 670000,
+		4, 0x5a, 0, 4, 1, 1, 0x05,
+		4, 0x5a, 0, 0x05, 1,
+		4, 0, 2,
+		9, 0x09, 0x04, 4, 3, 0, 2,
+		4, 0x09, 0x04,
+		1, 3, 0, 0, 1, 0, 2, 1, 1
+	},
+	{
+		0, 782001, 790000,
+		5, 0x5a, 0, 2, 0, 1, 0x05,
+		4, 0x5a, 0, 0x05, 1,
+		4, 0, 2,
+		9, 0x09, 0x04, 4, 3, 0, 2,
+		4, 0x09, 0x04,
+		1, 3, 0, 0, 1, 0, 2, 1, 1
+	},
+	{
+		0, 0, 0,
+		4, 0x5a, 0, 1, 1, 1, 0x05,
+		4, 0x5a, 0, 0x05, 1,
+		4, 0, 2,
+		9, 0x09, 0x04, 4, 3, 0, 2,
+		4, 0x09, 0x04,
+		1, 3, 0, 0, 1, 0, 2, 1, 1
+	}
+};
+
+static const struct r850_system_frequency_params dvb_c_freq_params[2] = {
+	{
+		0, 0, 660000,
+		4, 0x5a, 0, 1, 1, 1, 0x05,
+		4, 0x4a, 0, 0x05, 0,
+		5, 0, 2,
+		12, 0x09, 0x04, 4, 2, 0, 0,
+		12, 0x09, 0x04,
+		1, 0, 1, 0, 1, 1, 2, 1, 1
+	},
+	{
+		0, 0, 0,
+		4, 0x5a, 0, 1, 1, 1, 0x05,
+		3, 0x4a, 0, 0x05, 0,
+		5, 0, 2,
+		12, 0x09, 0x04, 4, 2, 0, 0,
+		12, 0x09, 0x04,
+		1, 0, 1, 0, 1, 1, 1, 1, 1
+	}
+};
+
+static const struct r850_system_frequency_params j83b_freq_params[3] = {
+	{
+		0, 0, 335000,
+		5, 0x5a, 0, 1, 1, 1, 0x05,
+		4, 0x4a, 0, 0x05, 0,
+		5, 0, 0,
+		12, 0x09, 0x04, 7, 2, 0, 0,
+		12, 0x09, 0x04,
+		1, 0, 1, 0, 1, 1, 2, 1, 1
+	},
+	{
+		0, 340001, 660000,
+		5, 0x5a, 0, 1, 1, 1, 0x05,
+		4, 0x4a, 0, 0x05, 0,
+		5, 0, 0,
+		12, 0x09, 0x04, 7, 2, 0, 0,
+		12, 0x09, 0x04,
+		1, 0, 1, 0, 1, 1, 2, 1, 1
+	},
+	{
+		0, 0, 0,
+		4, 0x5a, 0, 1, 1, 1, 0x05,
+		3, 0x4a, 0, 0x05, 0,
+		5, 0, 0,
+		12, 0x09, 0x04, 7, 2, 0, 0,
+		12, 0x09, 0x04,
+		1, 0, 1, 0, 1, 1, 1, 1, 1
+	}
+};
+
+static const struct r850_system_frequency_params isdb_t_freq_params[10] = {
+	// ISDB-T 4063
+	{
+		4063, 0, 340000,
+		5, 0x6b, 0, 1, 1, 1, 0x05,
+		5, 0x4a, 0, 0x05, 1,
+		12, 0, 2,
+		15, 0x09, 0x04, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 0, 1, 0, 1, 0, 2, 2, 1
+	},
+	{
+		4063, 470000, 487999,
+		6, 0x8c, 0, 1, 1, 1, 0x05,
+		5, 0x6b, 0, 0x05, 1,
+		3, 0, 2,
+		14, 0x09, 0x04, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 1, 1, 3, 2, 1
+	},
+	{
+		4063, 680000, 691999,
+		5, 0x5a, 0, 2, 1, 1, 0x07,
+		6, 0x6b, 0, 0x04, 1,
+		3, 0, 2,
+		14, 0x09, 0x05, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 0, 1, 3, 2, 1
+	},
+	{
+		4063, 692000, 697999,
+		5, 0x5b, 0, 2, 1, 1, 0x07,
+		6, 0x6b, 0, 0x04, 1,
+		10, 0, 3,
+		12, 0x09, 0x05, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 0, 1, 2, 2, 1
+	},
+	{
+		4063, 0, 0,
+		5, 0x5a, 0, 1, 1, 1, 0x05,
+		6, 0x6b, 0, 0x05, 1,
+		3, 0, 2,
+		14, 0x09, 0x04, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 1, 1, 3, 2, 1
+	},
+	// ISDB-T other
+	{
+		0, 0, 340000,
+		5, 0x6b, 0, 1, 1, 1, 0x05,
+		5, 0x4a, 0, 0x05, 1,
+		12, 0, 2,
+		15, 0x0b, 0x06, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 0, 1, 0, 1, 0, 2, 2, 1
+	},
+	{
+		0, 470000, 487999,
+		5, 0x5a, 0, 2, 1, 1, 0x07,
+		6, 0x6b, 0, 0x04, 1,
+		3, 0, 2,
+		14, 0x09, 0x05, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 0, 1, 3, 2, 1
+	},
+	{
+		0, 680000, 691999,
+		5, 0x5b, 0, 2, 1, 1, 0x07,
+		6, 0x6b, 0, 0x04, 1,
+		10, 0, 3,
+		12, 0x09, 0x05, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 0, 1, 2, 2, 1
+	},
+	{
+		0, 692000, 697999,
+		5, 0x5a, 0, 1, 1, 1, 0x05,
+		6, 0x6b, 0, 0x05, 1,
+		3, 0, 2,
+		14, 0x09, 0x04, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 1, 1, 3, 2, 1
+	},
+	{
+		0, 0, 0,
+		5, 0x5a, 0, 1, 1, 1, 0x05,
+		6, 0x6b, 0, 0x05, 1,
+		3, 0, 2,
+		14, 0x09, 0x04, 7, 3, 0, 0,
+		12, 0x09, 0x04,
+		1, 3, 1, 0, 1, 1, 3, 2, 1
+	}
+};
+
+static const struct r850_system_frequency_params *sys_freq_params[10] = {
+	NULL,
+	dvb_t_t2_freq_params,
+	dvb_t_t2_freq_params,
+	dvb_t_t2_freq_params,
+	dvb_c_freq_params,
+	j83b_freq_params,
+	isdb_t_freq_params,
+	NULL,
+	NULL,
+	NULL,
+};
+
+static const int sys_freq_param_num[10] = {
+	0,
+	ARRAY_SIZE(dvb_t_t2_freq_params),
+	ARRAY_SIZE(dvb_t_t2_freq_params),
+	ARRAY_SIZE(dvb_t_t2_freq_params),
+	ARRAY_SIZE(dvb_c_freq_params),
+	ARRAY_SIZE(j83b_freq_params),
+	ARRAY_SIZE(isdb_t_freq_params),
+	0,
+	0,
+	0,
 };
 
 static const u16 lna_acc_gain[32] = {
@@ -1390,439 +1641,35 @@ static int _r850_set_system_params(struct r850_tuner *t)
 
 static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 {
-	int ret = 0;
-	u8 lna_top, lna_vtl_h;
-	u8 rf_top, rf_vtl_h, rf_gain_limit;
-	u8 nrb_top, nrb_bw_hpf, nrb_bw_lpf;
-	u8 mixer_top, mixer_vth, mixer_vtl, mixer_gain_limit, mixer_filter_dis, mixer_amp_lpf, mixer_detbw_lpf;
-	u8 filter_top, filter_vth, filter_vtl;
-	u8 lna_rf_dis_mode, lna_rf_dis_curr, lna_rf_charge_cur;
-	u8 lna_dis_slow_fast, rf_dis_slow_fast;
-	u8 bb_det_mode, bb_dis_curr;
-	u8 img_nrb_adder;
-	u8 lna_nrb_det;
-	u8 enb_poly_gain;
-	u8 na_pwr_det;
-	u8 filt_3th_lpf_cur, filt_3th_lpf_gain;
-	u8 rf_lte_psg;
-	u8 hpf_comp;
-	u8 fb_res_1st;
+	int ret = 0, i;
+	const struct r850_system_frequency_params *prm_p = NULL;
+	struct r850_system_frequency_params prm;
 	u32 lo_freq;
 
-	rf_gain_limit = 0;
-	filter_vth = 0x09;
-	filter_vtl = 0x04;
-	lna_rf_dis_curr = 1;
-	bb_det_mode = 0;
-	lna_nrb_det = 0;
+	for (i = 0; i < sys_freq_param_num[t->priv.sys_curr.system]; i++) {
+		const struct r850_system_frequency_params *p = &sys_freq_params[t->priv.sys_curr.system][i];
+
+		if ((!p->if_freq || p->if_freq == t->priv.sys_curr.if_freq) && (!p->rf_freq_min || p->rf_freq_min <= rf_freq) && (!p->rf_freq_max || p->rf_freq_max >= rf_freq)) {
+			prm_p = p;
+			break;
+		}
+	}
+
+	if (!prm_p)
+		return -EINVAL;
+
+	prm = *prm_p;
 
 	switch (t->priv.sys_curr.system) {
-	case R850_SYSTEM_DVB_T:
-	case R850_SYSTEM_DVB_T2:
-	case R850_SYSTEM_DVB_T2_1:
-		if (rf_freq <= 340000) {
-			lna_top = 5;
-			lna_vtl_h = 0x5a;
-			rf_top = 4;
-			rf_vtl_h = 0x5a;
-			nrb_top = 5;
-			nrb_bw_hpf = 0;
-			nrb_bw_lpf = 2;
-			mixer_top = 9;
-			mixer_vth = 0x09;
-			mixer_vtl = 0x04;
-			mixer_gain_limit = 3;
-			filter_top = 4;
-			lna_rf_dis_mode = 1;
-			lna_dis_slow_fast = 0x05;
-			rf_dis_slow_fast = 0x05;
-			bb_dis_curr = 0;
-			mixer_filter_dis = 2;
-			img_nrb_adder = 2;
-			enb_poly_gain = 0;
-			mixer_amp_lpf = 4;
-			na_pwr_det = 1;
-			filt_3th_lpf_cur = 1;
-			filt_3th_lpf_gain = 3;
-			rf_lte_psg = 1;
-			hpf_comp = 1;
-			fb_res_1st = 1;
-			mixer_detbw_lpf = 0;
-			lna_rf_charge_cur = 1;
-		} else if (rf_freq > 662000 && rf_freq <= 670000) {
-			lna_top = 4;
-			lna_vtl_h = 0x5a;
-			rf_top = 4;
-			rf_vtl_h = 0x5a;
-			nrb_top = 4;
-			nrb_bw_hpf = 0;
-			nrb_bw_lpf = 2;
-			mixer_top = 9;
-			mixer_vth = 0x09;
-			mixer_vtl = 0x04;
-			mixer_gain_limit = 3;
-			filter_top = 4;
-			lna_rf_dis_mode = 4;
-			lna_dis_slow_fast = 0x05;
-			rf_dis_slow_fast = 0x05;
-			bb_dis_curr = 0;
-			mixer_filter_dis = 2;
-			img_nrb_adder = 2;
-			enb_poly_gain = 0;
-			mixer_amp_lpf = 4;
-			na_pwr_det = 1;
-			filt_3th_lpf_cur = 1;
-			filt_3th_lpf_gain = 3;
-			rf_lte_psg = 1;
-			hpf_comp = 1;
-			fb_res_1st = 1;
-			mixer_detbw_lpf = 0;
-			lna_rf_charge_cur = 1;
-		} else if (rf_freq > 782000 && rf_freq <= 790000) {
-			lna_top = 5;
-			lna_vtl_h = 0x5a;
-			rf_top = 4;
-			rf_vtl_h = 0x5a;
-			nrb_top = 4;
-			nrb_bw_hpf = 0;
-			nrb_bw_lpf = 2;
-			mixer_top = 9;
-			mixer_vth = 0x09;
-			mixer_vtl = 0x04;
-			mixer_gain_limit = 3;
-			filter_top = 4;
-			lna_rf_dis_mode = 2;
-			lna_dis_slow_fast = 0x05;
-			rf_dis_slow_fast = 0x05;
-			bb_dis_curr = 0;
-			mixer_filter_dis = 2;
-			img_nrb_adder = 2;
-			enb_poly_gain = 0;
-			mixer_amp_lpf = 4;
-			na_pwr_det = 1;
-			filt_3th_lpf_cur = 1;
-			filt_3th_lpf_gain = 3;
-			rf_lte_psg = 1;
-			hpf_comp = 1;
-			fb_res_1st = 1;
-			mixer_detbw_lpf = 0;
-			lna_rf_charge_cur = 0;
-		} else {
-			lna_top = 4;
-			lna_vtl_h = 0x5a;
-			rf_top = 4;
-			rf_vtl_h = 0x5a;
-			nrb_top = 4;
-			nrb_bw_hpf = 0;
-			nrb_bw_lpf = 2;
-			mixer_top = 9;
-			mixer_vth = 0x09;
-			mixer_vtl = 0x04;
-			mixer_gain_limit = 3;
-			filter_top = 4;
-			lna_rf_dis_mode = 1;
-			lna_dis_slow_fast = 0x05;
-			rf_dis_slow_fast = 0x05;
-			bb_dis_curr = 0;
-			mixer_filter_dis = 2;
-			img_nrb_adder = 2;
-			enb_poly_gain = 0;
-			mixer_amp_lpf = 4;
-			na_pwr_det = 1;
-			filt_3th_lpf_cur = 1;
-			filt_3th_lpf_gain = 3;
-			rf_lte_psg = 1;
-			hpf_comp = 1;
-			fb_res_1st = 1;
-			mixer_detbw_lpf = 0;
-			lna_rf_charge_cur = 1;
-		}
-		break;
-
 	case R850_SYSTEM_DVB_C:
-		if (rf_freq <= 660000) {
-			rf_top = 4;
-			img_nrb_adder = 2;
-		} else {
-			rf_top = 3;
-			img_nrb_adder = 1;
-		}
-
-		lna_top = 4;
-		lna_vtl_h = 0x5a;
-		rf_vtl_h = 0x4a;
-		nrb_top = 5;
-		nrb_bw_hpf = 0;
-		nrb_bw_lpf = 2;
-		mixer_top = 12;
-		mixer_vth = 0x09;
-		mixer_vtl = 0x04;
-		mixer_gain_limit = 2;
-		filter_top = (t->priv.chip) ? 6 : 12;
-		lna_rf_dis_mode = 1;
-		lna_dis_slow_fast = 0x05;
-		rf_dis_slow_fast = 0x05;
-		bb_dis_curr = 1;
-		mixer_filter_dis = 0;
-		enb_poly_gain = 1;
-		mixer_amp_lpf = 4;
-		na_pwr_det = 1;
-		filt_3th_lpf_cur = 1;
-		filt_3th_lpf_gain = 0;
-		rf_lte_psg = 0;
-		hpf_comp = 1;
-		fb_res_1st = 1;
-		mixer_detbw_lpf = 0;
-		lna_rf_charge_cur = 1;
-
-		break;
-
 	case R850_SYSTEM_J83B:
-		if ((rf_freq <= 335000) || (rf_freq > 340000 && rf_freq <= 660000)) {
-			lna_top = 5;
-			rf_top = 4;
-			img_nrb_adder = 2;
-		} else {
-			lna_top = 4;
-			rf_top = 3;
-			img_nrb_adder = 1;
-		}
-
-		lna_vtl_h = 0x5a;
-		rf_vtl_h = 0x4a;
-		nrb_top = 5;
-		nrb_bw_hpf = 0;
-		nrb_bw_lpf = 0;
-		mixer_top = 12;
-		mixer_vth = 0x09;
-		mixer_vtl = 0x04;
-		mixer_gain_limit = 2;
-		filter_top = (t->priv.chip) ? 6 : 12;
-		lna_rf_dis_mode = 1;
-		lna_dis_slow_fast = 0x05;
-		rf_dis_slow_fast = 0x05;
-		bb_dis_curr = 1;
-		mixer_filter_dis = 0;
-		enb_poly_gain = 1;
-		mixer_amp_lpf = 7;
-		na_pwr_det = 1;
-		filt_3th_lpf_cur = 1;
-		filt_3th_lpf_gain = 0;
-		rf_lte_psg = 0;
-		hpf_comp = 1;
-		fb_res_1st = 1;
-		mixer_detbw_lpf = 0;
-		lna_rf_charge_cur = 1;
-
-		break;
-
 	case R850_SYSTEM_ISDB_T:
-		if (t->priv.sys_curr.if_freq == 4063) {
-			if (rf_freq <= 340000) {
-				lna_top = 5;
-				lna_vtl_h = 0x6b;
-				rf_top = 5;
-				rf_vtl_h = 0x4a;
-				nrb_top = 12;
-				nrb_bw_lpf = 2;
-				mixer_top = 15;
-				mixer_vtl = 0x04;
-				lna_rf_dis_mode = 1;
-				lna_dis_slow_fast = 0x05;
-				rf_dis_slow_fast = 0x05;
-				img_nrb_adder = 2;
-				enb_poly_gain = 0;
-				na_pwr_det = 1;
-				filt_3th_lpf_gain = 0;
-			} else if (rf_freq >= 470000 && rf_freq < 488000) {
-				lna_top = 6;
-				lna_vtl_h = 0x8c;
-				rf_top = 5;
-				rf_vtl_h = 0x6b;
-				nrb_top = 3;
-				nrb_bw_lpf = 2;
-				mixer_top = 14;
-				mixer_vtl = 0x04;
-				lna_rf_dis_mode = 1;
-				lna_dis_slow_fast = 0x05;
-				rf_dis_slow_fast = 0x05;
-				img_nrb_adder = 3;
-				enb_poly_gain = 1;
-				na_pwr_det = 1;
-				filt_3th_lpf_gain = 3;
-			} else if (rf_freq >= 680000 && rf_freq < 692000) {
-				lna_top = 5;
-				lna_vtl_h = 0x5a;
-				rf_top = 6;
-				rf_vtl_h = 0x6b;
-				nrb_top = 3;
-				nrb_bw_lpf = 2;
-				mixer_top = 14;
-				mixer_vtl = 0x05;
-				lna_rf_dis_mode = 2;
-				lna_dis_slow_fast = 0x07;
-				rf_dis_slow_fast = 0x04;
-				img_nrb_adder = 3;
-				enb_poly_gain = 1;
-				na_pwr_det = 0;
-				filt_3th_lpf_gain = 3;
-			} else if (rf_freq >= 692000 && rf_freq < 698000) {
-				lna_top = 5;
-				lna_vtl_h = 0x5b;
-				rf_top = 6;
-				rf_vtl_h = 0x6b;
-				nrb_top = 10;
-				nrb_bw_lpf = 3;
-				mixer_top = 12;
-				mixer_vtl = 0x05;
-				lna_rf_dis_mode = 2;
-				lna_dis_slow_fast = 0x07;
-				rf_dis_slow_fast = 0x04;
-				img_nrb_adder = 2;
-				enb_poly_gain = 1;
-				na_pwr_det = 0;
-				filt_3th_lpf_gain = 3;
-			} else {
-				lna_top = 5;
-				lna_vtl_h = 0x5a;
-				rf_top = 6;
-				rf_vtl_h = 0x6b;
-				nrb_top = 3;
-				nrb_bw_lpf = 2;
-				mixer_top = 14;
-				mixer_vtl = 0x04;
-				lna_rf_dis_mode = 1;
-				lna_dis_slow_fast = 0x05;
-				rf_dis_slow_fast = 0x05;
-				img_nrb_adder = 3;
-				enb_poly_gain = 1;
-				na_pwr_det = 1;
-				filt_3th_lpf_gain = 3;
-			}
-
-			nrb_bw_hpf = 0;
-			mixer_vth = 0x09;
-			mixer_gain_limit = 3;
-			filter_top = (t->priv.chip) ? 6 : 12;
-			bb_dis_curr = 1;
-			mixer_filter_dis = 0;
-			mixer_amp_lpf = 7;
-			filt_3th_lpf_cur = 1;
-			rf_lte_psg = 1;
-			hpf_comp = 2;
-			fb_res_1st = 1;
-			mixer_detbw_lpf = 0;
-			lna_rf_charge_cur = 1;
-		} else {
-			if (rf_freq <= 340000) {
-				lna_top = 5;
-				lna_vtl_h = 0x6b;
-				rf_top = 5;
-				rf_vtl_h = 0x4a;
-				nrb_top = 12;
-				nrb_bw_lpf = 2;
-				mixer_top = 15;
-				mixer_vth = 0x0b;
-				mixer_vtl = 0x06;
-				lna_rf_dis_mode = 1;
-				lna_dis_slow_fast = 0x05;
-				rf_dis_slow_fast = 0x05;
-				img_nrb_adder = 2;
-				enb_poly_gain = 0;
-				na_pwr_det = 1;
-				filt_3th_lpf_gain = 0;
-			} else if (rf_freq <= 470000 && rf_freq < 488000) {
-				lna_top = 6;
-				lna_vtl_h = 0x8c;
-				rf_top = 5;
-				rf_vtl_h = 0x6b;
-				nrb_top = 3;
-				nrb_bw_lpf = 2;
-				mixer_top = 14;
-				mixer_vth = 0x09;
-				mixer_vtl = 0x04;
-				lna_rf_dis_mode = 1;
-				lna_dis_slow_fast = 0x05;
-				rf_dis_slow_fast = 0x05;
-				img_nrb_adder = 3;
-				enb_poly_gain = 1;
-				na_pwr_det = 1;
-				filt_3th_lpf_gain = 3;
-			} else if (rf_freq <= 680000 && rf_freq < 692000) {
-				lna_top = 5;
-				lna_vtl_h = 0x5a;
-				rf_top = 6;
-				rf_vtl_h = 0x6b;
-				nrb_top = 3;
-				nrb_bw_lpf = 2;
-				mixer_top = 14;
-				mixer_vth = 0x09;
-				mixer_vtl = 0x05;
-				lna_rf_dis_mode = 2;
-				lna_dis_slow_fast = 0x07;
-				rf_dis_slow_fast = 0x04;
-				img_nrb_adder = 3;
-				enb_poly_gain = 1;
-				na_pwr_det = 0;
-				filt_3th_lpf_gain = 3;
-			} else if (rf_freq <= 692000 && rf_freq < 698000) {
-				lna_top = 5;
-				lna_vtl_h = 0x5b;
-				rf_top = 6;
-				rf_vtl_h = 0x6b;
-				nrb_top = 10;
-				nrb_bw_lpf = 3;
-				mixer_top = 12;
-				mixer_vth = 0x09;
-				mixer_vtl = 0x05;
-				lna_rf_dis_mode = 2;
-				lna_dis_slow_fast = 0x07;
-				rf_dis_slow_fast = 0x04;
-				img_nrb_adder = 2;
-				enb_poly_gain = 1;
-				na_pwr_det = 0;
-				filt_3th_lpf_gain = 3;
-			} else {
-				lna_top = 5;
-				lna_vtl_h = 0x5a;
-				rf_top = 6;
-				rf_vtl_h = 0x6b;
-				nrb_top = 3;
-				nrb_bw_lpf = 2;
-				mixer_top = 14;
-				mixer_vth = 0x09;
-				mixer_vtl = 0x04;
-				lna_rf_dis_mode = 1;
-				lna_dis_slow_fast = 0x05;
-				rf_dis_slow_fast = 0x05;
-				img_nrb_adder = 3;
-				enb_poly_gain = 1;
-				na_pwr_det = 1;
-				filt_3th_lpf_gain = 3;
-			}
-			
-			nrb_bw_hpf = 0;
-			mixer_gain_limit = 3;
-			filter_top = (t->priv.chip) ? 6 : 12;
-			bb_dis_curr = 1;
-			mixer_filter_dis = 0;
-			mixer_amp_lpf = 7;
-			filt_3th_lpf_cur = 1;
-			rf_lte_psg = 1;
-			hpf_comp = 2;
-			fb_res_1st = 1;
-			mixer_detbw_lpf = 0;
-			lna_rf_charge_cur = 1;
-		}
-
+		if (t->priv.chip)
+			prm.filter_top = 6;
 		break;
 
-	case R850_SYSTEM_DTMB:
-	case R850_SYSTEM_ATSC:
-	case R850_SYSTEM_FM:
-		// not implemented
 	default:
-		return -EINVAL;
+		break;
 	}
 
 	t->priv.regs[0x13] &= 0xef;
@@ -1841,69 +1688,69 @@ static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 		return ret;
 
 	t->priv.regs[0x0a] &= 0xbf;
-	t->priv.regs[0x0a] |= ((na_pwr_det << 6) & 0x40);
+	t->priv.regs[0x0a] |= ((prm.na_pwr_det << 6) & 0x40);
 
 	t->priv.regs[0x10] &= 0xdf;
 	t->priv.regs[0x10] |= (init_regs[0x0c] & 0x20);
 
 	t->priv.regs[0x0b] &= 0x7f;
-	t->priv.regs[0x0b] |= ((lna_nrb_det << 7) & 0x80);
+	t->priv.regs[0x0b] |= ((prm.lna_nrb_det << 7) & 0x80);
 
 	t->priv.regs[0x26] &= 0xf8;
-	t->priv.regs[0x26] |= ((7 - lna_top) & 0x07);
+	t->priv.regs[0x26] |= ((7 - prm.lna_top) & 0x07);
 
-	t->priv.regs[0x27] = lna_vtl_h;
+	t->priv.regs[0x27] = prm.lna_vtl_h;
 
 	t->priv.regs[0x11] &= 0xef;
-	t->priv.regs[0x11] |= ((rf_lte_psg << 4) & 0x10);
+	t->priv.regs[0x11] |= ((prm.rf_lte_psg << 4) & 0x10);
 
 	t->priv.regs[0x26] &= 0x8f;
-	t->priv.regs[0x26] |= (((7- rf_top) << 4) & 0x70);
+	t->priv.regs[0x26] |= (((7- prm.rf_top) << 4) & 0x70);
 
-	t->priv.regs[0x2a] = rf_vtl_h;
+	t->priv.regs[0x2a] = prm.rf_vtl_h;
 
-	if (rf_gain_limit <= 3) {
-		if (rf_gain_limit < 2)
+	if (prm.rf_gain_limit <= 3) {
+		if (prm.rf_gain_limit < 2)
 			t->priv.regs[0x12] &= 0xfb;
 		else
 			t->priv.regs[0x12] |= 0x02;
 
-		if (rf_gain_limit % 2)
+		if (prm.rf_gain_limit % 2)
 			t->priv.regs[0x10] |= 0x40;
 		else
 			t->priv.regs[0x10] &= 0xbf;
 	}
 
 	t->priv.regs[0x13] &= 0xf8;
-	t->priv.regs[0x13] |= (mixer_amp_lpf & 0x07);
+	t->priv.regs[0x13] |= (prm.mixer_amp_lpf & 0x07);
 
 	t->priv.regs[0x28] &= 0xf0;
-	t->priv.regs[0x28] |= ((15 - mixer_top) & 0x0f);
+	t->priv.regs[0x28] |= ((15 - prm.mixer_top) & 0x0f);
 
 	if (t->priv.chip) {
 		t->priv.regs[0x2c] &= 0xf1;
-		t->priv.regs[0x2c] |= (((7 - filter_top) << 1) & 0x0e);
+		t->priv.regs[0x2c] |= (((7 - prm.filter_top) << 1) & 0x0e);
 	} else {
 		t->priv.regs[0x2c] &= 0xf0;
-		t->priv.regs[0x2c] |= ((15 - filter_top) & 0x0f);
+		t->priv.regs[0x2c] |= ((15 - prm.filter_top) & 0x0f);
 	}
 
 	t->priv.regs[0x0a] &= 0xef;
-	t->priv.regs[0x0a] |= ((filt_3th_lpf_cur << 4) & 0x10);
+	t->priv.regs[0x0a] |= ((prm.filt_3th_lpf_cur << 4) & 0x10);
 
 	t->priv.regs[0x18] &= 0xfc;
-	t->priv.regs[0x18] |= (filt_3th_lpf_gain & 0x03);
+	t->priv.regs[0x18] |= (prm.filt_3th_lpf_gain & 0x03);
 
-	t->priv.regs[0x29] = (((filter_vth << 4) & 0xf0) | (mixer_vth & 0x0f));
-	t->priv.regs[0x2b] = (((filter_vtl << 4) & 0xf0) | (mixer_vtl & 0x0f));
+	t->priv.regs[0x29] = (((prm.filter_vth << 4) & 0xf0) | (prm.mixer_vth & 0x0f));
+	t->priv.regs[0x2b] = (((prm.filter_vtl << 4) & 0xf0) | (prm.mixer_vtl & 0x0f));
 
 	t->priv.regs[0x16] &= 0x3f;
-	t->priv.regs[0x16] |= ((mixer_gain_limit << 6) & 0xc0);
+	t->priv.regs[0x16] |= ((prm.mixer_gain_limit << 6) & 0xc0);
 
 	t->priv.regs[0x2e] &= 0x7f;
-	t->priv.regs[0x2e] |= ((mixer_detbw_lpf << 7) & 0x80);
+	t->priv.regs[0x2e] |= ((prm.mixer_detbw_lpf << 7) & 0x80);
 
-	switch (lna_rf_dis_mode) {
+	switch (prm.lna_rf_dis_mode) {
 	case 1:
 		t->priv.regs[0x2d] |= 0x03;
 		t->priv.regs[0x1f] |= 0x01;
@@ -1936,40 +1783,41 @@ static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 	}
 
 	t->priv.regs[0x1f] &= 0xfd;
-	t->priv.regs[0x1f] |= ((lna_rf_charge_cur << 1) & 0x02);
+	t->priv.regs[0x1f] |= ((prm.lna_rf_charge_cur << 1) & 0x02);
 
 	t->priv.regs[0x0d] &= 0xdf;
-	t->priv.regs[0x0d] |= ((lna_rf_dis_curr << 5) & 0x20);
+	t->priv.regs[0x0d] |= ((prm.lna_rf_dis_curr << 5) & 0x20);
 
 	t->priv.regs[0x2d] &= 0x0f;
-	t->priv.regs[0x2d] |= ((rf_dis_slow_fast << 4) & 0xf0);
+	t->priv.regs[0x2d] |= ((prm.rf_dis_slow_fast << 4) & 0xf0);
 
 	t->priv.regs[0x2c] &= 0x0f;
-	t->priv.regs[0x2c] |= ((lna_dis_slow_fast << 4) & 0xf0);
+	t->priv.regs[0x2c] |= ((prm.lna_dis_slow_fast << 4) & 0xf0);
 
 	t->priv.regs[0x19] &= 0xbf;
-	t->priv.regs[0x19] |= ((bb_dis_curr << 6) & 0x40);
+	t->priv.regs[0x19] |= ((prm.bb_dis_curr << 6) & 0x40);
 
 	t->priv.regs[0x25] &= 0x3b;
-	t->priv.regs[0x25] |= (((mixer_filter_dis << 6) & 0xc0) | ((bb_det_mode << 2) & 0x04));
+	t->priv.regs[0x25] |= (((prm.mixer_filter_dis << 6) & 0xc0) | ((prm.bb_det_mode << 2) & 0x04));
 
 	t->priv.regs[0x19] &= 0xfd;
-	t->priv.regs[0x19] |= ((enb_poly_gain << 1) & 0x02);
+	t->priv.regs[0x19] |= ((prm.enb_poly_gain << 1) & 0x02);
 
 	t->priv.regs[0x28] &= 0x0f;
-	t->priv.regs[0x28] |= (((15 - nrb_top) << 4) & 0xf0);
+	t->priv.regs[0x28] |= (((15 - prm.nrb_top) << 4) & 0xf0);
 
 	t->priv.regs[0x1a] &= 0x33;
-	t->priv.regs[0x1a] |= (((nrb_bw_lpf << 6) & 0xc0) | ((nrb_bw_hpf << 2) & 0x0c));
+	t->priv.regs[0x1a] |= (((prm.nrb_bw_lpf << 6) & 0xc0) | ((prm.nrb_bw_hpf << 2) & 0x0c));
+	t->priv.regs[0x1a] |= (((prm.nrb_bw_lpf << 6) & 0xc0) | ((prm.nrb_bw_hpf << 2) & 0x0c));
 
 	t->priv.regs[0x2e] &= 0xf3;
-	t->priv.regs[0x2e] |= ((img_nrb_adder << 2) & 0x0c);
+	t->priv.regs[0x2e] |= ((prm.img_nrb_adder << 2) & 0x0c);
 
 	t->priv.regs[0x0d] &= 0xf9;
-	t->priv.regs[0x0d] |= ((hpf_comp << 1) & 0x06);
+	t->priv.regs[0x0d] |= ((prm.hpf_comp << 1) & 0x06);
 
 	t->priv.regs[0x15] &= 0xef;
-	t->priv.regs[0x15] |= ((fb_res_1st << 4) & 0x10);
+	t->priv.regs[0x15] |= ((prm.fb_res_1st << 4) & 0x10);
 
 #if 1
 	if ((rf_freq - 478000) <= 3999 && t->priv.sys_curr.system == R850_SYSTEM_ISDB_T)
