@@ -2062,6 +2062,7 @@ int r850_sleep(struct r850_tuner *t)
 {
 	int ret = 0;
 
+#if 1
 	mutex_lock(&t->priv.lock);
 
 	if (t->priv.sleep)
@@ -2076,8 +2077,11 @@ int r850_sleep(struct r850_tuner *t)
 	if (!ret)
 		t->priv.sleep = true;
 
+	t->priv.sys_curr.system = R850_SYSTEM_UNDEFINED;
+
 exit:
 	mutex_unlock(&t->priv.lock);
+#endif
 
 	return ret;
 }
@@ -2086,12 +2090,20 @@ int r850_wakeup(struct r850_tuner *t)
 {
 	int ret = 0;
 
+#if 1
 	mutex_lock(&t->priv.lock);
 
 	if (!t->priv.sleep)
 		goto exit;
 
+#if 0
+	t->priv.regs[0x09] |= 0x20;
+	t->priv.regs[0x0a] |= 0x80;
+	t->priv.regs[0x0b] |= 0x3c;
+	t->priv.regs[0x0c] |= 0xc0;
+#else
 	memcpy(t->priv.regs, wakeup_regs, sizeof(t->priv.regs));
+#endif
 
 	ret = _r850_write_regs(t, 0x08, &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 	if (ret)
@@ -2105,6 +2117,7 @@ int r850_wakeup(struct r850_tuner *t)
 
 exit:
 	mutex_unlock(&t->priv.lock);
+#endif
 
 	return ret;
 }
