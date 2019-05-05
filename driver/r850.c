@@ -2068,10 +2068,45 @@ int r850_sleep(struct r850_tuner *t)
 	if (t->priv.sleep)
 		goto exit;
 
+#if 0
+	t->priv.regs[0x08] &= 0xc0;
+	t->priv.regs[0x08] |= 0x03;
+
+	t->priv.regs[0x09] = 0xee;
+
+	t->priv.regs[0x0a] &= 0x02;
+	t->priv.regs[0x0a] |= 0xb9;
+
+	t->priv.regs[0x0b] = 0xfe;
+
+	t->priv.regs[0x0c] |= 0x0f;
+
+	t->priv.regs[0x08] &= 0x3f;
+	t->priv.regs[0x0c] &= 0xfd;
+
+	if (!t->config.loop_through)
+		t->priv.regs[0x08] |= 0x40;
+
+	t->priv.regs[0x0d] |= 0x21;
+
+	t->priv.regs[0x27] |= 0xf0;
+
+	t->priv.regs[0x0e] &= 0xf3;
+	t->priv.regs[0x0e] |= 0x04;
+
+	t->priv.regs[0x19] |= 0x04;
+
+	t->priv.regs[0x11] |= 0x40;
+
+	t->priv.regs[0x2a] &= 0x0f;
+
+	t->priv.regs[0x08] |= 0x30;
+#else
 	memcpy(t->priv.regs, sleep_regs, sizeof(t->priv.regs));
 
 	if (!t->config.loop_through)
 		t->priv.regs[0x08] |= 0x40;
+#endif
 
 	ret = _r850_write_regs(t, 0x08, &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 	if (!ret)
