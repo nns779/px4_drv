@@ -28,7 +28,6 @@
 #include "it930x.h"
 #include "tc90522.h"
 #include "r850.h"
-#include "r850_channel.h"
 #include "rt710.h"
 #include "ringbuffer.h"
 
@@ -278,6 +277,11 @@ static int px4_load_config(struct px4_device *px4)
 			tsdev->t.r850.dev = dev;
 			tsdev->t.r850.i2c = &tsdev->tc90522.i2c_master;
 			tsdev->t.r850.i2c_addr = 0x7c;
+			tsdev->t.r850.config.xtal = 24000;
+			tsdev->t.r850.config.loop_through = true;
+			tsdev->t.r850.config.clock_out = false;
+			tsdev->t.r850.config.no_imr_calibration = true;
+			tsdev->t.r850.config.no_lpf_calibration = true;
 			break;
 		}
 	}
@@ -582,6 +586,8 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 	case ISDB_T:
 	{
+		struct r850_system_config sys;
+
 		ret = tc90522_write_regs(tc90522, tc_init_t, ARRAY_SIZE(tc_init_t));
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_init %d:%u: tc90522_write_regs(tc_init_t) failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
@@ -602,36 +608,20 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 			break;
 		}
 
-#if 0
 		ret = r850_wakeup(&tsdev->t.r850);
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_init %d:%u: r850_wakeup() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			break;
 		}
-#endif
 
-		if (tsdev->id == 3) {
-			struct px4_tsdev *tsdev_t0 = &container_of(tsdev, struct px4_device, tsdev[tsdev->id])->tsdev[2];
+		sys.system = R850_SYSTEM_ISDB_T;
+		sys.bandwidth = R850_BANDWIDTH_6M;
+		sys.if_freq = 4063;
 
-			if (!tsdev_t0->init) {
-				u8 regs[2][R850_NUM_REGS - 0x08];
-
-				dev_dbg(px4->dev, "px4_tsdev_init %d:%u: init t0\n", px4->dev_idx, tsdev->id);
-
-				ret = px4_tsdev_init(tsdev_t0);
-				if (ret) {
-					dev_err(px4->dev, "px4_tsdev_init %d:%u(*): px4_tsdev_init() t0 failed.\n", px4->dev_idx, 2);
-					break;
-				}
-
-				r850_channel_get_regs(63, regs);
-
-				ret = r850_write_config_regs(&tsdev_t0->t.r850, regs[0]);
-				if (ret) {
-					dev_err(px4->dev, "px4_tsdev_init %d:%u(*): r850_write_config_regs() t0 failed.\n", px4->dev_idx, 2);
-					break;
-				}
-			}
+		ret = r850_set_system(&tsdev->t.r850, &sys);
+		if (ret) {
+			dev_err(px4->dev, "px4_tsdev_init %d:%u: r850_set_system() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
+			break;
 		}
 
 		break;
@@ -650,7 +640,6 @@ static int px4_tsdev_init(struct px4_tsdev *tsdev)
 
 static void px4_tsdev_term(struct px4_tsdev *tsdev)
 {
-	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 
 	if (!tsdev->init)
@@ -663,19 +652,8 @@ static void px4_tsdev_term(struct px4_tsdev *tsdev)
 		break;
 
 	case ISDB_T:
-#if 0
 		r850_sleep(&tsdev->t.r850);
-#endif
 		tc90522_sleep_t(tc90522, true);
-
-		if (tsdev->id == 3) {
-			struct px4_tsdev *tsdev_t0 = &container_of(tsdev, struct px4_device, tsdev[tsdev->id])->tsdev[2];
-
-			if (!tsdev_t0->open && tsdev_t0->init) {
-				dev_dbg(px4->dev, "px4_tsdev_term %d:%u: term t0\n", px4->dev_idx, tsdev->id);
-				px4_tsdev_term(tsdev_t0);
-			}
-		}
 
 		break;
 
@@ -859,29 +837,16 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 	{
 		int i;
 		bool tuner_locked, demod_locked;
-		u8 regs[2][R850_NUM_REGS - 0x08];
 
 		if ((freq->freq_no >= 3 && freq->freq_no <= 12) || (freq->freq_no >= 22 && freq->freq_no <= 62)) {
 			// CATV C13-C22ch, C23-63ch
-#if 0
 			real_freq = 93143 + freq->freq_no * 6000 + freq->slot/* addfreq */;
 
 			if (freq->freq_no == 12)
 				real_freq += 2000;
-#else
-			ret = r850_channel_get_regs(freq->freq_no, regs);
-			if (ret)
-				break;
-#endif
 		} else if (freq->freq_no >= 63 && freq->freq_no <= 102) {
 			// UHF 13-52ch
-#if 0
 			real_freq = 95143 + freq->freq_no * 6000 + freq->slot/* addfreq */;
-#else
-			ret = r850_channel_get_regs(freq->freq_no, regs);
-			if (ret)
-				break;
-#endif
 		} else {
 			// Unknown channel
 			ret = -EINVAL;
@@ -908,17 +873,9 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 			break;
 		}
 
-		ret = r850_write_config_regs(&tsdev->t.r850, regs[0]);
+		ret = r850_set_frequency(&tsdev->t.r850, real_freq);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_write_config_regs() 1 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
-			break;
-		}
-
-		msleep(40);
-
-		ret = r850_write_config_regs(&tsdev->t.r850, regs[1]);
-		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_write_config_regs() 2 failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+			dev_err(px4->dev, "px4_tsdev_set_channel %d:%u: r850_set_frequency(%u) failed. (ret: %d)\n", dev_idx, tsdev_id, real_freq, ret);
 			break;
 		}
 
@@ -1349,13 +1306,11 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 					break;
 
 				case ISDB_T:
-#if 0
 					ret = r850_sleep(&tsdev->t.r850);
 					if (ret) {
 						dev_err(px4->dev, "px4_tsdev_open %d:%u: rt850_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
 						break;
 					}
-#endif
 
 					ret = tc90522_sleep_t(&t->tc90522, true);
 					if (ret) {
