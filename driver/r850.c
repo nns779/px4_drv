@@ -161,6 +161,21 @@ static const struct r850_system_params isdb_t_params[2][3] = {
 	}
 };
 
+static const struct r850_system_params dtmb_params[2][4] = {
+	{
+		{ R850_BANDWIDTH_6M, 4500, 7200, 1, 0, 0, 0x08, 1, 0, 0, { 0x02, 3, 1 } },
+		{ R850_BANDWIDTH_8M, 4570, 8450, 0, 0, 0, 0x0c, 1, 0, 0, { 0x00, 2, 1 } },
+		{ R850_BANDWIDTH_6M, 5000, 8100, 1, 0, 0, 0x06, 1, 0, 0, { 0x04, 2, 1 } },
+		{ R850_BANDWIDTH_8M, 5000, 8800, 0, 0, 0, 0x0b, 2, 0, 0, { 0x05, 0, 1 } },
+	},
+	{
+		{ R850_BANDWIDTH_6M, 4500, 7200, 1, 0, 0, 0x08, 1, 3, 1, { 0x02, 3, 1 } },
+		{ R850_BANDWIDTH_8M, 4570, 8450, 0, 0, 0, 0x0c, 1, 3, 1, { 0x00, 2, 1 } },
+		{ R850_BANDWIDTH_6M, 5000, 8100, 1, 0, 0, 0x06, 1, 3, 1, { 0x04, 2, 1 } },
+		{ R850_BANDWIDTH_8M, 5000, 8800, 0, 0, 0, 0x0b, 2, 3, 1, { 0x05, 0, 1 } },
+	}
+};
+
 static const struct r850_system_params *sys_params[10][2] = {
 	{ NULL, NULL },
 	{ dvb_t_t2_params[0], dvb_t_t2_params[1] },
@@ -169,7 +184,7 @@ static const struct r850_system_params *sys_params[10][2] = {
 	{ dvb_c_params[0], dvb_c_params[1] },
 	{ j83b_params[0], j83b_params[1] },
 	{ isdb_t_params[0], isdb_t_params[1] },
-	{ NULL, NULL },
+	{ dtmb_params[0], dtmb_params[1] },
 	{ NULL, NULL },
 	{ NULL, NULL },
 };
@@ -182,7 +197,7 @@ static const int sys_param_num[10][2] = {
 	{ ARRAY_SIZE(dvb_c_params[0]), ARRAY_SIZE(dvb_c_params[1]) },
 	{ ARRAY_SIZE(j83b_params[0]), ARRAY_SIZE(j83b_params[1]) },
 	{ ARRAY_SIZE(isdb_t_params[0]), ARRAY_SIZE(isdb_t_params[1]) },
-	{ 0, 0 },
+	{ ARRAY_SIZE(dtmb_params[0]), ARRAY_SIZE(dtmb_params[1]) },
 	{ 0, 0 },
 	{ 0, 0 },
 };
@@ -412,6 +427,36 @@ static const struct r850_system_frequency_params isdb_t_freq_params[10] = {
 	}
 };
 
+static const struct r850_system_frequency_params dtmb_freq_params[3] = {
+	{
+		0, 0, 100000,
+		4, 0x6b, 0, 1, 1, 1, 0x05,
+		4, 0x4a, 0, 0x05, 1,
+		10, 3, 3,
+		9, 0x09, 0x04, 4, 1, 0, 2,
+		4, 0x09, 0x04,
+		0, 0, 0, 0, 1, 0, 1, 0, 0
+	},
+	{
+		0, 0, 340000,
+		4, 0x6b, 0, 1, 1, 1, 0x05,
+		4, 0x4a, 0, 0x05, 1,
+		10, 0, 2,
+		9, 0x09, 0x04, 4, 1, 0, 2,
+		4, 0x09, 0x04,
+		0, 0, 0, 0, 1, 0, 1, 0, 0
+	},
+	{
+		0, 0, 0,
+		4, 0x5a, 0, 1, 1, 1, 0x05,
+		4, 0x4a, 0, 0x05, 1,
+		6, 3, 2,
+		9, 0x09, 0x04, 4, 1, 0, 2,
+		4, 0x09, 0x04,
+		0, 3, 0, 0, 1, 0, 0, 0, 0
+	}
+};
+
 static const struct r850_system_frequency_params *sys_freq_params[10] = {
 	NULL,
 	dvb_t_t2_freq_params,
@@ -420,7 +465,7 @@ static const struct r850_system_frequency_params *sys_freq_params[10] = {
 	dvb_c_freq_params,
 	j83b_freq_params,
 	isdb_t_freq_params,
-	NULL,
+	dtmb_freq_params,
 	NULL,
 	NULL,
 };
@@ -433,7 +478,7 @@ static const int sys_freq_param_num[10] = {
 	ARRAY_SIZE(dvb_c_freq_params),
 	ARRAY_SIZE(j83b_freq_params),
 	ARRAY_SIZE(isdb_t_freq_params),
-	0,
+	ARRAY_SIZE(dtmb_freq_params),
 	0,
 	0,
 };
