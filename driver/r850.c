@@ -2062,7 +2062,7 @@ int r850_sleep(struct r850_tuner *t)
 {
 	int ret = 0;
 
-#if 1
+#if 0
 	mutex_lock(&t->priv.lock);
 
 	if (t->priv.sleep)
@@ -2125,7 +2125,7 @@ int r850_wakeup(struct r850_tuner *t)
 {
 	int ret = 0;
 
-#if 1
+#if 0
 	mutex_lock(&t->priv.lock);
 
 	if (!t->priv.sleep)
