@@ -176,6 +176,17 @@ static const struct r850_system_params dtmb_params[2][4] = {
 	}
 };
 
+static const struct r850_system_params atsc_params[2][2] = {
+	{
+		{ R850_BANDWIDTH_6M, 5070, 8050, 1, 0, 0, 0x05, 1, 0, 0, { 0x03, 2, 0 } },
+		{ R850_BANDWIDTH_6M, 5000, 7920, 1, 0, 0, 0x05, 1, 0, 0, { 0x04, 2, 0 } },
+	},
+	{
+		{ R850_BANDWIDTH_6M, 5070, 8050, 1, 0, 0, 0x05, 1, 3, 1, { 0x03, 2, 0 } },
+		{ R850_BANDWIDTH_6M, 5000, 7920, 1, 0, 0, 0x05, 1, 3, 1, { 0x04, 2, 0 } },
+	}
+};
+
 static const struct r850_system_params *sys_params[10][2] = {
 	{ NULL, NULL },
 	{ dvb_t_t2_params[0], dvb_t_t2_params[1] },
@@ -185,7 +196,7 @@ static const struct r850_system_params *sys_params[10][2] = {
 	{ j83b_params[0], j83b_params[1] },
 	{ isdb_t_params[0], isdb_t_params[1] },
 	{ dtmb_params[0], dtmb_params[1] },
-	{ NULL, NULL },
+	{ atsc_params[0], atsc_params[1] },
 	{ NULL, NULL },
 };
 
@@ -198,7 +209,7 @@ static const int sys_param_num[10][2] = {
 	{ ARRAY_SIZE(j83b_params[0]), ARRAY_SIZE(j83b_params[1]) },
 	{ ARRAY_SIZE(isdb_t_params[0]), ARRAY_SIZE(isdb_t_params[1]) },
 	{ ARRAY_SIZE(dtmb_params[0]), ARRAY_SIZE(dtmb_params[1]) },
-	{ 0, 0 },
+	{ ARRAY_SIZE(atsc_params[0]), ARRAY_SIZE(atsc_params[1]) },
 	{ 0, 0 },
 };
 
@@ -457,6 +468,27 @@ static const struct r850_system_frequency_params dtmb_freq_params[3] = {
 	}
 };
 
+static const struct r850_system_frequency_params atsc_freq_params[2] = {
+	{
+		0, 0, 340000,
+		6, 0x5a, 0, 1, 1, 1, 0x05,
+		5, 0x6b, 0, 0x05, 1,
+		12, 2, 2,
+		12, 0x0b, 0x04, 7, 2, 1, 2,
+		6, 0x09, 0x04,
+		1, 0, 0, 0, 1, 0, 1, 2, 1
+	},
+	{
+		0, 0, 0,
+		6, 0x5a, 0, 1, 1, 1, 0x05,
+		5, 0x6b, 0, 0x05, 1,
+		12, 2, 2,
+		12, 0x0b, 0x04, 7, 2, 1, 2,
+		6, 0x09, 0x04,
+		1, 3, 0, 0, 1, 0, 1, 2, 1
+	}
+};
+
 static const struct r850_system_frequency_params *sys_freq_params[10] = {
 	NULL,
 	dvb_t_t2_freq_params,
@@ -466,7 +498,7 @@ static const struct r850_system_frequency_params *sys_freq_params[10] = {
 	j83b_freq_params,
 	isdb_t_freq_params,
 	dtmb_freq_params,
-	NULL,
+	atsc_freq_params,
 	NULL,
 };
 
@@ -479,7 +511,7 @@ static const int sys_freq_param_num[10] = {
 	ARRAY_SIZE(j83b_freq_params),
 	ARRAY_SIZE(isdb_t_freq_params),
 	ARRAY_SIZE(dtmb_freq_params),
-	0,
+	ARRAY_SIZE(atsc_freq_params),
 	0,
 };
 
