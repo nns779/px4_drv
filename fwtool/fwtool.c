@@ -153,7 +153,7 @@ static int load_fwinfo(struct tsv_data *tsv, struct fwinfo *fi, int num)
 
 static int output_firmware(struct fwinfo *fi, const char *buf, long size, const char *path)
 {
-	int i, n;
+	uint8_t i, n;
 	uint8_t align;
 	uint32_t partition_ofs, segment_ofs, code_ofs, crc32;
 	size_t code_len = 0;
