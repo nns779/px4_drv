@@ -1063,7 +1063,7 @@ int it930x_purge_psb(struct it930x_bridge *it930x, int timeout)
 	if (ret)
 		goto exit;
 
-	len = it930x->config.xfer_size;
+	len = 1024;
 
 	p = kmalloc(len, GFP_KERNEL);
 	if (!p) {
