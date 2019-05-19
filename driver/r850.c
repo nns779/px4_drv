@@ -1982,6 +1982,7 @@ static int _r850_check_xtal_power(struct r850_tuner *t)
 int r850_init(struct r850_tuner *t)
 {
 	int ret = 0, i;
+	u8 regs[R850_NUM_REGS];
 
 	if (t->priv.init)
 		return 0;
@@ -2016,15 +2017,21 @@ int r850_init(struct r850_tuner *t)
 
 	t->priv.sys_curr.system = R850_SYSTEM_UNDEFINED;
 
+	ret = _r850_read_regs(t, 0x08, &regs[0x08], R850_NUM_REGS - 0x08);
+	if (ret) {
+		dev_err(t->dev, "r850_init: _r850_read_regs(0x08-0x2f) failed. (ret: %d)\n", ret);
+		return ret;
+	}
+
 	ret = _r850_check_xtal_power(t);
 	if (ret)
 		return ret;
 
-	_r850_init_regs(t);
-
-	ret = _r850_write_regs(t, 0x08, &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
+	ret = _r850_write_regs(t, 0x08, &regs[0x08], R850_NUM_REGS - 0x08);
 	if (ret)
 		return ret;
+
+	_r850_init_regs(t);
 
 	t->priv.init = true;
 
