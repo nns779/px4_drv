@@ -22,7 +22,7 @@ enum r850_imr_direction {
 };
 
 enum r850_calibration {
-	R850_CAL_NONE = 0,
+	R850_CALIBRATION_NONE = 0,
 	R850_CALIBRATION_IMR,
 	R850_CALIBRATION_LPF,
 };
