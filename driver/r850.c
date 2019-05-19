@@ -1206,7 +1206,7 @@ static int _r850_imr_check_iq_step(struct r850_tuner *t, struct r850_imr *imr, e
 	return ret;
 }
 
-static int _r850_imr_check_iq_section(struct r850_tuner *t, struct r850_imr *imr)
+static int _r850_imr_check_section(struct r850_tuner *t, struct r850_imr *imr)
 {
 	int ret = 0, i, n = 0;
 	struct r850_imr imr_points[3];
@@ -1467,7 +1467,7 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 		} else
 			*imr = t->priv.imr_cal[mixer_mode].imr[pre];
 
-		ret = _r850_imr_check_iq_section(t, imr);
+		ret = _r850_imr_check_section(t, imr);
 		if (ret)
 			return ret;
 
