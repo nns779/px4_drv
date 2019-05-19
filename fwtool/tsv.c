@@ -9,139 +9,92 @@
 int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, size_t *str_poolsize)
 {
 	const char *p = buf;
-	char *sp = str_pool;
-	size_t l = buf_len, npl = 0, pl = 0;
+	char *pool_p = str_pool;
+	size_t l = buf_len, pool_size = 0, pool_remain = 0;
 	int col_num = 0, row_num = 0;
 
-	if (sp && str_poolsize) {
-		pl = *str_poolsize;
-	}
+	if (pool_p && str_poolsize)
+		pool_remain = *str_poolsize;
 
 	while (l && *p != '\0') {
-		int n = 0;	// number of columns (current line)
+		int num = 0;	// number of columns (current line)
 		int newline = 0;
 
-		if (*p == '#') {
-			// comment
-			p++;
-			l--;
-			while (l && *p != '\0') {
-				p++;
-				l--;
-				if (*(p - 1) == '\r') {
-					if (l && *p == '\n') {
-						p++;
-						l--;
-					}
-					break;
-				} else if (*(p - 1) == '\n') {
-					break;
-				}
-			}
-			continue;
-		}
-
 		do {
-			const char *pb, *pp = NULL;
-			int quote = 0;
-
-			pb = p;
+			const char *pb = p, *pp = NULL;
 
 			while(l && *p != '\0') {
-				if (*p == '\t' && !quote) {
+				if (*p == '\t') {
+					// TAB
 					pp = p;
-					while(--l && *++p == '\t')
-						;
+					p++;
+					l--;
 					break;
 				} else if (*p == '\r') {
-					if (quote) {
-						errno = EBADMSG;
-						return -1;
-					}
+					// CR
 					pp = p;
 					p++;
 					l--;
 					newline = 1;
 					if (l && *p == '\n') {
+						// CRLF
 						p++;
 						l--;
 					}
 					break;
 				} else if (*p == '\n') {
-					if (quote) {
-						errno = EBADMSG;
-						return -1;
-					}
+					// LF
 					pp = p;
 					p++;
 					l--;
 					newline = 1;
 					break;
-				} else if (*p == '\"') {
-					quote ^= 1;
-				} else if (*p == '\\') {
-					if (l > 1) {
-						p++;
-						l--;
-					}
 				}
 				p++;
 				l--;
 			}
 
-			if (!pp) {
-				pp = p;
-			}
+			if (pp && pp > pb) {
+				size_t sl = pp - pb + 1;
 
-			if (pp > pb) {
-				size_t sl, plb, slb;
+				if (pool_p) {
+					memcpy(pool_p, pb, sl - 1);
+					pool_p[sl - 1] = '\0';
 
-				sl = pp - pb;
+					if (!col_num)
+						tsv->name[num] = pool_p;
+					else
+						tsv->field[row_num][num] = pool_p;
 
-				if (pl) {
-					for (plb = 0, slb = 0; plb < sl; plb++) {
-						if (pb[plb] == '\"') {
-							continue;
-						} else if (pb[plb] == '\\') {
-							if ((plb + 1) < sl) {
-								plb++;
-							}
-						}
-						sp[slb++] = pb[plb];
-					}
-					sp[sl] = '\0';
-
-					if (!col_num) {
-						tsv->name[n] = sp;
-					} else {
-						tsv->field[row_num - 1][n] = sp;
-					}
-					sp += sl + 1;
-					pl -= sl + 1;
+					pool_p += sl;
+					pool_remain -= sl;
 				}
-				npl += sl + 1;
-				n++;
+
+				pool_size += sl;
+				num++;
 			}
 		} while(!newline && l && *p != '\0');
 
-		if (n) {
+		if (num) {
 			if (!col_num) {
-				col_num = n;
-			} else if (col_num != n) {
-				errno = EBADMSG;
-				return -1;
-			}
+				// first line
+				col_num = num;
+			} else {
+				if (col_num != num) {
+					errno = EBADMSG;
+					return -1;
+				}
 
-			row_num++;
+				row_num++;
+			}
 		}
 	}
 
 	tsv->col_num = col_num;
-	tsv->row_num = row_num - 1;
+	tsv->row_num = row_num;
 
-	if (!str_pool && str_poolsize) {
-		*str_poolsize = npl;
-	}
+	if (!str_pool && str_poolsize)
+		*str_poolsize = pool_size;
 
 	return 0;
 }
@@ -159,16 +112,14 @@ int tsv_load(const char *buf, size_t len, struct tsv_data **tsv)
 	}
 
 	ret = load(buf, len, &tsv_tmp, NULL, &str_poolsize);
-	if (ret) {
+	if (ret)
 		return ret;
-	}
 
 	array_poolsize = /* name */(sizeof(char **) * tsv_tmp.col_num) + /* field */((sizeof(char ***) * tsv_tmp.row_num) + (sizeof(char **) * tsv_tmp.col_num * tsv_tmp.row_num));
 
 	tsv_ret = (struct tsv_data *)malloc(sizeof(*tsv_ret) + array_poolsize + str_poolsize);
-	if (!tsv_ret) {
+	if (!tsv_ret)
 		return -1;
-	}
 
 	pool = (char *)(tsv_ret + 1);
 

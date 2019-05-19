@@ -9,7 +9,9 @@
 #include <linux/wait.h>
 
 struct ringbuffer {
+#ifdef RINGBUFFER_USE_SPINLOCK
 	spinlock_t lock;	// for data_size
+#endif
 	atomic_t avail;
 	atomic_t rw_cnt;
 	atomic_t wait_cnt;
@@ -17,9 +19,15 @@ struct ringbuffer {
 	wait_queue_head_t data_wait;
 	u8 *buf;
 	size_t buf_size;
+#ifdef RINGBUFFER_USE_SPINLOCK
 	size_t data_size;
+#else
+	atomic_t data_size;
+#endif
 	size_t tail_pos;	// write
 	size_t head_pos;	// read
+	size_t write_size;
+	size_t write_threshold_size;
 };
 
 int ringbuffer_create(struct ringbuffer **ringbuffer);
@@ -29,6 +37,6 @@ int ringbuffer_free(struct ringbuffer *ringbuffer);
 int ringbuffer_start(struct ringbuffer *ringbuffer);
 int ringbuffer_stop(struct ringbuffer *ringbuffer);
 int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, size_t len);
-int ringbuffer_read_to_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len);
+int ringbuffer_read_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len);
 
 #endif

@@ -32,7 +32,7 @@ struct it930x_bus {
 		struct {
 			struct usb_device *dev;
 			int ctrl_timeout;
-			u32 streaming_xfer_size;
+			u32 streaming_urb_buffer_size;
 			u32 streaming_urb_num;
 			bool streaming_no_dma;
 			void *priv;

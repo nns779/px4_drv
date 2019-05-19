@@ -103,14 +103,12 @@ static int load_tsv_file(struct tsv_data **tsv)
 	long size;
 
 	ret = load_file("fwinfo.tsv", &buf, &size);
-	if (ret == -1) {
+	if (ret == -1)
 		return ret;
-	}
 
 	ret = tsv_load(buf, size, tsv);
-	if (ret == -1) {
+	if (ret == -1)
 		fprintf(stderr, "File 'fwinfo.tsv' is invalid.\n");
-	}
 
 	free(buf);
 
@@ -155,7 +153,7 @@ static int load_fwinfo(struct tsv_data *tsv, struct fwinfo *fi, int num)
 
 static int output_firmware(struct fwinfo *fi, const char *buf, long size, const char *path)
 {
-	int i, n;
+	uint8_t i, n;
 	uint8_t align;
 	uint32_t partition_ofs, segment_ofs, code_ofs, crc32;
 	size_t code_len = 0;
@@ -171,9 +169,8 @@ static int output_firmware(struct fwinfo *fi, const char *buf, long size, const 
 		return -1;
 	}
 
-	if (align < 4) {
+	if (align < 4)
 		align = 4;
-	}
 
 	if (size < partition_ofs + 1) {
 		fprintf(stderr, "Invalid file size.\n");
