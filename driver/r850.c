@@ -1992,6 +1992,13 @@ int r850_init(struct r850_tuner *t)
 	t->priv.chip = 0;
 	t->priv.sleep = false;
 
+	t->priv.sys.system = R850_SYSTEM_UNDEFINED;
+
+	t->priv.imr_cal[0].done = false;
+	t->priv.imr_cal[1].done = false;
+
+	t->priv.sys_curr.system = R850_SYSTEM_UNDEFINED;
+
 	for (i = 0; i < 4; i++) {
 		u8 tmp;
 
@@ -2009,13 +2016,6 @@ int r850_init(struct r850_tuner *t)
 
 	if (ret)
 		return ret;
-
-	t->priv.sys.system = R850_SYSTEM_UNDEFINED;
-
-	t->priv.imr_cal[0].done = false;
-	t->priv.imr_cal[1].done = false;
-
-	t->priv.sys_curr.system = R850_SYSTEM_UNDEFINED;
 
 	ret = _r850_read_regs(t, 0x08, &regs[0x08], R850_NUM_REGS - 0x08);
 	if (ret) {
