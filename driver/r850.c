@@ -1756,14 +1756,6 @@ static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 	} else
 		lo_freq = rf_freq + t->priv.sys_curr.if_freq;
 
-	ret = _r850_set_mux(t, rf_freq, lo_freq, t->priv.sys_curr.system);
-	if (ret)
-		return ret;
-
-	ret = _r850_set_pll(t, lo_freq, t->priv.sys_curr.if_freq, t->priv.sys_curr.system);
-	if (ret)
-		return ret;
-
 	t->priv.regs[0x0a] &= 0xbf;
 	t->priv.regs[0x0a] |= ((prm.na_pwr_det << 6) & 0x40);
 
@@ -1917,7 +1909,11 @@ static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 	else
 		t->priv.regs[0x22] |= 0x04;
 
-	return _r850_write_regs(t, 0x08, &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
+	ret = _r850_set_mux(t, rf_freq, lo_freq, t->priv.sys_curr.system);
+	if (ret)
+		return ret;
+
+	return _r850_set_pll(t, lo_freq, t->priv.sys_curr.if_freq, t->priv.sys_curr.system);
 }
 
 static int _r850_check_xtal_power(struct r850_tuner *t)
