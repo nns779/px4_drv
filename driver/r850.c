@@ -2065,6 +2065,9 @@ int r850_sleep(struct r850_tuner *t)
 {
 	int ret = 0;
 
+	if (!t->priv.init)
+		return -EINVAL;
+
 #if 0
 	mutex_lock(&t->priv.lock);
 
@@ -2128,6 +2131,9 @@ int r850_wakeup(struct r850_tuner *t)
 {
 	int ret = 0;
 
+	if (!t->priv.init)
+		return -EINVAL;
+
 #if 0
 	mutex_lock(&t->priv.lock);
 
@@ -2163,6 +2169,9 @@ exit:
 int r850_set_system(struct r850_tuner *t, struct r850_system_config *system)
 {
 	u8 mixer_mode, mixer_amp_lpf_imr_cal;
+
+	if (!t->priv.init)
+		return -EINVAL;
 
 	switch (system->system) {
 	case R850_SYSTEM_DVB_T:
@@ -2207,6 +2216,9 @@ int r850_set_frequency(struct r850_tuner *t, u32 freq)
 {
 	int ret = 0;
 
+	if (!t->priv.init)
+		return -EINVAL;
+
 	if (freq < 40000 || freq > 1002000)
 		return -EINVAL;
 
@@ -2228,6 +2240,9 @@ int r850_is_pll_locked(struct r850_tuner *t, bool *locked)
 {
 	int ret = 0;
 	u8 tmp = 0;
+
+	if (!t->priv.init)
+		return -EINVAL;
 
 	mutex_lock(&t->priv.lock);
 
