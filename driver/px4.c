@@ -1291,7 +1291,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 			if (!t->open) {
 				switch (t->isdb) {
 				case ISDB_S:
-					ret = rt710_sleep(&tsdev->t.rt710);
+					ret = rt710_sleep(&t->t.rt710);
 					if (ret) {
 						dev_err(px4->dev, "px4_tsdev_open %d:%u: rt710_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
 						break;
@@ -1306,7 +1306,7 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 					break;
 
 				case ISDB_T:
-					ret = r850_sleep(&tsdev->t.r850);
+					ret = r850_sleep(&t->t.r850);
 					if (ret) {
 						dev_err(px4->dev, "px4_tsdev_open %d:%u: rt850_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
 						break;
