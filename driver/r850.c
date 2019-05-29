@@ -1984,10 +1984,9 @@ int r850_init(struct r850_tuner *t)
 	int ret = 0, i;
 	u8 regs[R850_NUM_REGS];
 
-	if (t->priv.init)
-		return 0;
-
 	mutex_init(&t->priv.lock);
+
+	t->priv.init = false;
 
 	t->priv.chip = 0;
 	t->priv.sleep = false;
