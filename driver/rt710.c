@@ -275,6 +275,9 @@ int rt710_init(struct rt710_tuner *t)
 
 int rt710_term(struct rt710_tuner *t)
 {
+	if (!t->priv.init)
+		return 0;
+
 	mutex_destroy(&t->priv.lock);
 
 	t->priv.init = false;
@@ -288,7 +291,7 @@ int rt710_sleep(struct rt710_tuner *t)
 	u8 regs[NUM_REGS];
 
 	if (!t->priv.init)
-		return 0;
+		return -EINVAL;
 
 	memcpy(regs, sleep_regs, sizeof(regs));
 
