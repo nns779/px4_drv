@@ -35,6 +35,7 @@ struct rt710_config {
 
 struct rt710_priv {
 	struct mutex lock;
+	bool init;
 	u32 freq;
 };
 

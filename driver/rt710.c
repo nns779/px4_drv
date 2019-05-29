@@ -145,6 +145,11 @@ int rt710_init(struct rt710_tuner *t)
 	int ret = 0;
 	u8 tmp;
 
+	mutex_init(&t->priv.lock);
+
+	t->priv.init = false;
+	t->priv.freq = 0;
+
 	ret = _rt710_read_regs(t, 0x03, &tmp, 1);
 	if (ret) {
 		dev_err(t->dev, "rt710_init: rt710_read_regs() failed. (ret: %d)\n", ret);
@@ -156,8 +161,7 @@ int rt710_init(struct rt710_tuner *t)
 		return -ENOSYS;
 	}
 
-	mutex_init(&t->priv.lock);
-	t->priv.freq = 0;
+	t->priv.init = true;
 
 	return 0;
 }
@@ -166,6 +170,8 @@ int rt710_term(struct rt710_tuner *t)
 {
 	mutex_destroy(&t->priv.lock);
 
+	t->priv.init = false;
+
 	return 0;
 }
 
@@ -173,6 +179,9 @@ int rt710_sleep(struct rt710_tuner *t)
 {
 	int ret = 0;
 	u8 regs[NUM_REGS];
+
+	if (!t->priv.init)
+		return 0;
 
 	memcpy(regs, sleep_regs, sizeof(regs));
 
@@ -299,6 +308,9 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	u32 bandwidth;
 	struct rt710_bandwidth_param bw_param = {};
 
+	if (!t->priv.init)
+		return -EINVAL;
+
 	if (rolloff > 5)
 		return -EINVAL;
 
@@ -422,6 +434,9 @@ int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked)
 	int ret = 0;
 	u8 tmp;
 
+	if (!t->priv.init)
+		return -EINVAL;
+
 	mutex_lock(&t->priv.lock);
 
 	ret = _rt710_read_regs(t, 0x02, &tmp, 1);
@@ -442,6 +457,9 @@ int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
 {
 	int ret = 0;
 	u8 tmp, g;
+
+	if (!t->priv.init)
+		return -EINVAL;
 
 	mutex_lock(&t->priv.lock);
 
