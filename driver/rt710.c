@@ -317,7 +317,7 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	memcpy(regs, init_regs, sizeof(regs));
 
 	if (t->config.loop_through)
-		regs[0x01] |= 0xfb;
+		regs[0x01] &= 0xfb;
 
 	switch (t->config.agc_mode) {
 	case RT710_AGC_POSITIVE:
