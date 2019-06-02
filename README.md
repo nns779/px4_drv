@@ -45,9 +45,9 @@ gcc, make, カーネルソース/ヘッダがインストールされている�
 
 gcc, make, カーネルソース/ヘッダ, dkmsがインストールされている必要があります。
 
-	$ sudo cp -a ./ /usr/src/px4_drv-0.1.0
-	$ sudo dkms add px4_drv/0.1.0
-	$ sudo dkms install px4_drv/0.1.0
+	$ sudo cp -a ./ /usr/src/px4_drv-0.2.1
+	$ sudo dkms add px4_drv/0.2.1
+	$ sudo dkms install px4_drv/0.2.1
 
 ### 3. 確認
 
@@ -67,8 +67,8 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 #### DKMSを使用してインストールした場合
 
-	$ sudo dkms remove px4_drv/0.1.0 --all
-	$ sudo rm -rf /usr/src/px4_drv-0.1.0
+	$ sudo dkms remove px4_drv/0.2.1 --all
+	$ sudo rm -rf /usr/src/px4_drv-0.2.1
 
 ### 2. ファームウェアのアンインストール
 
