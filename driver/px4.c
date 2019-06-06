@@ -1632,9 +1632,9 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 		goto fail_before_base;
 	}
 
-	px4->stream_context = (struct px4_stream_context *)kzalloc(sizeof(*px4->stream_context), GFP_ATOMIC);
+	px4->stream_context = (struct px4_stream_context *)kzalloc(sizeof(*px4->stream_context), GFP_KERNEL);
 	if (!px4->stream_context) {
-		dev_err(dev, "px4_probe: kzalloc(sizeof(*px4->stream_context), GFP_ATOMIC) failed.\n");
+		dev_err(dev, "px4_probe: kzalloc(sizeof(*px4->stream_context), GFP_KERNEL) failed.\n");
 		ret = -ENOMEM;
 		goto fail_before_base;
 	}

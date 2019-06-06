@@ -154,7 +154,7 @@ static void it930x_usb_workqueue_handler(struct work_struct *work)
 	struct it930x_usb_context *ctx = w->ctx;
 	int ret = 0;
 
-	ret = usb_submit_urb(w->urb, GFP_ATOMIC);
+	ret = usb_submit_urb(w->urb, GFP_KERNEL);
 	if (ret)
 		dev_dbg(ctx->bus->dev, "it930x_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n", ret);
 }
@@ -217,7 +217,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	ctx->on_stream = on_stream;
 	ctx->ctx = context;
 
-	works = kcalloc(n, sizeof(*works), GFP_ATOMIC);
+	works = kcalloc(n, sizeof(*works), GFP_KERNEL);
 	if (!works) {
 		ret = -ENOMEM;
 		goto fail;
@@ -228,7 +228,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 		void *p;
 		dma_addr_t dma;
 
-		urb = usb_alloc_urb(0, GFP_ATOMIC | __GFP_ZERO);
+		urb = usb_alloc_urb(0, GFP_KERNEL | __GFP_ZERO);
 		if (!urb) {
 			dev_err(bus->dev, "it930x_usb_start_streaming: usb_alloc_urb() failed. (i: %u)\n", i);
 			break;
@@ -236,12 +236,12 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 
 		if (!no_dma)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
-			p = usb_alloc_coherent(dev, l, GFP_ATOMIC, &dma);
+			p = usb_alloc_coherent(dev, l, GFP_KERNEL, &dma);
 #else
-			p = usb_buffer_alloc(dev, l, GFP_ATOMIC, &dma);
+			p = usb_buffer_alloc(dev, l, GFP_KERNEL, &dma);
 #endif
 		else
-			p = kmalloc(l, GFP_ATOMIC);
+			p = kmalloc(l, GFP_KERNEL);
 
 		if (!p) {
 			if (!no_dma)
@@ -285,7 +285,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	usb_reset_endpoint(dev, 0x84);
 
 	for (i = 0; i < n; i++) {
-		ret = usb_submit_urb(works[i].urb, GFP_ATOMIC);
+		ret = usb_submit_urb(works[i].urb, GFP_KERNEL);
 		if (ret) {
 			int j;
 
@@ -397,7 +397,7 @@ int it930x_bus_init(struct it930x_bus *bus)
 		} else {
 			struct it930x_usb_context *ctx;
 
-			ctx = kmalloc(sizeof(*ctx), GFP_ATOMIC);
+			ctx = kmalloc(sizeof(*ctx), GFP_KERNEL);
 			if (!ctx) {
 				ret = -ENOMEM;
 				break;

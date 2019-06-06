@@ -45,7 +45,7 @@ int ringbuffer_create(struct ringbuffer **ringbuffer)
 
 	*ringbuffer = NULL;
 
-	p = kzalloc(sizeof(struct ringbuffer), GFP_ATOMIC);
+	p = kzalloc(sizeof(struct ringbuffer), GFP_KERNEL);
 	if (!p)
 		return -ENOMEM;
 
@@ -109,7 +109,7 @@ int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size)
 
 	// Allocate
 
-	ringbuffer->buf = (u8 *)__get_free_pages(GFP_ATOMIC, get_order(size));
+	ringbuffer->buf = (u8 *)__get_free_pages(GFP_KERNEL, get_order(size));
 	if (!ringbuffer->buf) {
 		ret = -ENOMEM;
 		goto exit;
