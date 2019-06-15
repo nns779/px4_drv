@@ -48,6 +48,7 @@ enum rt710_scan_mode {
 };
 
 struct rt710_config {
+	u32 xtal;
 	bool loop_through;
 	bool clock_out;
 	enum rt710_signal_output_mode signal_output_mode;

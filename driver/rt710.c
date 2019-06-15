@@ -158,9 +158,11 @@ exit:
 static int _rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 {
 	int ret = 0;
-	u32 vco_min, vco_max, vco_freq;
+	u32 xtal, vco_min, vco_max, vco_freq;
 	u16 vco_fra, nsdm = 2, sdm = 0;
 	u8 mix_div = 2, div_num, nint, ni, si;
+
+	xtal = t->config.xtal;
 
 	vco_min = 2350000;
 	vco_max = vco_min * 2;
@@ -228,18 +230,18 @@ static int _rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 			return ret;
 	}
 
-	nint = (vco_freq / 2) / 24000;
-	vco_fra = vco_freq - (24000 * 2 * nint);
+	nint = (vco_freq / 2) / xtal;
+	vco_fra = vco_freq - (xtal * 2 * nint);
 
-	if (vco_fra < 375) {
+	if (vco_fra < (xtal / 64)) {
 		vco_fra = 0;
-	} else if (vco_fra > 47625) {
+	} else if (vco_fra > (xtal * 127 / 64)) {
 		vco_fra = 0;
 		nint++;
-	} else if (vco_fra > 23812 && vco_fra < 24000) {
-		vco_fra = 23812;
-	} else if (vco_fra > 24000 && vco_fra < 24187) {
-		vco_fra = 24187;
+	} else if ((vco_fra > (xtal * 127 / 128)) && (vco_fra < xtal)) {
+		vco_fra = xtal * 127 / 128;
+	} else if ((vco_fra > xtal) && vco_fra < (xtal * 129 / 128)) {
+		vco_fra = xtal * 129 / 128;
 	}
 
 	ni = (nint - 13) / 4;
@@ -261,7 +263,7 @@ static int _rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 	while (vco_fra > 1) {
 		u32 t;
 
-		t = (24000 * 2) / nsdm;
+		t = (xtal * 2) / nsdm;
 		if (vco_fra > t) {
 			sdm += (0x8000 / (nsdm / 2));
 			vco_fra -= t;
