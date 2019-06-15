@@ -1,4 +1,9 @@
-// r850.h
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * RafaelMicro R850 driver definitions (r850.h)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #ifndef __R850_H__
 #define __R850_H__

@@ -1,4 +1,9 @@
-// tc90522.h
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Toshiba TC90522 driver definitions (tc90522.c)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #ifndef __TC90522_H__
 #define __TC90522_H__

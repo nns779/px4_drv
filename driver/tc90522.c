@@ -1,6 +1,9 @@
-// tc90522.c
-
-// Toshiba TC90522 driver
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Toshiba TC90522 driver (tc90522.c)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #include "print_format.h"
 

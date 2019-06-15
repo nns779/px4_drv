@@ -1,4 +1,9 @@
-// rt710.h
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * RafaelMicro RT710 driver definitions (rt710.h)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #ifndef __RT710_H__
 #define __RT710_H__

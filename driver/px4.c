@@ -1,4 +1,9 @@
-// px4.c
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4 driver (px4.c)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #include "print_format.h"
 

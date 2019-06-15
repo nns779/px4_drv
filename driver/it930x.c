@@ -1,6 +1,9 @@
-// it930x.c
-
-// ITE IT930x driver
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * ITE IT930x driver (it930x.c)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #include "print_format.h"
 

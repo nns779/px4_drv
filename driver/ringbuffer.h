@@ -1,4 +1,9 @@
-// ringbuffer.h
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Ringbuffer definitions (ringbuffer.h)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #ifndef __RINGBUFFER_H__
 #define __RINGBUFFER_H__

@@ -1,4 +1,9 @@
-// ringbuffer.c
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Ringbuffer functions (ringbuffer.c)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #include "print_format.h"
 

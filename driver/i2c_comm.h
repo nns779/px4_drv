@@ -1,4 +1,9 @@
-// i2c_comm.h
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Definitions for I2C communicators (i2c_comm.h)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #ifndef __I2C_COMM_H__
 #define __I2C_COMM_H__

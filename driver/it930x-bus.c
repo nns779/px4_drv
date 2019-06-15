@@ -1,6 +1,9 @@
-// it930x-bus.c
-
-// IT930x bus functions
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * ITE IT930x bus driver (it930x-bus.c)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #include "print_format.h"
 

@@ -1,4 +1,9 @@
-// it930x.h
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * ITE IT930x driver definitions (it930x.h)
+ *
+ * Copyright (c) 2018-2019 nns779
+ */
 
 #ifndef __IT930X_H__
 #define __IT930X_H__
