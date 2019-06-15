@@ -11,8 +11,6 @@
 #include <linux/device.h>
 #include <linux/usb.h>
 
-#include "it930x-config.h"
-
 typedef enum {
 	IT930X_BUS_NONE = 0,
 	IT930X_BUS_USB,

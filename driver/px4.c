@@ -28,7 +28,6 @@
 #include "revision.h"
 #include "ptx_ioctl.h"
 #include "i2c_comm.h"
-#include "it930x-config.h"
 #include "it930x-bus.h"
 #include "it930x.h"
 #include "tc90522.h"
@@ -1736,7 +1735,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 
 	it930x->dev = dev;
 	it930x->config.xfer_size = 188 * xfer_packets;
-	it930x->config.i2c_speed = IT930X_I2C_SPEED;
+	it930x->config.i2c_speed = 0x07;
 
 	ret = it930x_init(it930x);
 	if (ret)

@@ -15,7 +15,6 @@
 #include <linux/device.h>
 #include <linux/firmware.h>
 
-#include "it930x-config.h"
 #include "it930x-bus.h"
 #include "it930x.h"
 

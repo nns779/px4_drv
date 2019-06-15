@@ -15,7 +15,6 @@
 #include <linux/device.h>
 #include <linux/usb.h>
 
-#include "it930x-config.h"
 #include "it930x-bus.h"
 
 struct it930x_usb_context;
@@ -49,12 +48,12 @@ static int it930x_usb_ctrl_tx(struct it930x_bus *bus, const void *buf, int len, 
 	const u8 *p = buf;
 #endif
 
-	if (len > IT930X_USB_MAX_CONTROL_TRANSFER_SIZE || !buf || !len)
+	if (len > 63 || !buf || !len)
 		return -EINVAL;
 
 #if 0
 	while (len > 0) {
-		int s = (len < IT930X_USB_MAX_CONTROL_PACKET_SIZE) ? len : IT930X_USB_MAX_CONTROL_PACKET_SIZE;
+		int s = (len < 255) ? len : 255;
 
 		ret = usb_bulk_msg(dev, usb_sndbulkpipe(dev, 0x02), p, s, &rlen, bus->usb.timeout);
 		if (ret)

@@ -12,7 +12,6 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 
-#include "it930x-config.h"
 #include "it930x-bus.h"
 #include "i2c_comm.h"
 
