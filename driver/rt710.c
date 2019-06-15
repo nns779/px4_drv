@@ -25,9 +25,14 @@ struct rt710_bandwidth_param {
 	u8 fine;
 };
 
-static const u8 init_regs[NUM_REGS] = {
+static const u8 rt710_init_regs[NUM_REGS] = {
 	0x40, 0x1d, 0x20, 0x10, 0x41, 0x50, 0xed, 0x25,
 	0x07, 0x58, 0x39, 0x64, 0x38, 0xe7, 0x90, 0x35
+};
+
+static const u8 rt720_init_regs[NUM_REGS] = {
+	0x00, 0x1c, 0x00, 0x10, 0x41, 0x48, 0xda, 0x4b,
+	0x07, 0x58, 0x38, 0x40, 0x37, 0xe7, 0x4c, 0x59
 };
 
 static const u8 sleep_regs[NUM_REGS] = {
@@ -67,10 +72,17 @@ static const struct {
 	{ 379999, { 16, 1 } },
 };
 
-static const u16 lna_acc_gain[] = {
+static const u16 rt710_lna_acc_gain[] = {
 	0, 26, 42, 74, 103, 129, 158, 181,
 	188, 200, 220, 248, 280, 312, 341, 352,
 	366, 389, 409
+};
+
+static const u16 rt720_lna_acc_gain[] = {
+	0, 27, 53, 81, 109, 134, 156, 176,
+	194, 202, 211, 221, 232, 245, 258, 271,
+	285, 307, 326, 341, 357, 374, 393, 410,
+	428, 439, 445, 470, 476, 479, 495, 507
 };
 
 static u8 reverse_bit(u8 val)
@@ -182,12 +194,39 @@ static int _rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 		break;
 	}
 
-	regs[4] &= 0xfe;
-	regs[4] |= (div_num & 1);
+	regs[0x04] &= 0xfe;
+	regs[0x04] |= (div_num & 1);
 
 	ret = _rt710_write_regs(t, 0x04, &regs[0x04], 1);
 	if (ret)
 		return ret;
+
+	if (t->priv.chip == RT710_CHIP_TYPE_RT720) {
+		regs[0x08] &= 0xef;
+		regs[0x08] |= ((div_num << 3) & 0x10);
+
+		ret = _rt710_write_regs(t, 0x08, &regs[0x08], 1);
+		if (ret)
+			return ret;
+
+		regs[0x04] &= 0x3f;
+
+		if (div_num <= 1) {
+			regs[0x04] |= 0x40;
+			regs[0x0c] |= 0x10;
+		} else {
+			regs[0x04] |= 0x80;
+			regs[0x0c] &= 0xef;
+		}
+
+		ret = _rt710_write_regs(t, 0x04, &regs[0x04], 1);
+		if (ret)
+			return ret;
+
+		ret = _rt710_write_regs(t, 0x0c, &regs[0x0c], 1);
+		if (ret)
+			return ret;
+	}
 
 	nint = (vco_freq / 2) / 24000;
 	vco_fra = vco_freq - (24000 * 2 * nint);
@@ -266,10 +305,7 @@ int rt710_init(struct rt710_tuner *t)
 		return ret;
 	}
 
-	if ((tmp & 0xf0) != 0x70) {
-		dev_err(t->dev, "rt710_init: Unknown chip.\n");
-		return -ENOSYS;
-	}
+	t->priv.chip = ((tmp & 0xf0) == 0x70) ? RT710_CHIP_TYPE_RT710 : RT710_CHIP_TYPE_RT720;
 
 	t->priv.init = true;
 
@@ -300,6 +336,12 @@ int rt710_sleep(struct rt710_tuner *t)
 
 	mutex_lock(&t->priv.lock);
 
+	if (t->priv.chip == RT710_CHIP_TYPE_RT720) {
+		regs[0x01] = 0x5e;
+		regs[0x03] |= 0x20;
+	} else if (t->config.clock_out)
+		regs[0x03] = 0x20;
+
 	ret = _rt710_write_regs(t, 0x00, regs, NUM_REGS);
 
 	mutex_unlock(&t->priv.lock);
@@ -320,10 +362,28 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	if (rolloff > 5)
 		return -EINVAL;
 
-	memcpy(regs, init_regs, sizeof(regs));
+	memcpy(regs, (t->priv.chip == RT710_CHIP_TYPE_RT710) ? rt710_init_regs : rt720_init_regs, sizeof(regs));
 
 	if (t->config.loop_through)
 		regs[0x01] &= 0xfb;
+	else
+		regs[0x01] |= 0x03;
+
+	if (t->config.clock_out)
+		regs[0x03] &= 0xef;
+	else
+		regs[0x03] |= 0x10;
+
+	switch (t->config.signal_output_mode) {
+	case RT710_SIGNAL_OUTPUT_DIFFERENTIAL:
+		regs[0x0b] &= 0xef;
+		break;
+
+	case RT710_SIGNAL_OUTPUT_SINGLE:
+	default:
+		regs[0x0b] |= 0x10;
+		break;
+	}
 
 	switch (t->config.agc_mode) {
 	case RT710_AGC_POSITIVE:
@@ -332,6 +392,7 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 
 	case RT710_AGC_NEGATIVE:
 	default:
+		regs[0x0d] &= 0xef;
 		break;
 	}
 
@@ -342,11 +403,21 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 
 	case RT710_VGA_ATTEN_OFF:
 	default:
+		regs[0x0b] &= 0xf7;
 		break;
 	}
 
-	if (t->config.fine_gain >= RT710_FINE_GAIN_3DB && t->config.fine_gain <= RT710_FINE_GAIN_0DB)
-		regs[0x0e] |= t->config.fine_gain;
+	if (t->priv.chip == RT710_CHIP_TYPE_RT710) {
+		if (t->config.fine_gain >= RT710_FINE_GAIN_3DB && t->config.fine_gain <= RT710_FINE_GAIN_0DB)
+			regs[0x0e] |= t->config.fine_gain;
+	} else {
+		if (t->config.fine_gain == RT710_FINE_GAIN_3DB || t->config.fine_gain == RT710_FINE_GAIN_2DB)
+			regs[0x0e] &= 0xfe;
+		else
+			regs[0x0e] |= 0x01;
+
+		regs[0x03] &= 0xf0;
+	}
 
 	mutex_lock(&t->priv.lock);
 
@@ -364,59 +435,127 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 
 	msleep(10);
 
-	if ((freq - 1600000) >= 350000) {
-		regs[0x02] &= 0xbf;
-		regs[0x08] &= 0x7f;
-		if (freq >= 1950000)
-			regs[0x0a] = 0x38;
+	if (t->priv.chip == RT710_CHIP_TYPE_RT710) {
+		if ((freq - 1600000) >= 350000) {
+			regs[0x02] &= 0xbf;
+			regs[0x08] &= 0x7f;
+			if (freq >= 1950000)
+				regs[0x0a] = 0x38;
+		} else {
+			regs[0x02] |= 0x40;
+			regs[0x08] |= 0x80;
+		}
+
+		ret = _rt710_write_regs(t, 0x0a, &regs[0x0a], 1);
+		if (ret)
+			goto fail;
+
+		ret = _rt710_write_regs(t, 0x02, &regs[0x02], 1);
+		if (ret)
+			goto fail;
+
+		ret = _rt710_write_regs(t, 0x08, &regs[0x08], 1);
+		if (ret)
+			goto fail;
+
+		regs[0x0e] &= 0xf3;
+
+		if (freq >= 2000000)
+			regs[0x0e] |= 0x08;
+
+		ret = _rt710_write_regs(t, 0x0e, &regs[0x0e], 1);
+		if (ret)
+			goto fail;
 	} else {
-		regs[0x02] |= 0x40;
-		regs[0x08] |= 0x80;
+		switch (t->config.scan_mode) {
+		case RT710_SCAN_AUTO:
+			regs[0x0b] |= 0x02;
+
+			symbol_rate += 10000;
+
+			break;
+
+		case RT710_SCAN_MANUAL:
+		default:
+			regs[0x0b] &= 0xfc;
+
+			if (symbol_rate >= 15000)
+				symbol_rate += 6000;
+
+			break;
+		}
+
+		ret = _rt710_write_regs(t, 0x0b, &regs[0x0b], 1);
+		if (ret)
+			goto fail;
 	}
 
-	ret = _rt710_write_regs(t, 0x0a, &regs[0x0a], 1);
-	if (ret)
-		goto fail;
-
-	ret = _rt710_write_regs(t, 0x02, &regs[0x02], 1);
-	if (ret)
-		goto fail;
-
-	ret = _rt710_write_regs(t, 0x08, &regs[0x08], 1);
-	if (ret)
-		goto fail;
-
-	regs[0x0e] &= 0xf3;
-
-	if (freq >= 2000000)
-		regs[0x0e] |= 0x08;
-
-	ret = _rt710_write_regs(t, 0x0e, &regs[0x0e], 1);
-	if (ret)
-		goto fail;
-
-	bandwidth = (symbol_rate * (0x73 + (rolloff * 5))) / 10;
+	bandwidth = (symbol_rate * (115 + (rolloff * 5))) / 10;
 
 	if (!bandwidth) {
 		ret = -ECANCELED;
 		goto fail;
 	}
 
-	if (bandwidth >= 380000) {
-		bandwidth -= 380000;
-		if (bandwidth % 17400)
-			bw_param.coarse++;
-		bw_param.coarse += ((bandwidth / 17400) & 0xff) + 0x10;
-		bw_param.fine = 1;
-	} else {
-		int i;
+	if (t->priv.chip == RT710_CHIP_TYPE_RT710) {
+		if (bandwidth >= 380000) {
+			bandwidth -= 380000;
+			if (bandwidth % 17400)
+				bw_param.coarse++;
+			bw_param.coarse += ((bandwidth / 17400) & 0xff) + 0x10;
+			bw_param.fine = 1;
+		} else {
+			int i;
 
-		for (i = 0; i < (sizeof(bandwidth_params) / sizeof(bandwidth_params[0])); i++) {
-			if (bandwidth <= bandwidth_params[i].bandwidth) {
-				bw_param = bandwidth_params[i].param;
-				break;
+			for (i = 0; i < (sizeof(bandwidth_params) / sizeof(bandwidth_params[0])); i++) {
+				if (bandwidth <= bandwidth_params[i].bandwidth) {
+					bw_param = bandwidth_params[i].param;
+					break;
+				}
 			}
 		}
+	} else {
+		u32 range, s;
+
+		bw_param.fine = (rolloff > 1) ? 1 : 0;
+		range = bw_param.fine * 20000;
+		s = symbol_rate * 12;
+
+		if (symbol_rate <= 15000)
+			symbol_rate += 3000;
+		else if (symbol_rate <= 20000)
+			symbol_rate += 2000;
+		else if (symbol_rate <= 30000)
+			symbol_rate += 1000;
+
+		if (s <= (88000 + range))
+			bw_param.coarse = 0;
+		else if (s <= (368000 + range)) {
+			bw_param.coarse = (s - 88000 - range) / 20000;
+
+			if ((s - 88000 - range) % 20000)
+				bw_param.coarse++;
+
+			if (bw_param.coarse > 6)
+				bw_param.coarse++;
+		} else if (s <= (764000 + range)) {
+			bw_param.coarse = ((s - 368000 - range) / 20000) + 15;
+
+			if ((s + 25216 - range) % 20000)
+				bw_param.coarse++;
+
+			if (bw_param.coarse >= 33)
+				bw_param.coarse += 3;
+			else if (bw_param.coarse >= 29)
+				bw_param.coarse += 2;
+			else if (bw_param.coarse >= 27)
+				bw_param.coarse += 3;
+			else if (bw_param.coarse >= 24)
+				bw_param.coarse += 2;
+			else if (bw_param.coarse >= 19)
+				bw_param.coarse++;
+		} else
+			bw_param.coarse = 42;
 	}
 
 	regs[0x0f] = (bw_param.coarse << 2) | bw_param.fine;
@@ -480,18 +619,20 @@ int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
 
 	g = ((tmp & 0xf0) >> 4) | ((tmp & 0x01) << 4);
 
-	if (g <= 2) {
-		*gain = 0;
-	} else if (g <= 9) {
-		// 1 - 7
-		*gain = g - 2;
-	} else if (g <= 12) {
-		*gain = 7;
-	} else if (g <= 22) {
-		// 8 - 17
-		*gain = g - 5;
-	} else {
-		*gain = 18;
+	if (t->priv.chip == RT710_CHIP_TYPE_RT710) {
+		if (g <= 2) {
+			*gain = 0;
+		} else if (g <= 9) {
+			// 1 - 7
+			*gain = g - 2;
+		} else if (g <= 12) {
+			*gain = 7;
+		} else if (g <= 22) {
+			// 8 - 17
+			*gain = g - 5;
+		} else {
+			*gain = 18;
+		}
 	}
 
 	return 0;
@@ -509,15 +650,20 @@ int rt710_get_rf_signal_strength(struct rt710_tuner *t, s32 *ss)
 		return ret;
 	}
 
-	if (t->priv.freq < 1200000) {
-		tmp = 190;
-	} else if (t->priv.freq < 1800000) {
-		tmp = 170;
+	if (t->priv.chip == RT710_CHIP_TYPE_RT710) {
+		if (t->priv.freq < 1200000) {
+			tmp = 190;
+		} else if (t->priv.freq < 1800000) {
+			tmp = 170;
+		} else {
+			tmp = 140;
+		}
+		tmp += rt710_lna_acc_gain[gain];
 	} else {
-		tmp = 140;
+		tmp = 70 + rt720_lna_acc_gain[gain];
 	}
 
-	*ss = (tmp + lna_acc_gain[gain]) * -100;
+	*ss = tmp * -100;
 
 	return 0;
 }
