@@ -352,7 +352,7 @@ static int it930x_i2c_master_write(void *i2c_priv, u8 addr, const u8 *data, int 
 
 	b[0] = len;
 	b[1] = i2c->bus;
-	b[2] = addr;
+	b[2] = (addr << 1);
 	memcpy(&b[3], data, len);
 
 	sb.buf = b;
@@ -395,7 +395,7 @@ static int it930x_i2c_master_read(void *i2c_priv, u8 addr, u8 *data, int len)
 
 	b[0] = len;
 	b[1] = i2c->bus;
-	b[2] = addr;
+	b[2] = (addr << 1);
 
 	sb.buf = b;
 	sb.len = 3;
