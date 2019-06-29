@@ -268,7 +268,7 @@ static int px4_load_config(struct px4_device *px4)
 			tsdev->t.rt710.i2c = &tsdev->tc90522.i2c_master;
 			tsdev->t.rt710.i2c_addr = 0x7a;
 			tsdev->t.rt710.config.xtal = 24000;
-			tsdev->t.rt710.config.loop_through = (i % 2) ? false : true;
+			tsdev->t.rt710.config.loop_through = false;
 			tsdev->t.rt710.config.clock_out = false;
 			tsdev->t.rt710.config.signal_output_mode = RT710_SIGNAL_OUTPUT_DIFFERENTIAL;
 			tsdev->t.rt710.config.agc_mode = RT710_AGC_POSITIVE;
