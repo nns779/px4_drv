@@ -1372,7 +1372,7 @@ fail_after_ref:
 	mutex_unlock(&px4->lock);
 	mutex_unlock(&tsdev->lock);
 fail:
-	dev_err(px4->dev, "px4_tsdev_open %d:%u: failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
+	dev_dbg(px4->dev, "px4_tsdev_open %d:%u: failed. (ret: %d)\n", dev_idx, tsdev_id, ret);
 
 	return ret;
 }
