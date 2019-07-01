@@ -315,6 +315,8 @@ static int px4_set_power(struct px4_device *px4, bool on)
 						ret = it930x_write_gpio(&multi_dev->devs[i]->it930x, 7, false);
 						if (ret)
 							break;
+
+						msleep(75);
 					}
 				}
 			}
@@ -326,9 +328,9 @@ static int px4_set_power(struct px4_device *px4, bool on)
 			ret = it930x_write_gpio(it930x, 7, false);
 			if (ret)
 				goto exit;
-		}
 
-		msleep(100);
+			msleep(100);
+		}
 
 		ret = it930x_write_gpio(it930x, 2, true);
 		if (ret)
