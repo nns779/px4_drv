@@ -130,6 +130,7 @@ static unsigned int tsdev_max_packets = 2048;
 static int psb_purge_timeout = 2000;
 static bool no_dma = false;
 static bool disable_multi_device_power_control = false;
+static bool s_tuner_no_sleep = false;
 
 module_param(xfer_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (default: 816)");
@@ -148,6 +149,8 @@ module_param(psb_purge_timeout, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 module_param(no_dma, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 module_param(disable_multi_device_power_control, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+module_param(s_tuner_no_sleep, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, PID_PX_W3U4) },
@@ -670,7 +673,9 @@ static void px4_tsdev_term(struct px4_tsdev *tsdev)
 
 	switch (tsdev->isdb) {
 	case ISDB_S:
-		rt710_sleep(&tsdev->t.rt710);
+		if (!s_tuner_no_sleep)
+			rt710_sleep(&tsdev->t.rt710);
+
 		tc90522_sleep_s(tc90522, true);
 		break;
 
@@ -1308,10 +1313,12 @@ static int px4_tsdev_open(struct inode *inode, struct file *file)
 			if (!t->open) {
 				switch (t->isdb) {
 				case ISDB_S:
-					ret = rt710_sleep(&t->t.rt710);
-					if (ret) {
-						dev_err(px4->dev, "px4_tsdev_open %d:%u: rt710_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
-						break;
+					if (!s_tuner_no_sleep) {
+						ret = rt710_sleep(&t->t.rt710);
+						if (ret) {
+							dev_err(px4->dev, "px4_tsdev_open %d:%u: rt710_sleep(%d) failed. (ret: %d)\n", dev_idx, tsdev_id, i, ret);
+							break;
+						}
 					}
 
 					ret = tc90522_sleep_s(&t->tc90522, true);
