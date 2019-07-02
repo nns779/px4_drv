@@ -297,16 +297,21 @@ static int px4_load_config(struct px4_device *px4)
 
 static int px4_set_power(struct px4_device *px4, bool on)
 {
-	int ret = 0, i;
+	int ret = 0, i, last_power_count = 0;
 	struct it930x_bridge *it930x = &px4->it930x;
 	struct px4_multi_device *multi_dev = px4->multi_dev;
 
 	dev_dbg(px4->dev, "px4_set_power: %s\n", on ? "on" : "off");
 
+	if (multi_dev) {
+		mutex_lock(&multi_dev->lock);
+
+		dev_dbg(px4->dev, "px4_set_power: power_count: %d\n", multi_dev->power_count);
+		last_power_count = multi_dev->power_count;
+	}
+
 	if (on) {
 		if (multi_dev) {
-			mutex_lock(&multi_dev->lock);
-
 			if (!multi_dev->power_count) {
 				for (i = 0; i < 2; i++) {
 					if (multi_dev->devs[i]) {
@@ -314,29 +319,35 @@ static int px4_set_power(struct px4_device *px4, bool on)
 
 						ret = it930x_write_gpio(&multi_dev->devs[i]->it930x, 7, false);
 						if (ret)
-							break;
+							goto exit;
 
 						msleep(75);
+
+						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh2 high\n", multi_dev->devs[i]->dev_id);
+
+						ret = it930x_write_gpio(&multi_dev->devs[i]->it930x, 2, true);
+						if (ret)
+							goto exit;
+
+						msleep(20);
 					}
 				}
 			}
 
 			multi_dev->power_count++;
-
-			mutex_unlock(&multi_dev->lock);
 		} else {
 			ret = it930x_write_gpio(it930x, 7, false);
 			if (ret)
 				goto exit;
 
 			msleep(100);
+
+			ret = it930x_write_gpio(it930x, 2, true);
+			if (ret)
+				goto exit;
+
+			msleep(20);
 		}
-
-		ret = it930x_write_gpio(it930x, 2, true);
-		if (ret)
-			goto exit;
-
-		msleep(20);
 
 		for (i = 0; i < TSDEV_NUM; i++) {
 			struct px4_tsdev *t = &px4->tsdev[i];
@@ -387,24 +398,20 @@ static int px4_set_power(struct px4_device *px4, bool on)
 			tc90522_term(&t->tc90522);
 		}
 
-		it930x_write_gpio(it930x, 2, false);
-
 		if (multi_dev) {
-			mutex_lock(&multi_dev->lock);
-
 			multi_dev->power_count--;
 
 			if (!multi_dev->power_count) {
 				for (i = 0; i < 2; i++) {
 					if (multi_dev->devs[i]) {
-						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh7 high\n", multi_dev->devs[i]->dev_id);
+						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh2 low\n", multi_dev->devs[i]->dev_id);
+						it930x_write_gpio(&multi_dev->devs[i]->it930x, 2, false);
 
+						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh7 high\n", multi_dev->devs[i]->dev_id);
 						it930x_write_gpio(&multi_dev->devs[i]->it930x, 7, true);
 					}
 				}
 			}
-
-			mutex_unlock(&multi_dev->lock);
 		} else
 			it930x_write_gpio(it930x, 7, true);
 
@@ -412,10 +419,20 @@ static int px4_set_power(struct px4_device *px4, bool on)
 	}
 
 exit:
-	if (ret)
+	if (ret) {
+		if (multi_dev) {
+			if (multi_dev->power_count > last_power_count)
+				multi_dev->power_count--;
+			else if (multi_dev->power_count < last_power_count)
+				multi_dev->power_count++;
+		}
+
 		dev_err(px4->dev, "px4_set_power: failed.\n");
-	else
+	} else
 		dev_dbg(px4->dev, "px4_set_power: ok\n");
+
+	if (multi_dev)
+		mutex_unlock(&multi_dev->lock);
 
 	return ret;
 }
@@ -1595,7 +1612,7 @@ static struct file_operations px4_tsdev_fops = {
 static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
 	struct device *dev = &intf->dev;
-	int ret = 0, dev_idx = -1, i, multi_devs_idx = -1;
+	int ret = 0, dev_idx = -1, i, multi_devs_idx = -1, last_power_count = 0;
 	struct usb_device *usbdev;
 	struct px4_device *px4 = NULL;
 	struct it930x_bridge *it930x;
@@ -1759,27 +1776,51 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	if (ret)
 		goto fail;
 
-	if (px4->multi_dev && multi_devs_idx != -1) {
-		mutex_lock(&px4->multi_dev->lock);
-
-		px4->multi_dev->devs[multi_devs_idx] = px4;
-
-		ret = it930x_write_gpio(it930x, 7, (px4->multi_dev->power_count) ? false : true);
-
-		mutex_unlock(&px4->multi_dev->lock);
-	} else
-		ret = it930x_write_gpio(it930x, 7, true);
-
-	if (ret)
-		goto fail;
-
 	ret = it930x_set_gpio_mode(it930x, 2, IT930X_GPIO_OUT, true);
 	if (ret)
 		goto fail;
 
-	ret = it930x_write_gpio(it930x, 2, false);
-	if (ret)
-		goto fail;
+	if (px4->multi_dev && multi_devs_idx != -1) {
+		mutex_lock(&px4->multi_dev->lock);
+
+		last_power_count = px4->multi_dev->power_count;
+
+		if (px4->multi_dev->power_count) {
+			ret = it930x_write_gpio(it930x, 7, false);
+			if (ret)
+				goto fail;
+
+			msleep(75);
+
+			ret = it930x_write_gpio(it930x, 2, true);
+			if (ret)
+				goto fail;
+
+			msleep(20);
+
+			px4->multi_dev->power_count++;
+		} else {
+			ret = it930x_write_gpio(it930x, 7, true);
+			if (ret)
+				goto fail;
+
+			ret = it930x_write_gpio(it930x, 2, false);
+			if (ret)
+				goto fail;
+		}
+
+		px4->multi_dev->devs[multi_devs_idx] = px4;
+
+		mutex_unlock(&px4->multi_dev->lock);
+	} else {
+		ret = it930x_write_gpio(it930x, 7, true);
+		if (ret)
+			goto fail;
+
+		ret = it930x_write_gpio(it930x, 2, false);
+		if (ret)
+			goto fail;
+	}
 
 	ret = it930x_set_gpio_mode(it930x, 11, IT930X_GPIO_OUT, true);
 	if (ret)
@@ -1829,6 +1870,9 @@ fail_before_base:
 			struct px4_multi_device *multi_dev = px4->multi_dev;
 
 			mutex_lock(&multi_dev->lock);
+
+			if (multi_dev->power_count > last_power_count)
+				multi_dev->power_count--;
 
 			for (i = 0; i < 2; i++) {
 				if (multi_dev->devs[i] == px4)
