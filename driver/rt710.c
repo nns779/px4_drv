@@ -197,7 +197,7 @@ static int _rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 	}
 
 	regs[0x04] &= 0xfe;
-	regs[0x04] |= (div_num & 1);
+	regs[0x04] |= (div_num & 0x01);
 
 	ret = _rt710_write_regs(t, 0x04, &regs[0x04], 1);
 	if (ret)
@@ -247,7 +247,7 @@ static int _rt710_set_pll(struct rt710_tuner *t, u8 *regs, u32 freq)
 	ni = (nint - 13) / 4;
 	si = nint - (ni * 4) - 13;
 
-	regs[0x05] = ni + (si << 6);
+	regs[0x05] = (ni & 0x3f) | ((si << 6) & 0xc0);
 
 	ret = _rt710_write_regs(t, 0x05, &regs[0x05], 1);
 	if (ret)
@@ -410,8 +410,10 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	}
 
 	if (t->priv.chip == RT710_CHIP_TYPE_RT710) {
-		if (t->config.fine_gain >= RT710_FINE_GAIN_3DB && t->config.fine_gain <= RT710_FINE_GAIN_0DB)
-			regs[0x0e] |= t->config.fine_gain;
+		if (t->config.fine_gain >= RT710_FINE_GAIN_3DB && t->config.fine_gain <= RT710_FINE_GAIN_0DB) {
+			regs[0x0e] &= 0xfc;
+			regs[0x0e] |= (t->config.fine_gain & 0x03);
+		}
 	} else {
 		if (t->config.fine_gain == RT710_FINE_GAIN_3DB || t->config.fine_gain == RT710_FINE_GAIN_2DB)
 			regs[0x0e] &= 0xfe;
@@ -560,7 +562,7 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 			bw_param.coarse = 42;
 	}
 
-	regs[0x0f] = (bw_param.coarse << 2) | bw_param.fine;
+	regs[0x0f] = ((bw_param.coarse << 2) & 0xfc) | (bw_param.fine & 0x03);
 
 	ret = _rt710_write_regs(t, 0x0f, &regs[0x0f], 1);
 	if (ret)
