@@ -369,7 +369,7 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	if (t->config.loop_through)
 		regs[0x01] &= 0xfb;
 	else
-		regs[0x01] |= 0x03;
+		regs[0x01] |= 0x04;
 
 	if (t->config.clock_out)
 		regs[0x03] &= 0xef;
