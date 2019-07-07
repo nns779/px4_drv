@@ -415,8 +415,10 @@ static int px4_set_power(struct px4_device *px4, bool on)
 					}
 				}
 			}
-		} else
+		} else {
+			it930x_write_gpio(it930x, 2, false);
 			it930x_write_gpio(it930x, 7, true);
+		}
 
 		msleep(50);
 	}
