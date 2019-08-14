@@ -4,7 +4,6 @@ INSTALL_DIR := /lib/modules/$(KVER)/misc
 CURRENT_DIR := $(shell pwd)
 VERBOSE := 0
 DEBUG := 0
-TARGET := px4_drv.ko
 
 drv-MAX_DEVICE := 0
 drv-RINGBUFFER_USE_SPINLOCK := 0
@@ -26,11 +25,11 @@ ccflags-y += -DRINGBUFFER_USE_SPINLOCK
 endif
 
 obj-m := px4_drv.o
-px4_drv-objs := px4.o it930x-bus.o it930x.o tc90522.o rt710.o r850.o ringbuffer.o
+px4_drv-objs := driver.o module_param.o px4.o isdb2056.o it930x-bus.o it930x.o tc90522.o rt710.o r850.o ringbuffer.o
 
-all: $(TARGET)
+all: px4_drv.ko
 
-$(TARGET): FORCE revision.h
+px4_drv.ko: FORCE revision.h
 	$(cmd_prefix)$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) modules
 
 revision.h: FORCE
@@ -65,7 +64,7 @@ install:
 	$(cmd_prefix)if [ `grep -e '^px4_drv' /proc/modules | wc -l` -ne 0 ]; then \
 	modprobe -r px4_drv; \
 	fi
-	$(cmd_prefix)install -D -v -m 644 $(TARGET) $(INSTALL_DIR)/$(TARGET)
+	$(cmd_prefix)install -D -v -m 644 px4_drv.ko $(INSTALL_DIR)/px4_drv.ko
 	$(cmd_prefix)rm -fv /etc/udev/rules.d/90-px4.rules
 	$(cmd_prefix)install -D -v -m 644 ../etc/99-px4video.rules /etc/udev/rules.d/99-px4video.rules
 	$(cmd_prefix)depmod -a $(KVER)
@@ -75,7 +74,7 @@ uninstall:
 	$(cmd_prefix)if [ `grep -e '^px4_drv' /proc/modules | wc -l` -ne 0 ]; then \
 	modprobe -r px4_drv; \
 	fi
-	$(cmd_prefix)rm -fv $(INSTALL_DIR)/$(TARGET)
+	$(cmd_prefix)rm -fv $(INSTALL_DIR)/px4_drv.ko
 	$(cmd_prefix)if [ `find /lib/modules/ -name px4_drv.ko | wc -l` -eq 0 ]; then \
 	rm -fv /etc/udev/rules.d/90-px4.rules /etc/udev/rules.d/99-px4video.rules; \
 	fi

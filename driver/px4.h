@@ -3,6 +3,7 @@
 #ifndef __PX4_H__
 #define __PX4_H__
 
-#define PX4_DRIVER_VERSION	"0.2.1"
+int px4_register(void);
+void px4_unregister(void);
 
 #endif
