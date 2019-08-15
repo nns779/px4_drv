@@ -1,1 +1,2 @@
 KERNEL=="px4video*", GROUP="video", MODE="0664"
+KERNEL=="isdb2056video*", GROUP="video", MODE="0664"

@@ -25,8 +25,9 @@
 #include <linux/cdev.h>
 
 #include "px4.h"
-#include "revision.h"
+#include "firmware.h"
 #include "ptx_ioctl.h"
+#include "module_param.h"
 #include "i2c_comm.h"
 #include "it930x-bus.h"
 #include "it930x.h"
@@ -34,10 +35,6 @@
 #include "r850.h"
 #include "rt710.h"
 #include "ringbuffer.h"
-
-#if !defined(FIRMWARE_FILENAME)
-#define FIRMWARE_FILENAME	"it930x-firmware.bin"
-#endif
 
 #if !defined(MAX_DEVICE) || !MAX_DEVICE
 #undef MAX_DEVICE
@@ -112,45 +109,10 @@ struct px4_multi_device {
 	struct px4_device *devs[2];
 };
 
-MODULE_VERSION(PX4_DRIVER_VERSION);
-MODULE_AUTHOR("nns779");
-MODULE_DESCRIPTION("Unofficial Linux driver for PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4 ISDB-T/S receivers");
-MODULE_LICENSE("GPL v2");
-
-MODULE_FIRMWARE(FIRMWARE_FILENAME);
-
 static DEFINE_MUTEX(glock);
 static struct class *px4_class = NULL;
 static dev_t px4_dev_first;
 static struct px4_device *devs[MAX_DEVICE];
-static unsigned int xfer_packets = 816;
-static unsigned int urb_max_packets = 816;
-static unsigned int max_urbs = 6;
-static unsigned int tsdev_max_packets = 2048;
-static int psb_purge_timeout = 2000;
-static bool no_dma = false;
-static bool disable_multi_device_power_control = false;
-static bool s_tuner_no_sleep = false;
-
-module_param(xfer_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(xfer_packets, "Number of transfer packets from the device. (default: 816)");
-
-module_param(urb_max_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(urb_max_packets, "Maximum number of TS packets per URB. (default: 816)");
-
-module_param(max_urbs, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(max_urbs, "Maximum number of URBs. (default: 6)");
-
-module_param(tsdev_max_packets, uint, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(tsdev_max_packets, "Maximum number of TS packets buffering in tsdev. (default: 2048)");
-
-module_param(psb_purge_timeout, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-module_param(no_dma, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-module_param(disable_multi_device_power_control, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-module_param(s_tuner_no_sleep, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, PID_PX_W3U4) },
@@ -556,13 +518,13 @@ static int px4_on_stream(void *context, void *buf, u32 len)
 	return 0;
 }
 
-struct tc90522_regbuf tc_init_s[] = {
+static struct tc90522_regbuf tc_init_s[] = {
 	{ 0x15, NULL, { 0x00 } },
 	{ 0x1d, NULL, { 0x00 } },
 	{ 0x04, NULL, { 0x02 } }
 };
 
-struct tc90522_regbuf tc_init_t[] = {
+static struct tc90522_regbuf tc_init_t[] = {
 	{ 0xb0, NULL, { 0xa0 } },
 	{ 0xb2, NULL, { 0x3d } },
 	{ 0xb3, NULL, { 0x25 } },
@@ -1239,12 +1201,12 @@ static int px4_tsdev_set_lnb_power(struct px4_tsdev *tsdev, bool enable)
 	return ret;
 }
 
-struct tc90522_regbuf tc_init_s0[] = {
+static struct tc90522_regbuf tc_init_s0[] = {
 	{ 0x07, NULL, { 0x31 } },
 	{ 0x08, NULL, { 0x77 } }
 };
 
-struct tc90522_regbuf tc_init_t0[] = {
+static struct tc90522_regbuf tc_init_t0[] = {
 	{ 0x0e, NULL, { 0x77 } },
 	{ 0x0f, NULL, { 0x13 } }
 };
@@ -2001,50 +1963,29 @@ static struct usb_driver px4_usb_driver = {
 	.id_table = px4_usb_ids
 };
 
-static int px4_module_init(void)
+int px4_register(void)
 {
 	int ret = 0, i;
-
-	pr_info(KBUILD_MODNAME
-#ifdef PX4_DRIVER_VERSION
-		" version " PX4_DRIVER_VERSION
-#endif
-#ifdef REVISION_NUMBER
-#if defined(PX4_DRIVER_VERSION)
-		","
-#endif
-		" rev: " REVISION_NUMBER
-#endif
-#ifdef COMMIT_HASH
-#if defined(PX4_DRIVER_VERSION) || defined(REVISION_NUMBER)
-		","
-#endif
-		" commit: " COMMIT_HASH
-#endif
-#ifdef REVISION_NAME
-		" @ " REVISION_NAME
-#endif
-		"\n");
 
 	for (i = 0; i < MAX_DEVICE; i++)
 		devs[i] = NULL;
 
 	ret = alloc_chrdev_region(&px4_dev_first, 0, MAX_TSDEV, DEVICE_NAME);
 	if (ret < 0) {
-		pr_err("px4_module_init: alloc_chrdev_region() failed.\n");
+		pr_err("px4_register: alloc_chrdev_region() failed.\n");
 		return ret;
 	}
 
 	px4_class = class_create(THIS_MODULE, "px4");
 	if (IS_ERR(px4_class)) {
-		pr_err("px4_module_init: class_create() failed.\n");
+		pr_err("px4_register: class_create() failed.\n");
 		unregister_chrdev_region(px4_dev_first, MAX_TSDEV);
 		return PTR_ERR(px4_class);
 	}
 
 	ret = usb_register(&px4_usb_driver);
 	if (ret) {
-		pr_err("px4_module_init: usb_register() failed.\n");
+		pr_err("px4_register: usb_register() failed.\n");
 		class_destroy(px4_class);
 		unregister_chrdev_region(px4_dev_first, MAX_TSDEV);
 	}
@@ -2052,16 +1993,13 @@ static int px4_module_init(void)
 	return ret;
 }
 
-static void px4_module_exit(void)
+void px4_unregister(void)
 {
-	pr_debug("px4_module_exit\n");
+	pr_debug("px4_unregister\n");
 
 	usb_deregister(&px4_usb_driver);
 	class_destroy(px4_class);
 	unregister_chrdev_region(px4_dev_first, MAX_TSDEV);
 
-	pr_debug("px4_module_exit: quit\n");
+	pr_debug("px4_unregister: quit\n");
 }
-
-module_init(px4_module_init);
-module_exit(px4_module_exit);
