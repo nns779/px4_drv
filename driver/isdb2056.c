@@ -1570,6 +1570,7 @@ static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id
 	if (ret)
 		goto fail;
 
+#if 0
 	ret = it930x_set_gpio_mode(it930x, 11, IT930X_GPIO_OUT, true);
 	if (ret)
 		goto fail;
@@ -1578,6 +1579,7 @@ static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id
 	ret = it930x_write_gpio(it930x, 11, false);
 	if (ret)
 		goto fail;
+#endif
 
 	// cdev
 
