@@ -256,6 +256,7 @@ static int px4_load_config(struct px4_device *px4)
 	}
 
 	it930x->config.input[4].enable = false;
+	it930x->config.input[4].port_number = 0;
 
 	return 0;
 }

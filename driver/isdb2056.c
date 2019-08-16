@@ -227,10 +227,10 @@ static int isdb2056_load_config(struct isdb2056_device *isdb2056)
 		tsdev->rt710.config.scan_mode = RT710_SCAN_MANUAL;
 	}
 
-	it930x->config.input[1].enable = false;
-	it930x->config.input[2].enable = false;
-	it930x->config.input[3].enable = false;
-	it930x->config.input[4].enable = false;
+	for (i = TSDEV_NUM; i < 5; i++) {
+		it930x->config.input[i].enable = false;
+		it930x->config.input[i].port_number = i;
+	}
 
 	return 0;
 }
