@@ -196,12 +196,12 @@ static int isdb2056_load_config(struct isdb2056_device *isdb2056)
 		input->sync_byte = ((i + 1) << 4) | 0x07;	// 0x17
 
 		tsdev->tc90522_t.dev = dev;
-		tsdev->tc90522_t.i2c = &it930x->i2c_master[1];
+		tsdev->tc90522_t.i2c = &it930x->i2c_master[2];
 		tsdev->tc90522_t.i2c_addr = 0x10;
 		tsdev->tc90522_t.is_secondary = false;
 
 		tsdev->tc90522_s.dev = dev;
-		tsdev->tc90522_s.i2c = &it930x->i2c_master[1];
+		tsdev->tc90522_s.i2c = &it930x->i2c_master[2];
 		tsdev->tc90522_s.i2c_addr = 0x11;
 		tsdev->tc90522_s.is_secondary = false;
 

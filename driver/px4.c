@@ -223,7 +223,7 @@ static int px4_load_config(struct px4_device *px4)
 		input->sync_byte = ((i + 1) << 4) | 0x07;	// 0x17 0x27 0x37 0x47
 
 		tsdev->tc90522.dev = dev;
-		tsdev->tc90522.i2c = &it930x->i2c_master[0];
+		tsdev->tc90522.i2c = &it930x->i2c_master[1];
 		tsdev->tc90522.i2c_addr = input->i2c_addr;
 		tsdev->tc90522.is_secondary = (i % 2) ? true : false;
 

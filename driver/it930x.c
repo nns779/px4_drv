@@ -660,9 +660,9 @@ int it930x_init(struct it930x_bridge *it930x)
 
 	// set i2c operator
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 3; i++) {
 		it930x->priv.i2c[i].it930x = it930x;
-		it930x->priv.i2c[i].bus = i + 2;
+		it930x->priv.i2c[i].bus = i + 1;
 
 		it930x->i2c_master[i].lock = it930x_i2c_master_lock;
 		it930x->i2c_master[i].unlock = it930x_i2c_master_unlock;
@@ -687,7 +687,7 @@ int it930x_term(struct it930x_bridge *it930x)
 
 	// clear i2c operator
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 3; i++) {
 		it930x->priv.i2c[i].it930x = NULL;
 		it930x->priv.i2c[i].bus = 0;
 

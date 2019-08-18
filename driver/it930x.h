@@ -57,7 +57,7 @@ struct it930x_gpio_state {
 };
 
 struct it930x_priv {
-	struct it930x_i2c_master_info i2c[2];
+	struct it930x_i2c_master_info i2c[3];
 	struct mutex lock;
 	u8 *buf;
 	u8 sequence;
@@ -68,7 +68,7 @@ struct it930x_bridge {
 	struct device *dev;
 	struct it930x_bus bus;
 	struct it930x_config config;
-	struct i2c_comm_master i2c_master[2];
+	struct i2c_comm_master i2c_master[3];
 	struct it930x_priv priv;
 };
 
