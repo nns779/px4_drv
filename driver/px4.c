@@ -963,7 +963,7 @@ static void px4_psb_workqueue_handler(struct work_struct *w)
 
 	ret = it930x_read_regs(it930x, 0xda98, val, 2);
 	if (ret)
-		goto exit;
+		return;
 
 	dev_info(px4->dev, "psb count: 0x%x\n", (val[0] | (val[1] << 8)));
 
@@ -972,7 +972,6 @@ static void px4_psb_workqueue_handler(struct work_struct *w)
 	if (px4->streaming_count)
 		queue_delayed_work(px4->psb_wq, to_delayed_work(w), msecs_to_jiffies(1000));
 
-exit:
 	mutex_unlock(&px4->lock);
 
 	return;
