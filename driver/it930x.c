@@ -159,6 +159,11 @@ static int _it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 
 	return ret;
 }
 
+static int _it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val)
+{
+	return _it930x_read_regs(it930x, reg, val, 1);
+}
+
 int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
 {
 	int ret = 0;
@@ -305,9 +310,9 @@ static int _it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val,
 	}
 
 	if (len < 8) {
-		ret = _it930x_read_regs(it930x, reg, &tmp, 1);
+		ret = _it930x_read_reg(it930x, reg, &tmp);
 		if (ret) {
-			dev_err(it930x->dev, "_it930x_write_reg_bits: _it930x_read_regs() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
+			dev_err(it930x->dev, "_it930x_write_reg_bits: _it930x_read_reg() failed. (reg: 0x%x, val: %u, pos: %u, len: %u, ret: %d)\n", reg, val, pos, len, ret);
 			return ret;
 		}
 
