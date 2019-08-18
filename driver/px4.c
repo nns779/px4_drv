@@ -954,10 +954,10 @@ static int px4_tsdev_set_channel(struct px4_tsdev *tsdev, struct ptx_freq *freq)
 }
 
 #ifdef PSB_DEBUG
-static void px4_workqueue_handler(struct work_struct *w)
+static void px4_psb_workqueue_handler(struct work_struct *w)
 {
 	int ret = 0;
-	struct px4_device *px4 = container_of(to_delayed_work(w), struct px4_device, w);
+	struct px4_device *px4 = container_of(to_delayed_work(w), struct px4_device, psb_work);
 	struct it930x_bridge *it930x = &px4->it930x;
 	u8 val[2];
 
@@ -972,6 +972,7 @@ static void px4_workqueue_handler(struct work_struct *w)
 	if (px4->streaming_count)
 		queue_delayed_work(px4->psb_wq, to_delayed_work(w), msecs_to_jiffies(1000));
 
+exit:
 	mutex_unlock(&px4->lock);
 
 	return;
@@ -1062,13 +1063,13 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 		}
 
 #ifdef PSB_DEBUG
-		INIT_DELAYED_WORK(&px4->w, px4_workqueue_handler);
+		INIT_DELAYED_WORK(&px4->psb_work, px4_psb_workqueue_handler);
 
 		if (!px4->psb_wq)
 			px4->psb_wq = create_singlethread_workqueue("px4_psb_workqueue");
 
 		if (px4->psb_wq)
-			queue_delayed_work(px4->psb_wq, &px4->psb_w, msecs_to_jiffies(1000));
+			queue_delayed_work(px4->psb_wq, &px4->psb_work, msecs_to_jiffies(1000));
 #endif
 	}
 
@@ -1113,11 +1114,11 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 		it930x_bus_stop_streaming(&px4->it930x.bus);
 
 #ifdef PSB_DEBUG
-		if (px4->wq) {
-			cancel_delayed_work_sync(&px4->w);
-			flush_workqueue(px4->wq);
-			destroy_workqueue(px4->wq);
-			px4->wq = NULL;
+		if (px4->psb_wq) {
+			cancel_delayed_work_sync(&px4->psb_work);
+			flush_workqueue(px4->psb_wq);
+			destroy_workqueue(px4->psb_wq);
+			px4->psb_wq = NULL;
 		}
 #endif
 	}
