@@ -1065,7 +1065,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 		INIT_DELAYED_WORK(&px4->w, px4_workqueue_handler);
 
 		if (!px4->wq)
-			px4->wq = create_singlethread_workqueue("px4_workqueue");
+			px4->wq = create_singlethread_workqueue("px4_psb_workqueue");
 
 		if (px4->wq)
 			queue_delayed_work(px4->wq, &px4->w, msecs_to_jiffies(1000));
