@@ -8,44 +8,53 @@
 #ifndef __I2C_COMM_H__
 #define __I2C_COMM_H__
 
+#include <linux/types.h>
+
+struct i2c_comm_request {
+	enum i2c_request_type {
+		I2C_UNDEFINED_REQUEST = 0,
+		I2C_READ_REQUEST,
+		I2C_WRITE_REQUEST
+	} req;
+	u16 addr;
+	u8 *data;
+	int len;
+};
+
 struct i2c_comm_master {
-	int (*lock) (void *i2c_priv);
-	int (*unlock) (void *i2c_priv);
-	int (*wr) (void *i2c_priv, u8 addr, const u8 * data, int len);
-	int (*rd) (void *i2c_priv, u8 addr, u8 *data, int len);
+	int (*request) (void *i2c_priv, struct i2c_comm_request *req, int num);
 	void *priv;
 };
 
-static inline int i2c_comm_master_lock(struct i2c_comm_master *m)
+static inline int i2c_comm_master_request(struct i2c_comm_master *m, struct i2c_comm_request *req, int num)
 {
-	if (m && m->lock)
-		return m->lock(m->priv);
-	else
-		return -EFAULT;
+	return ((m && m->request) ? m->request(m->priv, req, num) : -EFAULT);
 }
 
-static inline int i2c_comm_master_unlock(struct i2c_comm_master *m)
-{
-	if (m && m->unlock)
-		return m->unlock(m->priv);
-	else
-		return -EFAULT;
-}
-
-static inline int i2c_comm_master_write(struct i2c_comm_master *m, u8 addr, const u8 *data, int len)
-{
-	if (m && m->wr)
-		return m->wr(m->priv, addr, data, len);
-	else
-		return -EFAULT;
-}
-
+#if 0
 static inline int i2c_comm_master_read(struct i2c_comm_master *m, u8 addr, u8 *data, int len)
 {
-	if (m && m->rd)
-		return m->rd(m->priv, addr, data, len);
-	else
-		return -EFAULT;
+	struct i2c_comm_request req[1];
+
+	req[0].req = I2C_READ_REQUEST;
+	req[0].addr = addr;
+	req[0].data = data;
+	req[0].len = len;
+
+	return i2c_comm_master_request(m, &req, 1);
 }
+
+static inline int i2c_comm_master_write(struct i2c_comm_master *m, u8 addr, u8 *data, int len)
+{
+	struct i2c_comm_request req[1];
+
+	req[0].req = I2C_WRITE_REQUEST;
+	req[0].addr = addr;
+	req[0].data = data;
+	req[0].len = len;
+
+	return i2c_comm_master_request(m, &req, 1);
+}
+#endif
 
 #endif

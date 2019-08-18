@@ -310,100 +310,103 @@ int it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val, u8 pos,
 	return ret;
 }
 
-static int it930x_i2c_master_lock(void *i2c_priv)
+static int it930x_i2c_master_request(void *i2c_priv, struct i2c_comm_request *req, int num)
 {
+	int ret = 0, i;
 	struct it930x_i2c_master_info *i2c = i2c_priv;
 	struct it930x_priv *priv = &i2c->it930x->priv;
 
 	mutex_lock(&priv->lock);
 
-	return 0;
-}
+	for (i = 0; i < num; i++) {
+		u16 addr;
+		u8 *data;
+		int len;
+		u8 b[249];
 
-static int it930x_i2c_master_unlock(void *i2c_priv)
-{
-	struct it930x_i2c_master_info *i2c = i2c_priv;
-	struct it930x_priv *priv = &i2c->it930x->priv;
+		addr = req[i].addr;
+		data = req[i].data;
+		len = req[i].len;
+
+		if (!data || !len) {
+			dev_dbg(i2c->it930x->dev, "it930x_i2c_master_request: Invalid parameter. (i: %d)\n", i);
+			ret = -EINVAL;
+			break;
+		}
+
+		if (len > (249 - 3)) {
+			dev_dbg(i2c->it930x->dev, "it930x_i2c_master_request: Buffer too large. (i: %d)\n", i);
+			ret = -EINVAL;
+			break;
+		}
+
+		switch (req[i].req) {
+		case I2C_READ_REQUEST:
+		{
+			struct ctrl_buf sb, rb;
+
+			b[0] = len;
+			b[1] = i2c->bus;
+			b[2] = (addr << 1);
+
+			sb.buf = b;
+			sb.len = 3;
+
+			rb.buf = data;
+			rb.len = len;
+
+			ret = _it930x_control(i2c->it930x, IT930X_CMD_I2C_READ, &sb, &rb, NULL, false);
+			break;
+		}
+
+		case I2C_WRITE_REQUEST:
+		{
+			struct ctrl_buf sb;
+#ifdef IT930X_I2C_WRITE_REPEAT
+			int ret2;
+#endif
+
+			b[0] = len;
+			b[1] = i2c->bus;
+			b[2] = (addr << 1);
+			memcpy(&b[3], data, len);
+
+			sb.buf = b;
+			sb.len = 3 + len;
+
+#ifdef IT930X_I2C_WRITE_REPEAT
+			ret = _it930x_write_reg(i2c->it930x, 0xf424, 1);
+			if (ret) {
+				dev_err(i2c->it930x->dev, "it930x_i2c_master_request: it930x_write_reg(0xf424, 1) failed. (i: %d, ret: %d)\n", i, ret);
+				break;
+			}
+#endif
+
+			ret = _it930x_control(i2c->it930x, IT930X_CMD_I2C_WRITE, &sb, NULL, NULL, false);
+
+#ifdef IT930X_I2C_WRITE_REPEAT
+			ret2 = _it930x_write_reg(i2c->it930x, 0xf424, 0);
+			if (ret2)
+				dev_err(i2c->it930x->dev, "it930x_i2c_master_request: it930x_write_reg(0xf424, 0) failed. (i: %d, ret: %d)\n", i, ret);
+
+			if (!ret)
+				ret = ret2;
+#endif
+
+			break;
+		}
+
+		default:
+			dev_err(i2c->it930x->dev, "it930x_i2c_master_request: unknown request %d (i: %d)\n", req[i].req, i);
+			ret = -EINVAL;
+			break;
+		}
+
+		if (ret)
+			break;
+	}
 
 	mutex_unlock(&priv->lock);
-
-	return 0;
-}
-
-static int it930x_i2c_master_write(void *i2c_priv, u8 addr, const u8 *data, int len)
-{
-	int ret = 0;
-#ifdef IT930X_I2C_WRITE_REPEAT
-	int ret2 = 0;
-#endif
-	struct it930x_i2c_master_info *i2c = i2c_priv;
-	u8 b[249];
-	struct ctrl_buf sb;
-
-	if (!data || !len) {
-		dev_dbg(i2c->it930x->dev, "it930x_i2c_master_write: Invalid parameter.\n");
-		return -EINVAL;
-	}
-
-	if (len > (249 - 3)) {
-		dev_dbg(i2c->it930x->dev, "it930x_i2c_master_write: Buffer too large.\n");
-		return -EINVAL;
-	}
-
-	b[0] = len;
-	b[1] = i2c->bus;
-	b[2] = (addr << 1);
-	memcpy(&b[3], data, len);
-
-	sb.buf = b;
-	sb.len = 3 + len;
-
-#ifdef IT930X_I2C_WRITE_REPEAT
-	ret = _it930x_write_reg(i2c->it930x, 0xf424, 1);
-	if (ret) {
-		dev_err(i2c->it930x->dev, "it930x_i2c_master_write: it930x_write_reg(0xf424, 1) failed. (ret: %d)\n", ret);
-		goto exit;
-	}
-#endif
-
-	ret = _it930x_control(i2c->it930x, IT930X_CMD_I2C_WRITE, &sb, NULL, NULL, false);
-
-#ifdef IT930X_I2C_WRITE_REPEAT
-	ret2 = _it930x_write_reg(i2c->it930x, 0xf424, 0);
-	if (ret2)
-		dev_err(i2c->it930x->dev, "it930x_i2c_master_write: it930x_write_reg(0xf424, 0) failed. (ret: %d)\n", ret);
-
-	if (!ret)
-		ret = ret2;
-
-exit:
-#endif
-	return ret;
-}
-
-static int it930x_i2c_master_read(void *i2c_priv, u8 addr, u8 *data, int len)
-{
-	int ret = 0;
-	struct it930x_i2c_master_info *i2c = i2c_priv;
-	u8 b[3];
-	struct ctrl_buf sb, rb;
-
-	if (!data || !len) {
-		dev_dbg(i2c->it930x->dev, "it930x_i2c_master_read: Invalid parameter.\n");
-		return -EINVAL;
-	}
-
-	b[0] = len;
-	b[1] = i2c->bus;
-	b[2] = (addr << 1);
-
-	sb.buf = b;
-	sb.len = 3;
-
-	rb.buf = data;
-	rb.len = len;
-
-	ret = _it930x_control(i2c->it930x, IT930X_CMD_I2C_READ, &sb, &rb, NULL, false);
 
 	return ret;
 }
@@ -664,10 +667,7 @@ int it930x_init(struct it930x_bridge *it930x)
 		it930x->priv.i2c[i].it930x = it930x;
 		it930x->priv.i2c[i].bus = i + 1;
 
-		it930x->i2c_master[i].lock = it930x_i2c_master_lock;
-		it930x->i2c_master[i].unlock = it930x_i2c_master_unlock;
-		it930x->i2c_master[i].wr = it930x_i2c_master_write;
-		it930x->i2c_master[i].rd = it930x_i2c_master_read;
+		it930x->i2c_master[i].request = it930x_i2c_master_request;
 		it930x->i2c_master[i].priv = &it930x->priv.i2c[i];
 	}
 
@@ -691,10 +691,7 @@ int it930x_term(struct it930x_bridge *it930x)
 		it930x->priv.i2c[i].it930x = NULL;
 		it930x->priv.i2c[i].bus = 0;
 
-		it930x->i2c_master[i].lock = NULL;
-		it930x->i2c_master[i].unlock = NULL;
-		it930x->i2c_master[i].wr = NULL;
-		it930x->i2c_master[i].rd = NULL;
+		it930x->i2c_master[i].request = NULL;
 		it930x->i2c_master[i].priv = NULL;
 	}
 

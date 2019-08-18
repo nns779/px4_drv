@@ -550,6 +550,7 @@ static int _r850_write_regs(struct r850_tuner *t, u8 reg, const u8 *buf, int len
 {
 	int ret = 0;
 	u8 b[1 + R850_NUM_REGS];
+	struct i2c_comm_request req[1];
 
 	if (!t || !buf || !len)
 		return -EINVAL;
@@ -560,13 +561,14 @@ static int _r850_write_regs(struct r850_tuner *t, u8 reg, const u8 *buf, int len
 	b[0] = reg;
 	memcpy(&b[1], buf, len);
 
-	ret = i2c_comm_master_lock(t->i2c);
+	req[0].req = I2C_WRITE_REQUEST;
+	req[0].addr = t->i2c_addr;
+	req[0].data = b;
+	req[0].len = 1 + len;
+
+	ret = i2c_comm_master_request(t->i2c, req, 1);
 	if (ret)
-		return ret;
-
-	ret = i2c_comm_master_write(t->i2c, t->i2c_addr, b, len + 1);
-
-	i2c_comm_master_unlock(t->i2c);
+		dev_err(t->dev, "_r850_write_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n", reg, len, ret);
 
 	return ret;
 }
@@ -575,6 +577,7 @@ static int _r850_read_regs(struct r850_tuner *t, u8 reg, u8 *buf, int len)
 {
 	int ret = 0, i;
 	u8 b[1 + R850_NUM_REGS];
+	struct i2c_comm_request req[2];
 
 	if (!t || !buf || !len)
 		return -EINVAL;
@@ -584,23 +587,23 @@ static int _r850_read_regs(struct r850_tuner *t, u8 reg, u8 *buf, int len)
 
 	b[0] = 0x00;
 
-	ret = i2c_comm_master_lock(t->i2c);
+	req[0].req = I2C_WRITE_REQUEST;
+	req[0].addr = t->i2c_addr;
+	req[0].data = b;
+	req[0].len = 1;
+
+	req[1].req = I2C_READ_REQUEST;
+	req[1].addr = t->i2c_addr;
+	req[1].data = b;
+	req[1].len = reg + len;
+
+	ret = i2c_comm_master_request(t->i2c, req, 2);
 	if (ret)
-		return ret;
-
-	ret = i2c_comm_master_write(t->i2c, t->i2c_addr, b, 1);
-	if (ret)
-		goto exit;
-
-	ret = i2c_comm_master_read(t->i2c, t->i2c_addr, &b[0], len + reg);
-	if (ret)
-		goto exit;
-
-	for (i = reg; i < (reg + len); i++)
-		buf[i - reg] = reverse_bit(b[i]);
-
-exit:
-	i2c_comm_master_unlock(t->i2c);
+		dev_err(t->dev, "_r850_read_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n", reg, len, ret);
+	else {
+		for (i = reg; i < (reg + len); i++)
+			buf[i - reg] = reverse_bit(b[i]);
+	}
 
 	return ret;
 }
