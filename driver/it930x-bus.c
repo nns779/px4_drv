@@ -67,9 +67,6 @@ static int it930x_usb_ctrl_tx(struct it930x_bus *bus, const void *buf, int len, 
 	ret = usb_bulk_msg(dev, usb_sndbulkpipe(dev, 0x02), (void *)buf, len, &rlen, bus->usb.ctrl_timeout);
 #endif
 
-	if (ret)
-		dev_dbg(bus->dev, "it930x_usb_ctrl_tx: Failed. (ret: %d)\n", ret);
-
 	mdelay(1);
 
 	return ret;
@@ -85,8 +82,6 @@ static int it930x_usb_ctrl_rx(struct it930x_bus *bus, void *buf, int *len, void 
 
 	/* Endpoint 0x81: Control OUT */
 	ret = usb_bulk_msg(dev, usb_rcvbulkpipe(dev, 0x81), buf, *len, &rlen, bus->usb.ctrl_timeout);
-	if (ret)
-		dev_dbg(bus->dev, "it930x_usb_ctrl_rx: Failed. (ret: %d)\n", ret);
 
 	*len = rlen;
 
@@ -105,8 +100,6 @@ static int it930x_usb_stream_rx(struct it930x_bus *bus, void *buf, int *len, int
 
 	/* Endpoint 0x84: Stream OUT */
 	ret = usb_bulk_msg(dev, usb_rcvbulkpipe(dev, 0x84), buf, *len, &rlen, timeout);
-	if (ret)
-		dev_dbg(bus->dev, "it930x_usb_stream_rx: Failed. (ret: %d)\n", ret);
 
 	*len = rlen;
 
