@@ -212,6 +212,38 @@ static int tc90522_i2c_master_request(void *i2c_priv, struct i2c_comm_request *r
 	if (!master_req_num)
 		goto exit;
 
+	if ((num == 1 && req[0].req == I2C_WRITE_REQUEST) || (num == 2 && req[0].req == I2C_WRITE_REQUEST && req[1].req == I2C_READ_REQUEST)) {
+		u8 b[255], br[2];
+		struct i2c_comm_request master_req[3];
+
+		b[0] = 0xfe;
+		b[1] = (req[0].addr << 1);
+		memcpy(&b[2], req[0].data, req[0].len);
+
+		master_req[0].req = I2C_WRITE_REQUEST;
+		master_req[0].addr = demod->i2c_addr;
+		master_req[0].data = b;
+		master_req[0].len = 2 + req[0].len;
+
+		if (num == 2) {
+			br[0] = 0xfe;
+			br[1] = (req[1].addr << 1) | 0x01;
+
+			master_req[1].req = I2C_WRITE_REQUEST;
+			master_req[1].addr = demod->i2c_addr;
+			master_req[1].data = br;
+			master_req[1].len = 2;
+
+			master_req[2].req = I2C_READ_REQUEST;
+			master_req[2].addr = demod->i2c_addr;
+			master_req[2].data = req[1].data;
+			master_req[2].len = req[1].len;
+		}
+
+		ret = i2c_comm_master_request(demod->i2c, master_req, (num == 2) ? 3 : 1);
+		goto exit;
+	}
+
 	master_req = (struct i2c_comm_request *)kmalloc(sizeof(*master_req) * master_req_num, GFP_KERNEL);
 	if (!master_req) {
 		ret = -ENOMEM;
