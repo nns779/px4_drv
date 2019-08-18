@@ -305,7 +305,7 @@ int tc90522_term(struct tc90522_demod *demod)
 	demod->i2c_master.request = NULL;
 	demod->i2c_master.priv = NULL;
 
-	mutex_unlock(&demod->priv.lock);
+	mutex_destroy(&demod->priv.lock);
 
 	return 0;
 }
