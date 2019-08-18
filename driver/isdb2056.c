@@ -1029,7 +1029,7 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 		INIT_DELAYED_WORK(&isdb2056->w, isdb2056_workqueue_handler);
 
 		if (!isdb2056->wq)
-			isdb2056->wq = create_singlethread_workqueue("isdb2056_workqueue");
+			isdb2056->wq = create_singlethread_workqueue("isdb2056_psb_workqueue");
 
 		if (isdb2056->wq)
 			queue_delayed_work(isdb2056->wq, &isdb2056->w, msecs_to_jiffies(1000));
