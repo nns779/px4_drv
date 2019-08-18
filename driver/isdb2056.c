@@ -1670,10 +1670,6 @@ static void isdb2056_disconnect(struct usb_interface *intf)
 		ref = atomic_read(&isdb2056->ref);
 	}
 
-	mutex_lock(&glock);
-
-	mutex_unlock(&glock);
-
 	put_device(isdb2056->dev);
 
 	// uninitialize
