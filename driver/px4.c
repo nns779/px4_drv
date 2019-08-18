@@ -96,8 +96,8 @@ struct px4_device {
 	struct px4_stream_context *stream_context;
 	struct cdev cdev;
 #ifdef PSB_DEBUG
-	struct workqueue_struct *wq;
-	struct delayed_work w;
+	struct workqueue_struct *psb_wq;
+	struct delayed_work psb_work;
 #endif
 };
 
@@ -970,7 +970,7 @@ static void px4_workqueue_handler(struct work_struct *w)
 	mutex_lock(&px4->lock);
 
 	if (px4->streaming_count)
-		queue_delayed_work(px4->wq, to_delayed_work(w), msecs_to_jiffies(1000));
+		queue_delayed_work(px4->psb_wq, to_delayed_work(w), msecs_to_jiffies(1000));
 
 	mutex_unlock(&px4->lock);
 
@@ -1064,11 +1064,11 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 #ifdef PSB_DEBUG
 		INIT_DELAYED_WORK(&px4->w, px4_workqueue_handler);
 
-		if (!px4->wq)
-			px4->wq = create_singlethread_workqueue("px4_psb_workqueue");
+		if (!px4->psb_wq)
+			px4->psb_wq = create_singlethread_workqueue("px4_psb_workqueue");
 
-		if (px4->wq)
-			queue_delayed_work(px4->wq, &px4->w, msecs_to_jiffies(1000));
+		if (px4->psb_wq)
+			queue_delayed_work(px4->psb_wq, &px4->psb_w, msecs_to_jiffies(1000));
 #endif
 	}
 
