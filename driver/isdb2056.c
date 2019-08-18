@@ -452,9 +452,9 @@ static int isdb2056_tsdev_init(struct isdb2056_tsdev *tsdev)
 
 	// Initialization for ISDB-T
 
-	ret = tc90522_write_regs(tc90522_t, tc_init_t, ARRAY_SIZE(tc_init_t));
+	ret = tc90522_write_multiple_regs(tc90522_t, tc_init_t, ARRAY_SIZE(tc_init_t));
 	if (ret) {
-		dev_err(isdb2056->dev, "isdb2056_tsdev_init %d:%u: tc90522_write_regs(tc_init_t) failed. (ret: %d)\n", isdb2056->dev_idx, tsdev->id, ret);
+		dev_err(isdb2056->dev, "isdb2056_tsdev_init %d:%u: tc90522_write_multiple_regs(tc_init_t) failed. (ret: %d)\n", isdb2056->dev_idx, tsdev->id, ret);
 		goto exit;
 	}
 
@@ -484,9 +484,9 @@ static int isdb2056_tsdev_init(struct isdb2056_tsdev *tsdev)
 
 	// Initialization for ISDB-S
 
-	ret = tc90522_write_regs(tc90522_s, tc_init_s, ARRAY_SIZE(tc_init_s));
+	ret = tc90522_write_multiple_regs(tc90522_s, tc_init_s, ARRAY_SIZE(tc_init_s));
 	if (ret) {
-		dev_err(isdb2056->dev, "isdb2056_tsdev_init %d:%u: tc90522_write_regs(tc_init_s) failed. (ret: %d)\n", isdb2056->dev_idx, tsdev->id, ret);
+		dev_err(isdb2056->dev, "isdb2056_tsdev_init %d:%u: tc90522_write_multiple_regs(tc_init_s) failed. (ret: %d)\n", isdb2056->dev_idx, tsdev->id, ret);
 		goto exit;
 	}
 

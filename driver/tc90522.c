@@ -46,7 +46,33 @@ static int _tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 
 	return ret;
 }
 
-int tc90522_write_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
+int tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
+{
+	int ret = 0;
+
+	mutex_lock(&demod->priv.lock);
+
+	ret = _tc90522_write_regs(demod, reg, buf, len);
+
+	mutex_unlock(&demod->priv.lock);
+
+	return ret;
+}
+
+int tc90522_write_reg(struct tc90522_demod *demod, u8 reg, u8 val)
+{
+	int ret = 0;
+
+	mutex_lock(&demod->priv.lock);
+
+	ret = _tc90522_write_regs(demod, reg, &val, 1);
+
+	mutex_unlock(&demod->priv.lock);
+
+	return ret;
+}
+
+int tc90522_write_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
 {
 	int ret = 0, i;
 
@@ -64,19 +90,6 @@ int tc90522_write_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbu
 		if (ret)
 			break;
 	}
-
-	mutex_unlock(&demod->priv.lock);
-
-	return ret;
-}
-
-int tc90522_write_reg(struct tc90522_demod *demod, u8 reg, u8 val)
-{
-	int ret = 0;
-
-	mutex_lock(&demod->priv.lock);
-
-	ret = _tc90522_write_regs(demod, reg, &val, 1);
 
 	mutex_unlock(&demod->priv.lock);
 
@@ -111,20 +124,13 @@ static int _tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 l
 	return ret;
 }
 
-int tc90522_read_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
+int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
 {
-	int ret = 0, i;
-
-	if (!regbuf || !num)
-		return -EINVAL;
+	int ret = 0;
 
 	mutex_lock(&demod->priv.lock);
 
-	for (i = 0; i < num; i++) {
-		ret = _tc90522_read_regs(demod, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
-		if (ret)
-			break;
-	}
+	ret = _tc90522_read_regs(demod, reg, buf, len);
 
 	mutex_unlock(&demod->priv.lock);
 
@@ -138,6 +144,26 @@ int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val)
 	mutex_lock(&demod->priv.lock);
 
 	ret = _tc90522_read_regs(demod, reg, val, 1);
+
+	mutex_unlock(&demod->priv.lock);
+
+	return ret;
+}
+
+int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
+{
+	int ret = 0, i;
+
+	if (!regbuf || !num)
+		return -EINVAL;
+
+	mutex_lock(&demod->priv.lock);
+
+	for (i = 0; i < num; i++) {
+		ret = _tc90522_read_regs(demod, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
+		if (ret)
+			break;
+	}
 
 	mutex_unlock(&demod->priv.lock);
 
@@ -298,7 +324,7 @@ int tc90522_sleep_s(struct tc90522_demod *demod, bool sleep)
 		regbuf[1].u.val = 0xff;
 	}
 
-	return tc90522_write_regs(demod, regbuf, 2);
+	return tc90522_write_multiple_regs(demod, regbuf, 2);
 #else
 	return tc90522_write_reg(demod, 0x17, (sleep) ? 0x01 : 0x00);
 #endif
@@ -323,20 +349,18 @@ int tc90522_set_agc_s(struct tc90522_demod *demod, bool on)
 		regbuf[2].u.val = 0x00;
 	}
 
-	return tc90522_write_regs(demod, regbuf, 4);
+	return tc90522_write_multiple_regs(demod, regbuf, 4);
 }
 
 int tc90522_tmcc_get_tsid_s(struct tc90522_demod *demod, u8 idx, u16 *tsid)
 {
 	int ret = 0;
 	u8 b[2];
-	struct tc90522_regbuf regbuf[1];
 
 	if (idx >= 12)
 		return -EINVAL;
 
-	tc90522_regbuf_set_buf(&regbuf[0], 0xce + (idx * 2), &b[0], 2);
-	ret = tc90522_read_regs(demod, regbuf, 1);
+	ret = tc90522_read_regs(demod, 0xce + (idx * 2), &b[0], 2);
 	if (!ret)
 		*tsid = (b[0] << 8 | b[1]);
 
@@ -354,17 +378,15 @@ int tc90522_set_tsid_s(struct tc90522_demod *demod, u16 tsid)
 	tc90522_regbuf_set_buf(&regbuf[0], 0x8f, &b[0], 1);
 	tc90522_regbuf_set_buf(&regbuf[1], 0x90, &b[1], 1);
 
-	return tc90522_write_regs(demod, regbuf, 2);
+	return tc90522_write_multiple_regs(demod, regbuf, 2);
 }
 
 int tc90522_get_tsid_s(struct tc90522_demod *demod, u16 *tsid)
 {
 	int ret = 0;
 	u8 b[2];
-	struct tc90522_regbuf regbuf[1];
 
-	tc90522_regbuf_set_buf(&regbuf[0], 0xe6, &b[0], 2);
-	ret = tc90522_read_regs(demod, regbuf, 1);
+	ret = tc90522_read_regs(demod, 0xe6, &b[0], 2);
 	if (!ret)
 		*tsid = (b[0] << 8 | b[1]);
 
@@ -375,10 +397,8 @@ int tc90522_get_cn_s(struct tc90522_demod *demod, u16 *cn)
 {
 	int ret = 0;
 	u8 b[2];
-	struct tc90522_regbuf regbuf[1];
 
-	tc90522_regbuf_set_buf(&regbuf[0], 0xbc, &b[0], 2);
-	ret = tc90522_read_regs(demod, regbuf, 1);
+	ret = tc90522_read_regs(demod, 0xbc, &b[0], 2);
 	if (!ret)
 		*cn = (b[0] << 8) | b[1];
 
@@ -397,7 +417,7 @@ int tc90522_enable_ts_pins_s(struct tc90522_demod *demod, bool e)
 		regbuf[1].u.val = 0x22;
 	}
 
-	return tc90522_write_regs(demod, regbuf, 2);
+	return tc90522_write_multiple_regs(demod, regbuf, 2);
 }
 
 int tc90522_is_signal_locked_s(struct tc90522_demod *demod, bool *lock)
@@ -436,17 +456,15 @@ int tc90522_set_agc_t(struct tc90522_demod *demod, bool on)
 		// on
 		regbuf[2].u.val &= ~0x01;
 
-	return tc90522_write_regs(demod, regbuf, 4);
+	return tc90522_write_multiple_regs(demod, regbuf, 4);
 }
 
 int tc90522_get_cndat_t(struct tc90522_demod *demod, u32 *cndat)
 {
 	int ret = 0;
 	u8 b[3];
-	struct tc90522_regbuf regbuf[1];
 
-	tc90522_regbuf_set_buf(&regbuf[0], 0x8b, &b[0], 3);
-	ret = tc90522_read_regs(demod, regbuf, 1);
+	ret = tc90522_read_regs(demod, 0x8b, &b[0], 3);
 	if (!ret)
 		*cndat = (b[0] << 16) | (b[1] << 8) | b[2];
 
