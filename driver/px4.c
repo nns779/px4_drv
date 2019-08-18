@@ -280,23 +280,24 @@ static int px4_set_power(struct px4_device *px4, bool on)
 		if (multi_dev) {
 			if (!multi_dev->power_count) {
 				for (i = 0; i < 2; i++) {
-					if (multi_dev->devs[i]) {
-						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh7 low\n", multi_dev->devs[i]->dev_id);
+					if (!multi_dev->devs[i])
+						continue;
 
-						ret = it930x_write_gpio(&multi_dev->devs[i]->it930x, 7, false);
-						if (ret)
-							goto exit;
+					dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh7 low\n", multi_dev->devs[i]->dev_id);
 
-						msleep(75);
+					ret = it930x_write_gpio(&multi_dev->devs[i]->it930x, 7, false);
+					if (ret)
+						goto exit;
 
-						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh2 high\n", multi_dev->devs[i]->dev_id);
+					msleep(75);
 
-						ret = it930x_write_gpio(&multi_dev->devs[i]->it930x, 2, true);
-						if (ret)
-							goto exit;
+					dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh2 high\n", multi_dev->devs[i]->dev_id);
 
-						msleep(20);
-					}
+					ret = it930x_write_gpio(&multi_dev->devs[i]->it930x, 2, true);
+					if (ret)
+						goto exit;
+
+					msleep(20);
 				}
 			}
 
@@ -369,13 +370,14 @@ static int px4_set_power(struct px4_device *px4, bool on)
 
 			if (!multi_dev->power_count) {
 				for (i = 0; i < 2; i++) {
-					if (multi_dev->devs[i]) {
-						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh2 low\n", multi_dev->devs[i]->dev_id);
-						it930x_write_gpio(&multi_dev->devs[i]->it930x, 2, false);
+					if (!multi_dev->devs[i])
+						continue;
 
-						dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh7 high\n", multi_dev->devs[i]->dev_id);
-						it930x_write_gpio(&multi_dev->devs[i]->it930x, 7, true);
-					}
+					dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh2 low\n", multi_dev->devs[i]->dev_id);
+					it930x_write_gpio(&multi_dev->devs[i]->it930x, 2, false);
+
+					dev_dbg(multi_dev->devs[i]->dev, "px4_set_power: dev %u: gpioh7 high\n", multi_dev->devs[i]->dev_id);
+					it930x_write_gpio(&multi_dev->devs[i]->it930x, 7, true);
 				}
 			}
 		} else {
