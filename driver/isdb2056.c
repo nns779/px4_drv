@@ -918,10 +918,10 @@ exit:
 }
 
 #ifdef PSB_DEBUG
-static void isdb2056_workqueue_handler(struct work_struct *w)
+static void isdb2056_psb_workqueue_handler(struct work_struct *w)
 {
 	int ret = 0;
-	struct isdb2056_device *isdb2056 = container_of(to_delayed_work(w), struct isdb2056_device, w);
+	struct isdb2056_device *isdb2056 = container_of(to_delayed_work(w), struct isdb2056_device, psb_work);
 	struct it930x_bridge *it930x = &isdb2056->it930x;
 	u8 val[2];
 
@@ -936,6 +936,7 @@ static void isdb2056_workqueue_handler(struct work_struct *w)
 	if (isdb2056->streaming_count)
 		queue_delayed_work(isdb2056->psb_wq, to_delayed_work(w), msecs_to_jiffies(1000));
 
+exit:
 	mutex_unlock(&isdb2056->lock);
 
 	return;
@@ -1026,7 +1027,7 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 		}
 
 #ifdef PSB_DEBUG
-		INIT_DELAYED_WORK(&isdb2056->w, isdb2056_workqueue_handler);
+		INIT_DELAYED_WORK(&isdb2056->psb_work, isdb2056_psb_workqueue_handler);
 
 		if (!isdb2056->psb_wq)
 			isdb2056->psb_wq = create_singlethread_workqueue("isdb2056_psb_workqueue");
@@ -1077,11 +1078,11 @@ static int isdb2056_tsdev_stop_streaming(struct isdb2056_tsdev *tsdev, bool avai
 		it930x_bus_stop_streaming(&isdb2056->it930x.bus);
 
 #ifdef PSB_DEBUG
-		if (isdb2056->wq) {
-			cancel_delayed_work_sync(&isdb2056->w);
-			flush_workqueue(isdb2056->wq);
-			destroy_workqueue(isdb2056->wq);
-			isdb2056->wq = NULL;
+		if (isdb2056->psb_wq) {
+			cancel_delayed_work_sync(&isdb2056->psb_work);
+			flush_workqueue(isdb2056->psb_wq);
+			destroy_workqueue(isdb2056->psb_wq);
+			isdb2056->psb_wq = NULL;
 		}
 #endif
 	}
