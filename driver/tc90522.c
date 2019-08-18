@@ -18,6 +18,80 @@
 #include "i2c_comm.h"
 #include "tc90522.h"
 
+static int _tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
+{
+	int ret = 0;
+	u8 b;
+	struct i2c_comm_request req[2];
+
+	if (!buf || !len)
+		return -EINVAL;
+
+	b = reg;
+
+	req[0].req = I2C_WRITE_REQUEST;
+	req[0].addr = demod->i2c_addr;
+	req[0].data = &b;
+	req[0].len = 1;
+
+	req[1].req = I2C_READ_REQUEST;
+	req[1].addr = demod->i2c_addr;
+	req[1].data = buf;
+	req[1].len = len;
+
+	ret = i2c_comm_master_request(demod->i2c, req, 2);
+	if (ret)
+		dev_err(demod->dev, "_tc90522_read_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u)\n", demod->i2c_addr, reg, len);
+
+	return ret;
+}
+
+int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
+{
+	int ret = 0;
+
+	mutex_lock(&demod->priv.lock);
+
+	ret = _tc90522_read_regs(demod, reg, buf, len);
+
+	mutex_unlock(&demod->priv.lock);
+
+	return ret;
+}
+
+int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val)
+{
+	int ret = 0;
+
+	mutex_lock(&demod->priv.lock);
+
+	ret = _tc90522_read_regs(demod, reg, val, 1);
+
+	mutex_unlock(&demod->priv.lock);
+
+	return ret;
+}
+
+int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
+{
+	int ret = 0, i;
+
+	if (!regbuf || !num)
+		return -EINVAL;
+
+	mutex_lock(&demod->priv.lock);
+
+	for (i = 0; i < num; i++) {
+		ret = _tc90522_read_regs(demod, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
+		if (ret)
+			break;
+	}
+
+	mutex_unlock(&demod->priv.lock);
+
+	return ret;
+}
+
 static int _tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
 {
 	int ret = 0;
@@ -87,80 +161,6 @@ int tc90522_write_multiple_regs(struct tc90522_demod *demod, struct tc90522_regb
 		else
 			ret = _tc90522_write_regs(demod, regbuf[i].reg, &regbuf[i].u.val, 1);
 
-		if (ret)
-			break;
-	}
-
-	mutex_unlock(&demod->priv.lock);
-
-	return ret;
-}
-
-static int _tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
-{
-	int ret = 0;
-	u8 b;
-	struct i2c_comm_request req[2];
-
-	if (!buf || !len)
-		return -EINVAL;
-
-	b = reg;
-
-	req[0].req = I2C_WRITE_REQUEST;
-	req[0].addr = demod->i2c_addr;
-	req[0].data = &b;
-	req[0].len = 1;
-
-	req[1].req = I2C_READ_REQUEST;
-	req[1].addr = demod->i2c_addr;
-	req[1].data = buf;
-	req[1].len = len;
-
-	ret = i2c_comm_master_request(demod->i2c, req, 2);
-	if (ret)
-		dev_err(demod->dev, "_tc90522_read_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u)\n", demod->i2c_addr, reg, len);
-
-	return ret;
-}
-
-int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
-{
-	int ret = 0;
-
-	mutex_lock(&demod->priv.lock);
-
-	ret = _tc90522_read_regs(demod, reg, buf, len);
-
-	mutex_unlock(&demod->priv.lock);
-
-	return ret;
-}
-
-int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val)
-{
-	int ret = 0;
-
-	mutex_lock(&demod->priv.lock);
-
-	ret = _tc90522_read_regs(demod, reg, val, 1);
-
-	mutex_unlock(&demod->priv.lock);
-
-	return ret;
-}
-
-int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
-{
-	int ret = 0, i;
-
-	if (!regbuf || !num)
-		return -EINVAL;
-
-	mutex_lock(&demod->priv.lock);
-
-	for (i = 0; i < num; i++) {
-		ret = _tc90522_read_regs(demod, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
 		if (ret)
 			break;
 	}
@@ -399,6 +399,18 @@ int tc90522_tmcc_get_tsid_s(struct tc90522_demod *demod, u8 idx, u16 *tsid)
 	return ret;
 }
 
+int tc90522_get_tsid_s(struct tc90522_demod *demod, u16 *tsid)
+{
+	int ret = 0;
+	u8 b[2];
+
+	ret = tc90522_read_regs(demod, 0xe6, &b[0], 2);
+	if (!ret)
+		*tsid = (b[0] << 8 | b[1]);
+
+	return ret;
+}
+
 int tc90522_set_tsid_s(struct tc90522_demod *demod, u16 tsid)
 {
 	u8 b[2];
@@ -411,18 +423,6 @@ int tc90522_set_tsid_s(struct tc90522_demod *demod, u16 tsid)
 	tc90522_regbuf_set_buf(&regbuf[1], 0x90, &b[1], 1);
 
 	return tc90522_write_multiple_regs(demod, regbuf, 2);
-}
-
-int tc90522_get_tsid_s(struct tc90522_demod *demod, u16 *tsid)
-{
-	int ret = 0;
-	u8 b[2];
-
-	ret = tc90522_read_regs(demod, 0xe6, &b[0], 2);
-	if (!ret)
-		*tsid = (b[0] << 8 | b[1]);
-
-	return ret;
 }
 
 int tc90522_get_cn_s(struct tc90522_demod *demod, u16 *cn)
