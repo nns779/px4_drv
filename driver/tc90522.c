@@ -46,6 +46,11 @@ static int _tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 l
 	return ret;
 }
 
+static int _tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val)
+{
+	return _tc90522_read_regs(demod, reg, val, 1);
+}
+
 int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
 {
 	int ret = 0;
@@ -119,6 +124,13 @@ static int _tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 
 
 	return ret;
 }
+
+#if 0
+static int _tc90522_write_reg(struct tc90522_demod *demod, u8 reg, u8 val)
+{
+	return _tc90522_write_regs(demod, reg, &val, 1);
+}
+#endif
 
 int tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
 {
@@ -517,11 +529,11 @@ int tc90522_is_signal_locked_t(struct tc90522_demod *demod, bool *lock)
 
 	mutex_lock(&demod->priv.lock);
 
-	ret = _tc90522_read_regs(demod, 0x80, &b, 1);
+	ret = _tc90522_read_reg(demod, 0x80, &b);
 	if (ret || (b & 0x28))
 		goto exit;
 
-	ret = _tc90522_read_regs(demod, 0xb0, &b, 1);
+	ret = _tc90522_read_reg(demod, 0xb0, &b);
 	if (ret || (b & 0x0f) < 8)
 		goto exit;
 
