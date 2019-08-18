@@ -88,8 +88,8 @@ struct isdb2056_device {
 	struct isdb2056_stream_context *stream_context;
 	struct cdev cdev;
 #ifdef PSB_DEBUG
-	struct workqueue_struct *wq;
-	struct delayed_work w;
+	struct workqueue_struct *psb_wq;
+	struct delayed_work psb_w;
 #endif
 };
 
@@ -934,7 +934,7 @@ static void isdb2056_workqueue_handler(struct work_struct *w)
 	mutex_lock(&isdb2056->lock);
 
 	if (isdb2056->streaming_count)
-		queue_delayed_work(isdb2056->wq, to_delayed_work(w), msecs_to_jiffies(1000));
+		queue_delayed_work(isdb2056->psb_wq, to_delayed_work(w), msecs_to_jiffies(1000));
 
 	mutex_unlock(&isdb2056->lock);
 
@@ -1028,11 +1028,11 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 #ifdef PSB_DEBUG
 		INIT_DELAYED_WORK(&isdb2056->w, isdb2056_workqueue_handler);
 
-		if (!isdb2056->wq)
-			isdb2056->wq = create_singlethread_workqueue("isdb2056_psb_workqueue");
+		if (!isdb2056->psb_wq)
+			isdb2056->psb_wq = create_singlethread_workqueue("isdb2056_psb_workqueue");
 
-		if (isdb2056->wq)
-			queue_delayed_work(isdb2056->wq, &isdb2056->w, msecs_to_jiffies(1000));
+		if (isdb2056->psb_wq)
+			queue_delayed_work(isdb2056->psb_wq, &isdb2056->psb_w, msecs_to_jiffies(1000));
 #endif
 	}
 
