@@ -95,11 +95,13 @@ static inline void it930x_regbuf_set_buf(struct it930x_regbuf *regbuf, u32 reg, 
 	regbuf->u.len = len;
 }
 
-int it930x_write_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num_regbuf);
+int it930x_write_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len);
 int it930x_write_reg(struct it930x_bridge *it930x, u32 reg, u8 val);
 int it930x_write_reg_bits(struct it930x_bridge *it930x, u32 reg, u8 val, u8 pos, u8 len);
-int it930x_read_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num_regbuf);
+int it930x_write_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num_regbuf);
+int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len);
 int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val);
+int it930x_read_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num_regbuf);
 
 int it930x_init(struct it930x_bridge *it930x);
 int it930x_term(struct it930x_bridge *it930x);

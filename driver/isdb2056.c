@@ -923,11 +923,9 @@ static void isdb2056_workqueue_handler(struct work_struct *w)
 	int ret = 0;
 	struct isdb2056_device *isdb2056 = container_of(to_delayed_work(w), struct isdb2056_device, w);
 	struct it930x_bridge *it930x = &isdb2056->it930x;
-	struct it930x_regbuf regbuf[1];
 	u8 val[2];
 
-	it930x_regbuf_set_buf(&regbuf[0], 0xda98, val, 2);
-	ret = it930x_read_regs(it930x, regbuf, 1);
+	ret = it930x_read_regs(it930x, 0xda98, val, 2);
 	if (ret)
 		goto exit;
 

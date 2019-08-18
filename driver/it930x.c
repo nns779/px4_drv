@@ -161,12 +161,12 @@ static int _it930x_write_reg(struct it930x_bridge *it930x, u32 reg, u8 val)
 	return _it930x_write_regs(it930x, reg, &val, 1);
 }
 
-int it930x_write_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
+int it930x_write_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
 {
 	int ret = 0, i;
 
 	if (!regbuf || !num) {
-		dev_dbg(it930x->dev, "it930x_write_regs: Invaild parameter.\n");
+		dev_dbg(it930x->dev, "it930x_write_multiple_regs: Invaild parameter.\n");
 		return -EINVAL;
 	}
 
@@ -181,6 +181,19 @@ int it930x_write_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf
 		if (ret)
 			break;
 	}
+
+	mutex_unlock(&it930x->priv.lock);
+
+	return ret;
+}
+
+int it930x_write_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
+{
+	int ret = 0;
+
+	mutex_lock(&it930x->priv.lock);
+
+	ret = _it930x_write_regs(it930x, reg, buf, len);
 
 	mutex_unlock(&it930x->priv.lock);
 
@@ -233,12 +246,12 @@ static int _it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 
 	return ret;
 }
 
-int it930x_read_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
+int it930x_read_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
 {
 	int ret = 0, i;
 
 	if (!regbuf || !num) {
-		dev_dbg(it930x->dev, "it930x_read_regs: Invald parameter.\n");
+		dev_dbg(it930x->dev, "it930x_read_multiple_regs: Invald parameter.\n");
 		return -EINVAL;
 	}
 
@@ -249,6 +262,19 @@ int it930x_read_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf,
 		if (ret)
 			break;
 	}
+
+	mutex_unlock(&it930x->priv.lock);
+
+	return ret;
+}
+
+int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
+{
+	int ret = 0;
+
+	mutex_lock(&it930x->priv.lock);
+
+	ret = _it930x_read_regs(it930x, reg, buf, len);
 
 	mutex_unlock(&it930x->priv.lock);
 
@@ -938,7 +964,7 @@ int it930x_set_gpio_mode(struct it930x_bridge *it930x, int gpio, enum it930x_gpi
 		num++;
 	}
 
-	return it930x_write_regs(it930x, regbuf, num);
+	return it930x_write_multiple_regs(it930x, regbuf, num);
 }
 
 int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable)
