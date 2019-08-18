@@ -181,7 +181,7 @@ static int tc90522_i2c_master_request(void *i2c_priv, struct i2c_comm_request *r
 	for (i = 0; i < num; i++) {
 		switch (req[i].req) {
 		case I2C_READ_REQUEST:
-			if (!req[i].data || !req[i].len || req[i].len > 253) {
+			if (!req[i].data || !req[i].len) {
 				dev_dbg(demod->dev, "tc90522_i2c_master_request: Invalid parameter. (i: %d)\n", i);
 				ret = -EINVAL;
 				break;
@@ -191,7 +191,7 @@ static int tc90522_i2c_master_request(void *i2c_priv, struct i2c_comm_request *r
 			break;
 
 		case I2C_WRITE_REQUEST:
-			if (!req[i].data || !req[i].len) {
+			if (!req[i].data || !req[i].len || req[i].len > 253) {
 				dev_dbg(demod->dev, "tc90522_i2c_master_request: Invalid parameter. (i: %d)\n", i);
 				ret = -EINVAL;
 				break;
