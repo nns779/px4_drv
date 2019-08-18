@@ -87,6 +87,8 @@ struct isdb2056_device {
 	struct isdb2056_tsdev tsdev[TSDEV_NUM];
 	struct isdb2056_stream_context *stream_context;
 	struct cdev cdev;
+	struct workqueue_struct *dev_wq;
+	struct delayed_work dev_work;
 #ifdef PSB_DEBUG
 	struct workqueue_struct *psb_wq;
 	struct delayed_work psb_work;
@@ -1432,6 +1434,23 @@ static struct file_operations isdb2056_tsdev_fops = {
 	.unlocked_ioctl = isdb2056_tsdev_unlocked_ioctl
 };
 
+static void isdb2056_dev_workqueue_handler(struct work_struct *w)
+{
+	int ret = 0;
+	struct isdb2056_device *isdb2056 = container_of(to_delayed_work(w), struct isdb2056_device, dev_work);
+	struct it930x_bridge *it930x = &isdb2056->it930x;
+	u8 val;
+
+	ret = it930x_read_reg(it930x, 0x1222, &val);
+	if (ret)
+		return;
+
+	if (atomic_read(&isdb2056->avail))
+		queue_delayed_work(isdb2056->dev_wq, to_delayed_work(w), msecs_to_jiffies(10000));
+
+	return;
+}
+
 static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
 	struct device *dev = &intf->dev;
@@ -1604,6 +1623,12 @@ static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id
 
 	usb_set_intfdata(intf, isdb2056);
 
+	INIT_DELAYED_WORK(&isdb2056->dev_work, isdb2056_dev_workqueue_handler);
+
+	isdb2056->dev_wq = create_singlethread_workqueue("isdb2056_dev_workqueue");
+	if (isdb2056->dev_wq)
+		queue_delayed_work(isdb2056->dev_wq, &isdb2056->dev_work, msecs_to_jiffies(10000));
+
 	return 0;
 
 fail:
@@ -1668,6 +1693,13 @@ static void isdb2056_disconnect(struct usb_interface *intf)
 	while (ref) {
 		wait_event(isdb2056->wait, (ref != atomic_read(&isdb2056->ref)));
 		ref = atomic_read(&isdb2056->ref);
+	}
+
+	if (isdb2056->dev_wq) {
+		cancel_delayed_work_sync(&isdb2056->dev_work);
+		flush_workqueue(isdb2056->dev_wq);
+		destroy_workqueue(isdb2056->dev_wq);
+		isdb2056->dev_wq = NULL;
 	}
 
 	put_device(isdb2056->dev);
