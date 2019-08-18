@@ -89,7 +89,7 @@ struct isdb2056_device {
 	struct cdev cdev;
 #ifdef PSB_DEBUG
 	struct workqueue_struct *psb_wq;
-	struct delayed_work psb_w;
+	struct delayed_work psb_work;
 #endif
 };
 
@@ -1032,7 +1032,7 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 			isdb2056->psb_wq = create_singlethread_workqueue("isdb2056_psb_workqueue");
 
 		if (isdb2056->psb_wq)
-			queue_delayed_work(isdb2056->psb_wq, &isdb2056->psb_w, msecs_to_jiffies(1000));
+			queue_delayed_work(isdb2056->psb_wq, &isdb2056->psb_work, msecs_to_jiffies(1000));
 #endif
 	}
 
