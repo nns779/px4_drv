@@ -373,7 +373,7 @@ static void isdb2056_ts_write(struct ringbuffer **ringbuf, u8 **buf, u32 *len)
 	return;
 }
 
-static int isdb2056_on_stream(void *context, void *buf, u32 len)
+static int isdb2056_stream_handler(void *context, void *buf, u32 len)
 {
 	struct isdb2056_stream_context *stream_context = context;
 	u8 *context_remain_buf = stream_context->remain_buf;
@@ -1019,7 +1019,7 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 		isdb2056->stream_context->remain_len = 0;
 
 		dev_dbg(isdb2056->dev, "isdb2056_tsdev_start_streaming %d:%u: starting...\n", isdb2056->dev_idx, tsdev->id);
-		ret = it930x_bus_start_streaming(bus, isdb2056_on_stream, isdb2056->stream_context);
+		ret = it930x_bus_start_streaming(bus, isdb2056_stream_handler, isdb2056->stream_context);
 		if (ret) {
 			dev_err(isdb2056->dev, "isdb2056_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed. (ret: %d)\n", isdb2056->dev_idx, tsdev->id, ret);
 			goto fail_after_ringbuffer;

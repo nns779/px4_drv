@@ -470,7 +470,7 @@ static void px4_ts_write(struct ringbuffer **ringbuf, u8 **buf, u32 *len)
 	return;
 }
 
-static int px4_on_stream(void *context, void *buf, u32 len)
+static int px4_stream_handler(void *context, void *buf, u32 len)
 {
 	struct px4_stream_context *stream_context = context;
 	u8 *context_remain_buf = stream_context->remain_buf;
@@ -1053,7 +1053,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 		px4->stream_context->remain_len = 0;
 
 		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: starting...\n", px4->dev_idx, tsdev->id);
-		ret = it930x_bus_start_streaming(bus, px4_on_stream, px4->stream_context);
+		ret = it930x_bus_start_streaming(bus, px4_stream_handler, px4->stream_context);
 		if (ret) {
 			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			goto fail_after_ringbuffer;

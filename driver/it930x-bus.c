@@ -29,7 +29,7 @@ struct it930x_usb_work {
 
 struct it930x_usb_context {
 	struct it930x_bus *bus;
-	it930x_bus_on_stream_t on_stream;
+	it930x_bus_stream_handler_t stream_handler;
 	void *ctx;
 	u32 num_urb;
 	bool no_dma;
@@ -167,7 +167,7 @@ static void it930x_usb_complete(struct urb *urb)
 	}
 
 	if (urb->actual_length)
-		ret = ctx->on_stream(ctx->ctx, urb->transfer_buffer, urb->actual_length);
+		ret = ctx->stream_handler(ctx->ctx, urb->transfer_buffer, urb->actual_length);
 	else
 		dev_dbg(ctx->bus->dev, "it930x_usb_complete: !urb->actual_length\n");
 
@@ -186,7 +186,7 @@ static void it930x_usb_complete(struct urb *urb)
 	return;
 }
 
-static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stream_t on_stream, void *context)
+static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_handler_t stream_handler, void *context)
 {
 	int ret = 0;
 	u32 i, l, n;
@@ -195,7 +195,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	struct it930x_usb_context *ctx = bus->usb.priv;
 	struct it930x_usb_work *works;
 
-	if (!on_stream)
+	if (!stream_handler)
 		return -EINVAL;
 
 	dev_dbg(bus->dev, "it930x_usb_start_streaming\n");
@@ -209,7 +209,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_on_stre
 	n = bus->usb.streaming_urb_num;
 	no_dma = bus->usb.streaming_no_dma;
 
-	ctx->on_stream = on_stream;
+	ctx->stream_handler = stream_handler;
 	ctx->ctx = context;
 
 	works = kcalloc(n, sizeof(*works), GFP_KERNEL);
@@ -319,7 +319,7 @@ fail:
 	if (works)
 		kfree(works);
 
-	ctx->on_stream = NULL;
+	ctx->stream_handler = NULL;
 	ctx->ctx = NULL;
 	ctx->num_urb = 0;
 	ctx->no_dma = false;
@@ -364,7 +364,7 @@ static int it930x_usb_stop_streaming(struct it930x_bus *bus)
 		kfree(works);
 	}
 
-	ctx->on_stream = NULL;
+	ctx->stream_handler = NULL;
 	ctx->ctx = NULL;
 	ctx->num_urb = 0;
 	ctx->no_dma = false;
@@ -401,7 +401,7 @@ int it930x_bus_init(struct it930x_bus *bus)
 			usb_get_dev(bus->usb.dev);
 
 			ctx->bus = bus;
-			ctx->on_stream = NULL;
+			ctx->stream_handler = NULL;
 			ctx->ctx = NULL;
 			ctx->num_urb = 0;
 			ctx->no_dma = false;
