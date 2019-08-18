@@ -126,6 +126,87 @@ exit:
 	return ret;
 }
 
+static int _it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
+{
+	int ret = 0;
+	u8 b[6];
+	struct ctrl_buf sb, rb;
+
+	if (!buf || !len) {
+		dev_dbg(it930x->dev, "_it930x_read_regs: Invalid parameter. (reg: 0x%x, len: %u)\n", reg, len);
+		return -EINVAL;
+	}
+
+	b[0] = len;
+	b[1] = reg_addr_len(reg);
+	b[2] = (reg >> 24) & 0xff;
+	b[3] = (reg >> 16) & 0xff;
+	b[4] = (reg >> 8) & 0xff;
+	b[5] = reg & 0xff;
+
+	sb.buf = b;
+	sb.len = 6;
+
+	rb.buf = buf;
+	rb.len = len;
+
+	ret = _it930x_control(it930x, IT930X_CMD_REG_READ, &sb, &rb, NULL, false);
+	if (ret)
+		dev_err(it930x->dev, "_it930x_read_regs: _it930x_control() failed. (reg: 0x%x, len: %u, rlen: %u, ret: %d)\n", reg, len, rb.len, ret);
+	else if (rb.len != len)
+		dev_err(it930x->dev, "_it930x_read_regs: Incorrect size! (reg: 0x%x, len: %u, rlen: %u)\n", reg, len, rb.len);
+
+	return ret;
+}
+
+int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
+{
+	int ret = 0;
+
+	mutex_lock(&it930x->priv.lock);
+
+	ret = _it930x_read_regs(it930x, reg, buf, len);
+
+	mutex_unlock(&it930x->priv.lock);
+
+	return ret;
+}
+
+int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val)
+{
+	int ret = 0;
+
+	mutex_lock(&it930x->priv.lock);
+
+	ret = _it930x_read_regs(it930x, reg, val, 1);
+
+	mutex_unlock(&it930x->priv.lock);
+
+	return ret;
+}
+
+int it930x_read_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
+{
+	int ret = 0, i;
+
+	if (!regbuf || !num) {
+		dev_dbg(it930x->dev, "it930x_read_multiple_regs: Invald parameter.\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&it930x->priv.lock);
+
+	for (i = 0; i < num; i++) {
+		ret = _it930x_read_regs(it930x, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
+		if (ret)
+			break;
+	}
+
+	mutex_unlock(&it930x->priv.lock);
+
+	return ret;
+}
+
 static int _it930x_write_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
 {
 	int ret = 0;
@@ -161,32 +242,6 @@ static int _it930x_write_reg(struct it930x_bridge *it930x, u32 reg, u8 val)
 	return _it930x_write_regs(it930x, reg, &val, 1);
 }
 
-int it930x_write_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
-{
-	int ret = 0, i;
-
-	if (!regbuf || !num) {
-		dev_dbg(it930x->dev, "it930x_write_multiple_regs: Invaild parameter.\n");
-		return -EINVAL;
-	}
-
-	mutex_lock(&it930x->priv.lock);
-
-	for (i = 0; i < num; i++) {
-		if (regbuf[i].buf)
-			ret = _it930x_write_regs(it930x, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
-		else
-			ret = _it930x_write_regs(it930x, regbuf[i].reg, &regbuf[i].u.val, 1);
-
-		if (ret)
-			break;
-	}
-
-	mutex_unlock(&it930x->priv.lock);
-
-	return ret;
-}
-
 int it930x_write_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
 {
 	int ret = 0;
@@ -213,81 +268,26 @@ int it930x_write_reg(struct it930x_bridge *it930x, u32 reg, u8 val)
 	return ret;
 }
 
-static int _it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
-{
-	int ret = 0;
-	u8 b[6];
-	struct ctrl_buf sb, rb;
-
-	if (!buf || !len) {
-		dev_dbg(it930x->dev, "_it930x_read_regs: Invalid parameter. (reg: 0x%x, len: %u)\n", reg, len);
-		return -EINVAL;
-	}
-
-	b[0] = len;
-	b[1] = reg_addr_len(reg);
-	b[2] = (reg >> 24) & 0xff;
-	b[3] = (reg >> 16) & 0xff;
-	b[4] = (reg >> 8) & 0xff;
-	b[5] = reg & 0xff;
-
-	sb.buf = b;
-	sb.len = 6;
-
-	rb.buf = buf;
-	rb.len = len;
-
-	ret = _it930x_control(it930x, IT930X_CMD_REG_READ, &sb, &rb, NULL, false);
-	if (ret)
-		dev_err(it930x->dev, "_it930x_read_regs: _it930x_control() failed. (reg: 0x%x, len: %u, rlen: %u, ret: %d)\n", reg, len, rb.len, ret);
-	else if (rb.len != len)
-		dev_err(it930x->dev, "_it930x_read_regs: Incorrect size! (reg: 0x%x, len: %u, rlen: %u)\n", reg, len, rb.len);
-
-	return ret;
-}
-
-int it930x_read_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
+int it930x_write_multiple_regs(struct it930x_bridge *it930x, struct it930x_regbuf *regbuf, int num)
 {
 	int ret = 0, i;
 
 	if (!regbuf || !num) {
-		dev_dbg(it930x->dev, "it930x_read_multiple_regs: Invald parameter.\n");
+		dev_dbg(it930x->dev, "it930x_write_multiple_regs: Invaild parameter.\n");
 		return -EINVAL;
 	}
 
 	mutex_lock(&it930x->priv.lock);
 
 	for (i = 0; i < num; i++) {
-		ret = _it930x_read_regs(it930x, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
+		if (regbuf[i].buf)
+			ret = _it930x_write_regs(it930x, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
+		else
+			ret = _it930x_write_regs(it930x, regbuf[i].reg, &regbuf[i].u.val, 1);
+
 		if (ret)
 			break;
 	}
-
-	mutex_unlock(&it930x->priv.lock);
-
-	return ret;
-}
-
-int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *buf, u8 len)
-{
-	int ret = 0;
-
-	mutex_lock(&it930x->priv.lock);
-
-	ret = _it930x_read_regs(it930x, reg, buf, len);
-
-	mutex_unlock(&it930x->priv.lock);
-
-	return ret;
-}
-
-int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val)
-{
-	int ret = 0;
-
-	mutex_lock(&it930x->priv.lock);
-
-	ret = _it930x_read_regs(it930x, reg, val, 1);
 
 	mutex_unlock(&it930x->priv.lock);
 
