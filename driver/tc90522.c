@@ -426,15 +426,11 @@ int tc90522_get_tsid_s(struct tc90522_demod *demod, u16 *tsid)
 int tc90522_set_tsid_s(struct tc90522_demod *demod, u16 tsid)
 {
 	u8 b[2];
-	struct tc90522_regbuf regbuf[2];
 
 	b[0] = ((tsid >> 8) & 0xff);
 	b[1] = (tsid & 0xff);
 
-	tc90522_regbuf_set_buf(&regbuf[0], 0x8f, &b[0], 1);
-	tc90522_regbuf_set_buf(&regbuf[1], 0x90, &b[1], 1);
-
-	return tc90522_write_multiple_regs(demod, regbuf, 2);
+	return tc90522_write_regs(demod, 0x8f, b, 2);
 }
 
 int tc90522_get_cn_s(struct tc90522_demod *demod, u16 *cn)
