@@ -5,6 +5,8 @@
  * Copyright (c) 2019 nns779
  */
 
+#include "print_format.h"
+
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
