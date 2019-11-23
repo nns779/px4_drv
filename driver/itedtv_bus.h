@@ -50,20 +50,20 @@ struct itedtv_bus {
 int itedtv_bus_init(struct itedtv_bus *bus);
 int itedtv_bus_term(struct itedtv_bus *bus);
 
-static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus, void *buf, int len, void *opt)
+static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
 {
 	if (!bus || !bus->ops.ctrl_tx)
 		return -EINVAL;
 
-	return bus->ops.ctrl_tx(bus, buf, len, opt);
+	return bus->ops.ctrl_tx(bus, buf, len);
 }
 
-static inline int itedtv_bus_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len, void *opt)
+static inline int itedtv_bus_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
 {
 	if (!bus || !bus->ops.ctrl_rx)
 		return -EINVAL;
 
-	return bus->ops.ctrl_rx(bus, buf, len, opt);
+	return bus->ops.ctrl_rx(bus, buf, len);
 }
 
 static inline int itedtv_bus_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int timeout)
