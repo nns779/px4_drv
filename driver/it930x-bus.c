@@ -171,7 +171,7 @@ static void it930x_usb_complete(struct urb *urb)
 	else
 		dev_dbg(ctx->bus->dev, "it930x_usb_complete: !urb->actual_length\n");
 
-	if (!ret && (atomic_read(&ctx->start) == 1)) {
+	if (!ret && (atomic_read(&ctx->start) >= 1)) {
 #ifdef IT930X_BUS_USE_WORKQUEUE
 		ret = queue_work(ctx->wq, &w->work);
 		if (ret)
