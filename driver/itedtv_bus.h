@@ -11,17 +11,17 @@
 #include <linux/device.h>
 #include <linux/usb.h>
 
-typedef enum {
+enum itedtv_bus_type {
 	ITEDTV_BUS_NONE = 0,
 	ITEDTV_BUS_USB,
-} itedtv_bus_type_t;
+};
 
 typedef int (*itedtv_bus_stream_handler_t)(void *context, void *buf, u32 len);
 
 struct itedtv_bus;
 
 struct itedtv_bus_operations {
-	int (*ctrl_tx)(struct itedtv_bus *bus, const void *buf, int len, void *opt);
+	int (*ctrl_tx)(struct itedtv_bus *bus, void *buf, int len, void *opt);
 	int (*ctrl_rx)(struct itedtv_bus *bus, void *buf, int *len, void *opt);
 	int (*stream_rx)(struct itedtv_bus *bus, void *buf, int *len, int timeout);
 	int (*start_streaming)(struct itedtv_bus *bus, itedtv_bus_stream_handler_t stream_handler, void *context);
@@ -30,14 +30,17 @@ struct itedtv_bus_operations {
 
 struct itedtv_bus {
 	struct device *dev;
-	itedtv_bus_type_t type;
+	enum itedtv_bus_type type;
 	union {
 		struct {
 			struct usb_device *dev;
 			int ctrl_timeout;
-			u32 streaming_urb_buffer_size;
-			u32 streaming_urb_num;
-			bool streaming_no_dma;
+			int max_bulk_size;
+			struct {
+				u32 urb_buffer_size;
+				u32 urb_num;
+				bool no_dma;
+			} streaming;
 			void *priv;
 		} usb;
 	};
@@ -47,7 +50,7 @@ struct itedtv_bus {
 int itedtv_bus_init(struct itedtv_bus *bus);
 int itedtv_bus_term(struct itedtv_bus *bus);
 
-static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus, const void *buf, int len, void *opt)
+static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus, void *buf, int len, void *opt)
 {
 	if (!bus || !bus->ops.ctrl_tx)
 		return -EINVAL;

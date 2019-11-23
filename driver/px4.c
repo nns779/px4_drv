@@ -996,11 +996,11 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 	mutex_lock(&px4->lock);
 
 	if (!px4->streaming_count) {
-		bus->usb.streaming_urb_buffer_size = 188 * urb_max_packets;
-		bus->usb.streaming_urb_num = max_urbs;
-		bus->usb.streaming_no_dma = no_dma;
+		bus->usb.streaming.urb_buffer_size = 188 * urb_max_packets;
+		bus->usb.streaming.urb_num = max_urbs;
+		bus->usb.streaming.no_dma = no_dma;
 
-		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: urb_buffer_size: %u, urb_num: %u, no_dma: %c\n", px4->dev_idx, tsdev->id, bus->usb.streaming_urb_buffer_size, bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
+		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: urb_buffer_size: %u, urb_num: %u, no_dma: %c\n", px4->dev_idx, tsdev->id, bus->usb.streaming.urb_buffer_size, bus->usb.streaming.urb_num, (bus->usb.streaming.no_dma) ? 'Y' : 'N');
 
 		ret = it930x_purge_psb(&px4->it930x, psb_purge_timeout);
 		if (ret) {

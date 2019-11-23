@@ -962,11 +962,11 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 	mutex_lock(&isdb2056->lock);
 
 	if (!isdb2056->streaming_count) {
-		bus->usb.streaming_urb_buffer_size = 188 * urb_max_packets;
-		bus->usb.streaming_urb_num = max_urbs;
-		bus->usb.streaming_no_dma = no_dma;
+		bus->usb.streaming.urb_buffer_size = 188 * urb_max_packets;
+		bus->usb.streaming.urb_num = max_urbs;
+		bus->usb.streaming.no_dma = no_dma;
 
-		dev_dbg(isdb2056->dev, "isdb2056_tsdev_start_streaming %d:%u: urb_buffer_size: %u, urb_num: %u, no_dma: %c\n", isdb2056->dev_idx, tsdev->id, bus->usb.streaming_urb_buffer_size, bus->usb.streaming_urb_num, (bus->usb.streaming_no_dma) ? 'Y' : 'N');
+		dev_dbg(isdb2056->dev, "isdb2056_tsdev_start_streaming %d:%u: urb_buffer_size: %u, urb_num: %u, no_dma: %c\n", isdb2056->dev_idx, tsdev->id, bus->usb.streaming.urb_buffer_size, bus->usb.streaming.urb_num, (bus->usb.streaming.no_dma) ? 'Y' : 'N');
 
 		ret = it930x_purge_psb(&isdb2056->it930x, psb_purge_timeout);
 		if (ret) {
