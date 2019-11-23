@@ -29,8 +29,8 @@
 #include "ptx_ioctl.h"
 #include "module_param.h"
 #include "i2c_comm.h"
-#include "it930x-bus.h"
 #include "it930x.h"
+#include "itedtv_bus.h"
 #include "tc90522.h"
 #include "r850.h"
 #include "rt710.h"
@@ -948,7 +948,7 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 {
 	int ret = 0;
 	struct isdb2056_device *isdb2056 = container_of(tsdev, struct isdb2056_device, tsdev[tsdev->id]);
-	struct it930x_bus *bus = &isdb2056->it930x.bus;
+	struct itedtv_bus *bus = &isdb2056->it930x.bus;
 	struct tc90522_demod *tc90522_t = &tsdev->tc90522_t, *tc90522_s = &tsdev->tc90522_s;
 	unsigned int ringbuffer_size;
 	unsigned int streaming_count;
@@ -1021,9 +1021,9 @@ static int isdb2056_tsdev_start_streaming(struct isdb2056_tsdev *tsdev)
 		isdb2056->stream_context->remain_len = 0;
 
 		dev_dbg(isdb2056->dev, "isdb2056_tsdev_start_streaming %d:%u: starting...\n", isdb2056->dev_idx, tsdev->id);
-		ret = it930x_bus_start_streaming(bus, isdb2056_stream_handler, isdb2056->stream_context);
+		ret = itedtv_bus_start_streaming(bus, isdb2056_stream_handler, isdb2056->stream_context);
 		if (ret) {
-			dev_err(isdb2056->dev, "isdb2056_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed. (ret: %d)\n", isdb2056->dev_idx, tsdev->id, ret);
+			dev_err(isdb2056->dev, "isdb2056_tsdev_start_streaming %d:%u: itedtv_bus_start_streaming() failed. (ret: %d)\n", isdb2056->dev_idx, tsdev->id, ret);
 			goto fail_after_ringbuffer;
 		}
 
@@ -1076,7 +1076,7 @@ static int isdb2056_tsdev_stop_streaming(struct isdb2056_tsdev *tsdev, bool avai
 	isdb2056->streaming_count--;
 	if (!isdb2056->streaming_count) {
 		dev_dbg(isdb2056->dev, "isdb2056_tsdev_stop_streaming %d:%u: stopping...\n", isdb2056->dev_idx, tsdev->id);
-		it930x_bus_stop_streaming(&isdb2056->it930x.bus);
+		itedtv_bus_stop_streaming(&isdb2056->it930x.bus);
 
 #ifdef PSB_DEBUG
 		if (isdb2056->psb_wq) {
@@ -1458,7 +1458,7 @@ static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id
 	struct usb_device *usbdev;
 	struct isdb2056_device *isdb2056 = NULL;
 	struct it930x_bridge *it930x;
-	struct it930x_bus *bus;
+	struct itedtv_bus *bus;
 
 	dev_dbg(dev, "isdb2056_probe: xfer_packets: %u\n", xfer_packets);
 
@@ -1535,11 +1535,11 @@ static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id
 	// Initialize bus operator
 
 	bus->dev = dev;
-	bus->type = IT930X_BUS_USB;
+	bus->type = ITEDTV_BUS_USB;
 	bus->usb.dev = usbdev;
 	bus->usb.ctrl_timeout = 3000;
 
-	ret = it930x_bus_init(bus);
+	ret = itedtv_bus_init(bus);
 	if (ret)
 		goto fail_before_bus;
 
@@ -1634,7 +1634,7 @@ static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id
 fail:
 	it930x_term(it930x);
 fail_before_bridge:
-	it930x_bus_term(bus);
+	itedtv_bus_term(bus);
 fail_before_bus:
 	isdb2056_term(isdb2056);
 fail_before_base:
@@ -1706,7 +1706,7 @@ static void isdb2056_disconnect(struct usb_interface *intf)
 
 	// uninitialize
 	it930x_term(&isdb2056->it930x);
-	it930x_bus_term(&isdb2056->it930x.bus);
+	itedtv_bus_term(&isdb2056->it930x.bus);
 	isdb2056_term(isdb2056);
 	kfree(isdb2056->stream_context);
 	kfree(isdb2056);

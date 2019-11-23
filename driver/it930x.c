@@ -15,8 +15,8 @@
 #include <linux/device.h>
 #include <linux/firmware.h>
 
-#include "it930x-bus.h"
 #include "it930x.h"
+#include "itedtv_bus.h"
 
 #define reg_addr_len(reg)	(((reg) & 0xff000000) ? 4 : (((reg) & 0x00ff0000) ? 3 : (((reg) & 0x0000ff00) ? 2 : 1)))
 
@@ -72,18 +72,18 @@ static int _it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_bu
 	b[l - 1] = (csum1 >> 8) & 0xff;
 	b[l] = csum1 & 0xff;
 
-	ret = it930x_bus_ctrl_tx(&it930x->bus, b, l + 1, NULL);
+	ret = itedtv_bus_ctrl_tx(&it930x->bus, b, l + 1, NULL);
 	if (ret) {
-		dev_err(it930x->dev, "_it930x_control: it930x_bus_ctrl_tx() failed. (cmd: 0x%04x, len: %u, ret: %d)\n", cmd, buf->len, ret);
+		dev_err(it930x->dev, "_it930x_control: itedtv_bus_ctrl_tx() failed. (cmd: 0x%04x, len: %u, ret: %d)\n", cmd, buf->len, ret);
 		goto exit;
 	}
 
 	if (no_rx)
 		goto exit;
 
-	ret = it930x_bus_ctrl_rx(&it930x->bus, b, &rl, NULL);
+	ret = itedtv_bus_ctrl_rx(&it930x->bus, b, &rl, NULL);
 	if (ret) {
-		dev_err(it930x->dev, "_it930x_control: it930x_bus_ctrl_rx() failed. (cmd: 0x%04x, len: %u, rlen: %u, ret: %d)\n", cmd, buf->len, rl, ret);
+		dev_err(it930x->dev, "_it930x_control: itedtv_bus_ctrl_rx() failed. (cmd: 0x%04x, len: %u, rlen: %u, ret: %d)\n", cmd, buf->len, rl, ret);
 		goto exit;
 	}
 
@@ -493,7 +493,7 @@ static int _it930x_enable_stream_output(struct it930x_bridge *it930x, bool enabl
 		return ret;
 
 	switch(it930x->bus.type) {
-	case IT930X_BUS_USB:
+	case ITEDTV_BUS_USB:
 		// disable ep
 		ret = _it930x_write_reg_bits(it930x, 0xdd11, 0, 5, 1);
 		if (ret)
@@ -839,8 +839,8 @@ int it930x_init_device(struct it930x_bridge *it930x)
 {
 	int ret = 0;
 
-	if (it930x->bus.type != IT930X_BUS_USB) {
-		dev_dbg(it930x->dev, "it930x_init_device: This driver only supports usb.\n");
+	if (it930x->bus.type != ITEDTV_BUS_USB) {
+		dev_dbg(it930x->dev, "it930x_init_device: This driver only supports USB.\n");
 		return -EINVAL;
 	}
 
@@ -1084,7 +1084,7 @@ int it930x_purge_psb(struct it930x_bridge *it930x, int timeout)
 	void *p;
 	int len;
 
-	if (it930x->bus.type != IT930X_BUS_USB)
+	if (it930x->bus.type != ITEDTV_BUS_USB)
 		return -EINVAL;
 
 	mutex_lock(&it930x->priv.lock);
@@ -1101,13 +1101,13 @@ int it930x_purge_psb(struct it930x_bridge *it930x, int timeout)
 		goto exit;
 	}
 
-	ret = it930x_bus_stream_rx(&it930x->bus, p, &len, timeout);
+	ret = itedtv_bus_stream_rx(&it930x->bus, p, &len, timeout);
 	kfree(p);
 
 	_it930x_write_reg_bits(it930x, 0xda1d, 0, 0, 1);
 
 	if (ret)
-		dev_dbg(it930x->dev, "it930x_purge_psb: it930x_bus_stream_rx() returned error code %d.\n", ret);
+		dev_dbg(it930x->dev, "it930x_purge_psb: itedtv_bus_stream_rx() returned error code %d.\n", ret);
 
 	dev_dbg(it930x->dev, "it930x_purge_psb: len: %d\n", len);
 

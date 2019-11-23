@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * ITE IT930x bus driver (it930x-bus.c)
+ * ITE IT930x bus driver (itedtv_bus.c)
  *
  * Copyright (c) 2018-2019 nns779
  */
@@ -15,32 +15,32 @@
 #include <linux/device.h>
 #include <linux/usb.h>
 
-#include "it930x-bus.h"
+#include "itedtv_bus.h"
 
-struct it930x_usb_context;
+struct itedtv_usb_context;
 
-struct it930x_usb_work {
-	struct it930x_usb_context *ctx;
+struct itedtv_usb_work {
+	struct itedtv_usb_context *ctx;
 	struct urb *urb;
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 	struct work_struct work;
 #endif
 };
 
-struct it930x_usb_context {
-	struct it930x_bus *bus;
-	it930x_bus_stream_handler_t stream_handler;
+struct itedtv_usb_context {
+	struct itedtv_bus *bus;
+	itedtv_bus_stream_handler_t stream_handler;
 	void *ctx;
 	u32 num_urb;
 	bool no_dma;
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 	struct workqueue_struct *wq;
 #endif
-	struct it930x_usb_work *works;
+	struct itedtv_usb_work *works;
 	atomic_t start;
 };
 
-static int it930x_usb_ctrl_tx(struct it930x_bus *bus, const void *buf, int len, void *opt)
+static int itedtv_usb_ctrl_tx(struct itedtv_bus *bus, const void *buf, int len, void *opt)
 {
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
@@ -72,7 +72,7 @@ static int it930x_usb_ctrl_tx(struct it930x_bus *bus, const void *buf, int len, 
 	return ret;
 }
 
-static int it930x_usb_ctrl_rx(struct it930x_bus *bus, void *buf, int *len, void *opt)
+static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len, void *opt)
 {
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
@@ -90,7 +90,7 @@ static int it930x_usb_ctrl_rx(struct it930x_bus *bus, void *buf, int *len, void 
 	return ret;
 }
 
-static int it930x_usb_stream_rx(struct it930x_bus *bus, void *buf, int *len, int timeout)
+static int itedtv_usb_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int timeout)
 {
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
@@ -106,7 +106,7 @@ static int it930x_usb_stream_rx(struct it930x_bus *bus, void *buf, int *len, int
 	return ret;
 }
 
-static void free_urb_buffers(struct usb_device *dev, struct it930x_usb_work *works, u32 n, bool free_urb, bool no_dma)
+static void free_urb_buffers(struct usb_device *dev, struct itedtv_usb_work *works, u32 n, bool free_urb, bool no_dma)
 {
 	u32 i;
 
@@ -142,63 +142,63 @@ static void free_urb_buffers(struct usb_device *dev, struct it930x_usb_work *wor
 	return;
 }
 
-#ifdef IT930X_BUS_USE_WORKQUEUE
-static void it930x_usb_workqueue_handler(struct work_struct *work)
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
+static void itedtv_usb_workqueue_handler(struct work_struct *work)
 {
-	struct it930x_usb_work *w = container_of(work, struct it930x_usb_work, work);
-	struct it930x_usb_context *ctx = w->ctx;
+	struct itedtv_usb_work *w = container_of(work, struct itedtv_usb_work, work);
+	struct itedtv_usb_context *ctx = w->ctx;
 	int ret = 0;
 
 	ret = usb_submit_urb(w->urb, GFP_KERNEL);
 	if (ret)
-		dev_dbg(ctx->bus->dev, "it930x_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n", ret);
+		dev_dbg(ctx->bus->dev, "itedtv_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n", ret);
 }
 #endif
 
-static void it930x_usb_complete(struct urb *urb)
+static void itedtv_usb_complete(struct urb *urb)
 {
 	int ret = 0;
-	struct it930x_usb_work *w = urb->context;
-	struct it930x_usb_context *ctx = w->ctx;
+	struct itedtv_usb_work *w = urb->context;
+	struct itedtv_usb_context *ctx = w->ctx;
 
 	if (urb->status) {
-		dev_dbg(ctx->bus->dev, "it930x_usb_complete: status: %d\n", urb->status);
+		dev_dbg(ctx->bus->dev, "itedtv_usb_complete: status: %d\n", urb->status);
 		return;
 	}
 
 	if (urb->actual_length)
 		ret = ctx->stream_handler(ctx->ctx, urb->transfer_buffer, urb->actual_length);
 	else
-		dev_dbg(ctx->bus->dev, "it930x_usb_complete: !urb->actual_length\n");
+		dev_dbg(ctx->bus->dev, "itedtv_usb_complete: !urb->actual_length\n");
 
 	if (!ret && (atomic_read(&ctx->start) == 1)) {
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 		ret = queue_work(ctx->wq, &w->work);
 		if (ret)
-			dev_dbg(ctx->bus->dev, "it930x_usb_complete: queue_work() failed. (ret: %d)\n", ret);
+			dev_dbg(ctx->bus->dev, "itedtv_usb_complete: queue_work() failed. (ret: %d)\n", ret);
 #else
 		ret = usb_submit_urb(urb, GFP_ATOMIC);
 		if (ret)
-			dev_dbg(ctx->bus->dev, "it930x_usb_complete: usb_submit_urb() failed. (ret: %d)\n", ret);
+			dev_dbg(ctx->bus->dev, "itedtv_usb_complete: usb_submit_urb() failed. (ret: %d)\n", ret);
 #endif
 	}
 
 	return;
 }
 
-static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_handler_t stream_handler, void *context)
+static int itedtv_usb_start_streaming(struct itedtv_bus *bus, itedtv_bus_stream_handler_t stream_handler, void *context)
 {
 	int ret = 0;
 	u32 i, l, n;
 	bool no_dma;
 	struct usb_device *dev = bus->usb.dev;
-	struct it930x_usb_context *ctx = bus->usb.priv;
-	struct it930x_usb_work *works;
+	struct itedtv_usb_context *ctx = bus->usb.priv;
+	struct itedtv_usb_work *works;
 
 	if (!stream_handler)
 		return -EINVAL;
 
-	dev_dbg(bus->dev, "it930x_usb_start_streaming\n");
+	dev_dbg(bus->dev, "itedtv_usb_start_streaming\n");
 
 	if (atomic_add_return(2, &ctx->start) != 2) {
 		atomic_sub(2, &ctx->start);
@@ -225,7 +225,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_
 
 		urb = usb_alloc_urb(0, GFP_KERNEL | __GFP_ZERO);
 		if (!urb) {
-			dev_err(bus->dev, "it930x_usb_start_streaming: usb_alloc_urb() failed. (i: %u)\n", i);
+			dev_err(bus->dev, "itedtv_usb_start_streaming: usb_alloc_urb() failed. (i: %u)\n", i);
 			break;
 		}
 
@@ -240,17 +240,17 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_
 
 		if (!p) {
 			if (!no_dma)
-				dev_err(bus->dev, "it930x_usb_start_streaming: usb_alloc_coherent() failed. (i: %u)\n", i);
+				dev_err(bus->dev, "itedtv_usb_start_streaming: usb_alloc_coherent() failed. (i: %u)\n", i);
 			else
-				dev_err(bus->dev, "it930x_usb_start_streaming: kmalloc() failed. (i: %u)\n", i);
+				dev_err(bus->dev, "itedtv_usb_start_streaming: kmalloc() failed. (i: %u)\n", i);
 
 			usb_free_urb(urb);
 			break;
 		}
 
-		dev_dbg(bus->dev, "it930x_usb_start_streaming: p: %p, l: %u, dma: %pad\n", p, l, &dma);
+		dev_dbg(bus->dev, "itedtv_usb_start_streaming: p: %p, l: %u, dma: %pad\n", p, l, &dma);
 
-		usb_fill_bulk_urb(urb, dev, usb_rcvbulkpipe(dev, 0x84), p, l, it930x_usb_complete, &works[i]);
+		usb_fill_bulk_urb(urb, dev, usb_rcvbulkpipe(dev, 0x84), p, l, itedtv_usb_complete, &works[i]);
 
 		if (!no_dma) {
 			urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
@@ -259,8 +259,8 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_
 
 		works[i].ctx = ctx;
 		works[i].urb = urb;
-#ifdef IT930X_BUS_USE_WORKQUEUE
-		INIT_WORK(&works[i].work, it930x_usb_workqueue_handler);
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
+		INIT_WORK(&works[i].work, itedtv_usb_workqueue_handler);
 #endif
 	}
 
@@ -271,8 +271,8 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_
 		goto fail;
 	}
 
-#ifdef IT930X_BUS_USE_WORKQUEUE
-	ctx->wq = create_singlethread_workqueue("it930x_usb_workqueue");
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
+	ctx->wq = create_singlethread_workqueue("itedtv_usb_workqueue");
 	if (!ctx->wq)
 		goto fail;
 #endif
@@ -284,7 +284,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_
 		if (ret) {
 			int j;
 
-			dev_err(bus->dev, "it930x_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
+			dev_err(bus->dev, "itedtv_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
 
 			for (j = 0; j < i; j++)
 				usb_kill_urb(works[i].urb);
@@ -296,7 +296,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_
 	if (ret)
 		goto fail;
 
-	dev_dbg(bus->dev, "it930x_usb_start_streaming: n: %u\n", n);
+	dev_dbg(bus->dev, "itedtv_usb_start_streaming: n: %u\n", n);
 
 	ctx->num_urb = n;
 	ctx->no_dma = no_dma;
@@ -307,7 +307,7 @@ static int it930x_usb_start_streaming(struct it930x_bus *bus, it930x_bus_stream_
 	return ret;
 
 fail:
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 	if (ctx->wq) {
 		flush_workqueue(ctx->wq);
 		destroy_workqueue(ctx->wq);
@@ -323,7 +323,7 @@ fail:
 	ctx->ctx = NULL;
 	ctx->num_urb = 0;
 	ctx->no_dma = false;
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 	ctx->wq = NULL;
 #endif
 	ctx->works = NULL;
@@ -333,14 +333,14 @@ fail:
 	return ret;
 }
 
-static int it930x_usb_stop_streaming(struct it930x_bus *bus)
+static int itedtv_usb_stop_streaming(struct itedtv_bus *bus)
 {
 	u32 i, n;
 	struct usb_device *dev = bus->usb.dev;
-	struct it930x_usb_context *ctx = bus->usb.priv;
-	struct it930x_usb_work *works = ctx->works;
+	struct itedtv_usb_context *ctx = bus->usb.priv;
+	struct itedtv_usb_work *works = ctx->works;
 
-	dev_dbg(bus->dev, "it930x_usb_stop_streaming\n");
+	dev_dbg(bus->dev, "itedtv_usb_stop_streaming\n");
 
 	if (atomic_sub_return(2, &ctx->start) != -1) {
 		atomic_add(2, &ctx->start);
@@ -349,7 +349,7 @@ static int it930x_usb_stop_streaming(struct it930x_bus *bus)
 
 	n = ctx->num_urb;
 
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 	if (ctx->wq) {
 		flush_workqueue(ctx->wq);
 		destroy_workqueue(ctx->wq);
@@ -368,7 +368,7 @@ static int it930x_usb_stop_streaming(struct it930x_bus *bus)
 	ctx->ctx = NULL;
 	ctx->num_urb = 0;
 	ctx->no_dma = false;
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 	ctx->wq = NULL;
 #endif
 	ctx->works = NULL;
@@ -378,7 +378,7 @@ static int it930x_usb_stop_streaming(struct it930x_bus *bus)
 	return 0;
 }
 
-int it930x_bus_init(struct it930x_bus *bus)
+int itedtv_bus_init(struct itedtv_bus *bus)
 {
 	int ret = 0;
 
@@ -386,11 +386,11 @@ int it930x_bus_init(struct it930x_bus *bus)
 		return -EINVAL;
 
 	switch(bus->type) {
-	case IT930X_BUS_USB:
+	case ITEDTV_BUS_USB:
 		if (!bus->usb.dev) {
 			ret = -EINVAL;
 		} else {
-			struct it930x_usb_context *ctx;
+			struct itedtv_usb_context *ctx;
 
 			ctx = kmalloc(sizeof(*ctx), GFP_KERNEL);
 			if (!ctx) {
@@ -405,7 +405,7 @@ int it930x_bus_init(struct it930x_bus *bus)
 			ctx->ctx = NULL;
 			ctx->num_urb = 0;
 			ctx->no_dma = false;
-#ifdef IT930X_BUS_USE_WORKQUEUE
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
 			ctx->wq = NULL;
 #endif
 			ctx->works = NULL;
@@ -413,11 +413,11 @@ int it930x_bus_init(struct it930x_bus *bus)
 
 			bus->usb.priv = ctx;
 
-			bus->ops.ctrl_tx = it930x_usb_ctrl_tx;
-			bus->ops.ctrl_rx = it930x_usb_ctrl_rx;
-			bus->ops.stream_rx = it930x_usb_stream_rx;
-			bus->ops.start_streaming = it930x_usb_start_streaming;
-			bus->ops.stop_streaming = it930x_usb_stop_streaming;
+			bus->ops.ctrl_tx = itedtv_usb_ctrl_tx;
+			bus->ops.ctrl_rx = itedtv_usb_ctrl_rx;
+			bus->ops.stream_rx = itedtv_usb_stream_rx;
+			bus->ops.start_streaming = itedtv_usb_start_streaming;
+			bus->ops.stop_streaming = itedtv_usb_stop_streaming;
 		}
 		break;
 
@@ -429,7 +429,7 @@ int it930x_bus_init(struct it930x_bus *bus)
 	return ret;
 }
 
-int it930x_bus_term(struct it930x_bus *bus)
+int itedtv_bus_term(struct itedtv_bus *bus)
 {
 	int ret = 0;
 
@@ -439,12 +439,12 @@ int it930x_bus_term(struct it930x_bus *bus)
 	}
 
 	switch(bus->type) {
-	case IT930X_BUS_USB:
+	case ITEDTV_BUS_USB:
 	{
-		struct it930x_usb_context *ctx = bus->usb.priv;
+		struct itedtv_usb_context *ctx = bus->usb.priv;
 
 		if (ctx) {
-			it930x_usb_stop_streaming(bus);
+			itedtv_usb_stop_streaming(bus);
 			kfree(ctx);
 		}
 		if (bus->usb.dev)
@@ -457,7 +457,7 @@ int it930x_bus_term(struct it930x_bus *bus)
 		break;
 	}
 
-	memset(bus, 0, sizeof(struct it930x_bus));
+	memset(bus, 0, sizeof(struct itedtv_bus));
 
 exit:
 	return ret;

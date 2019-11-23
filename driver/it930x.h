@@ -12,7 +12,7 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 
-#include "it930x-bus.h"
+#include "itedtv_bus.h"
 #include "i2c_comm.h"
 
 #define IT930X_CMD_REG_READ		0x00
@@ -66,7 +66,7 @@ struct it930x_priv {
 
 struct it930x_bridge {
 	struct device *dev;
-	struct it930x_bus bus;
+	struct itedtv_bus bus;
 	struct it930x_config config;
 	struct i2c_comm_master i2c_master[3];
 	struct it930x_priv priv;

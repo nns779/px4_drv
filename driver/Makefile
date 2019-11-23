@@ -25,7 +25,7 @@ ccflags-y += -DRINGBUFFER_USE_SPINLOCK
 endif
 
 obj-m := px4_drv.o
-px4_drv-objs := driver.o module_param.o px4.o isdb2056.o it930x-bus.o it930x.o tc90522.o rt710.o r850.o ringbuffer.o
+px4_drv-objs := driver.o module_param.o px4.o isdb2056.o it930x.o itedtv_bus.o tc90522.o rt710.o r850.o ringbuffer.o
 
 all: px4_drv.ko
 

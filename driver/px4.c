@@ -29,8 +29,8 @@
 #include "ptx_ioctl.h"
 #include "module_param.h"
 #include "i2c_comm.h"
-#include "it930x-bus.h"
 #include "it930x.h"
+#include "itedtv_bus.h"
 #include "tc90522.h"
 #include "r850.h"
 #include "rt710.h"
@@ -982,7 +982,7 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 {
 	int ret = 0;
 	struct px4_device *px4 = container_of(tsdev, struct px4_device, tsdev[tsdev->id]);
-	struct it930x_bus *bus = &px4->it930x.bus;
+	struct itedtv_bus *bus = &px4->it930x.bus;
 	struct tc90522_demod *tc90522 = &tsdev->tc90522;
 	unsigned int ringbuffer_size;
 	unsigned int streaming_count;
@@ -1055,9 +1055,9 @@ static int px4_tsdev_start_streaming(struct px4_tsdev *tsdev)
 		px4->stream_context->remain_len = 0;
 
 		dev_dbg(px4->dev, "px4_tsdev_start_streaming %d:%u: starting...\n", px4->dev_idx, tsdev->id);
-		ret = it930x_bus_start_streaming(bus, px4_stream_handler, px4->stream_context);
+		ret = itedtv_bus_start_streaming(bus, px4_stream_handler, px4->stream_context);
 		if (ret) {
-			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: it930x_bus_start_streaming() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
+			dev_err(px4->dev, "px4_tsdev_start_streaming %d:%u: itedtv_bus_start_streaming() failed. (ret: %d)\n", px4->dev_idx, tsdev->id, ret);
 			goto fail_after_ringbuffer;
 		}
 
@@ -1110,7 +1110,7 @@ static int px4_tsdev_stop_streaming(struct px4_tsdev *tsdev, bool avail)
 	px4->streaming_count--;
 	if (!px4->streaming_count) {
 		dev_dbg(px4->dev, "px4_tsdev_stop_streaming %d:%u: stopping...\n", px4->dev_idx, tsdev->id);
-		it930x_bus_stop_streaming(&px4->it930x.bus);
+		itedtv_bus_stop_streaming(&px4->it930x.bus);
 
 #ifdef PSB_DEBUG
 		if (px4->psb_wq) {
@@ -1588,7 +1588,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	struct usb_device *usbdev;
 	struct px4_device *px4 = NULL;
 	struct it930x_bridge *it930x;
-	struct it930x_bus *bus;
+	struct itedtv_bus *bus;
 
 	dev_dbg(dev, "px4_probe: xfer_packets: %u\n", xfer_packets);
 
@@ -1708,11 +1708,11 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	// Initialize bus operator
 
 	bus->dev = dev;
-	bus->type = IT930X_BUS_USB;
+	bus->type = ITEDTV_BUS_USB;
 	bus->usb.dev = usbdev;
 	bus->usb.ctrl_timeout = 3000;
 
-	ret = it930x_bus_init(bus);
+	ret = itedtv_bus_init(bus);
 	if (ret)
 		goto fail_before_bus;
 
@@ -1833,7 +1833,7 @@ static int px4_probe(struct usb_interface *intf, const struct usb_device_id *id)
 fail:
 	it930x_term(it930x);
 fail_before_bridge:
-	it930x_bus_term(bus);
+	itedtv_bus_term(bus);
 fail_before_bus:
 	px4_term(px4);
 fail_before_base:
@@ -1937,7 +1937,7 @@ static void px4_disconnect(struct usb_interface *intf)
 
 	// uninitialize
 	it930x_term(&px4->it930x);
-	it930x_bus_term(&px4->it930x.bus);
+	itedtv_bus_term(&px4->it930x.bus);
 	px4_term(px4);
 	kfree(px4->stream_context);
 	kfree(px4);
