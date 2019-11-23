@@ -21,8 +21,8 @@ typedef int (*itedtv_bus_stream_handler_t)(void *context, void *buf, u32 len);
 struct itedtv_bus;
 
 struct itedtv_bus_operations {
-	int (*ctrl_tx)(struct itedtv_bus *bus, void *buf, int len, void *opt);
-	int (*ctrl_rx)(struct itedtv_bus *bus, void *buf, int *len, void *opt);
+	int (*ctrl_tx)(struct itedtv_bus *bus, void *buf, int len);
+	int (*ctrl_rx)(struct itedtv_bus *bus, void *buf, int *len);
 	int (*stream_rx)(struct itedtv_bus *bus, void *buf, int *len, int timeout);
 	int (*start_streaming)(struct itedtv_bus *bus, itedtv_bus_stream_handler_t stream_handler, void *context);
 	int (*stop_streaming)(struct itedtv_bus *bus);

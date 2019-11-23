@@ -42,7 +42,7 @@ struct itedtv_usb_context {
 	atomic_t streaming;
 };
 
-static int itedtv_usb_ctrl_tx(struct itedtv_bus *bus, void *buf, int len, void *opt)
+static int itedtv_usb_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
 {
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
@@ -58,7 +58,7 @@ static int itedtv_usb_ctrl_tx(struct itedtv_bus *bus, void *buf, int len, void *
 	return ret;
 }
 
-static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len, void *opt)
+static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
 {
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;

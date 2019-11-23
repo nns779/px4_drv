@@ -72,7 +72,7 @@ static int _it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_bu
 	b[l - 1] = (csum1 >> 8) & 0xff;
 	b[l] = csum1 & 0xff;
 
-	ret = itedtv_bus_ctrl_tx(&it930x->bus, b, l + 1, NULL);
+	ret = itedtv_bus_ctrl_tx(&it930x->bus, b, l + 1);
 	if (ret) {
 		dev_err(it930x->dev, "_it930x_control: itedtv_bus_ctrl_tx() failed. (cmd: 0x%04x, len: %u, ret: %d)\n", cmd, buf->len, ret);
 		goto exit;
@@ -81,7 +81,7 @@ static int _it930x_control(struct it930x_bridge *it930x, u16 cmd, struct ctrl_bu
 	if (no_rx)
 		goto exit;
 
-	ret = itedtv_bus_ctrl_rx(&it930x->bus, b, &rl, NULL);
+	ret = itedtv_bus_ctrl_rx(&it930x->bus, b, &rl);
 	if (ret) {
 		dev_err(it930x->dev, "_it930x_control: itedtv_bus_ctrl_rx() failed. (cmd: 0x%04x, len: %u, rlen: %u, ret: %d)\n", cmd, buf->len, rl, ret);
 		goto exit;
