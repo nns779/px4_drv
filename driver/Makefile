@@ -17,10 +17,16 @@ endif
 ifneq ($(VERBOSE),0)
 cmd_prefix :=
 endif
-ifneq ($(drv-MAX_DEVICE),0)
-ccflags-y += -DMAX_DEVICE=$(drv-MAX_DEVICE)
+ifneq ($(dMAX_DEVICE),0)
+ccflags-y += -DMAX_DEVICE=$(dMAX_DEVICE)
 endif
-ifneq ($(drv-RINGBUFFER_USE_SPINLOCK),0)
+ifneq ($(dPSB_DEBUG),0)
+ccflags-y += -DPSB_DEBUG
+endif
+ifneq ($(dITEDTV_BUS_USE_WORKQUEUE),0)
+ccflags-y += -DITEDTV_BUS_USE_WORKQUEUE
+endif
+ifneq ($(dRINGBUFFER_USE_SPINLOCK),0)
 ccflags-y += -DRINGBUFFER_USE_SPINLOCK
 endif
 
