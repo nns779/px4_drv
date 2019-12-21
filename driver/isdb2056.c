@@ -1565,7 +1565,7 @@ static int isdb2056_probe(struct usb_interface *intf, const struct usb_device_id
 	if (ret)
 		goto fail;
 
-	ret = it930x_init_device(it930x);
+	ret = it930x_init_warm(it930x);
 	if (ret)
 		goto fail;
 
