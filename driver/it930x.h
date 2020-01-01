@@ -8,8 +8,12 @@
 #ifndef __IT930X_H__
 #define __IT930X_H__
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#else
 #include <linux/types.h>
 #include <linux/device.h>
+#endif
 
 #include "itedtv_bus.h"
 #include "i2c_comm.h"

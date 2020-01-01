@@ -7,6 +7,9 @@
 
 #include "print_format.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#else
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
@@ -14,6 +17,7 @@
 #include <linux/delay.h>
 #include <linux/mutex.h>
 #include <linux/device.h>
+#endif
 
 #include "i2c_comm.h"
 #include "rt710.h"
@@ -359,7 +363,7 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	int ret = 0;
 	u8 regs[NUM_REGS];
 	u32 bandwidth;
-	struct rt710_bandwidth_param bw_param = {};
+	struct rt710_bandwidth_param bw_param = { 0 };
 
 	if (!t->priv.init)
 		return -EINVAL;

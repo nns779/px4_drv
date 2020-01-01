@@ -7,6 +7,9 @@
 
 #include "print_format.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#else
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
@@ -14,6 +17,7 @@
 #include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/firmware.h>
+#endif
 
 #include "it930x.h"
 #include "itedtv_bus.h"

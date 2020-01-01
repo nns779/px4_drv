@@ -7,6 +7,10 @@
 
 #include "print_format.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#include "winusb_compat.h"
+#else
 #include <linux/version.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -14,8 +18,13 @@
 #include <linux/slab.h>
 #include <linux/device.h>
 #include <linux/usb.h>
+#endif
 
 #include "itedtv_bus.h"
+
+#if defined(ITEDTV_BUS_USE_WORKQUEUE) && !defined(__linux__)
+#undef ITEDTV_BUS_USE_WORKQUEUE
+#endif
 
 struct itedtv_usb_context;
 
@@ -151,12 +160,15 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 	for (i = 0; i < num; i++) {
 		struct urb *urb;
 		void *p;
+#ifdef __linux__
 		dma_addr_t dma;
+#endif
 
 		if (works[i].urb) {
 			urb = works[i].urb;
 
 			if (urb->transfer_buffer) {
+#ifdef __linux__
 				if ((urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP) && (no_dma || urb->transfer_buffer_length != buf_size)) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 					usb_free_coherent(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
@@ -176,6 +188,13 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 					urb->transfer_buffer_length = 0;
 					urb->actual_length = 0;
 				}
+#else
+				kfree(urb->transfer_buffer);
+
+				urb->transfer_buffer = NULL;
+				urb->transfer_buffer_length = 0;
+				urb->actual_length = 0;
+#endif
 			}
 		} else {
 			urb = usb_alloc_urb(0, GFP_KERNEL);
@@ -190,6 +209,7 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 		works[i].ctx = ctx;
 
 		if (!urb->transfer_buffer) {
+#ifdef __linux__
 			if (!no_dma)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 				p = usb_alloc_coherent(dev, buf_size, GFP_KERNEL, &dma);
@@ -198,12 +218,19 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 #endif
 			else
 				p = kmalloc(buf_size, GFP_KERNEL);
+#else
+			p = kmalloc(buf_size, GFP_KERNEL);
+#endif
 
 			if (!p) {
+#ifdef __linux__
 				if (!no_dma)
 					dev_err(bus->dev, "itedtv_usb_alloc_urb_buffers: usb_alloc_coherent() failed. (i: %u)\n", i);
 				else
 					dev_err(bus->dev, "itedtv_usb_alloc_urb_buffers: kmalloc() failed. (i: %u)\n", i);
+#else
+				dev_err(bus->dev, "itedtv_usb_alloc_urb_buffers: kmalloc() failed. (i: %u)\n", i);
+#endif
 
 				usb_free_urb(urb);
 				works[i].urb = NULL;
@@ -211,14 +238,20 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 				break;
 			}
 
+#ifdef __linux__
 			dev_dbg(bus->dev, "itedtv_usb_alloc_urb_buffers: p: %p, buf_size: %u, dma: %pad\n", p, buf_size, &dma);
+#else
+			dev_dbg(bus->dev, "itedtv_usb_alloc_urb_buffers: p: %p, buf_size: %u\n", p, buf_size);
+#endif
 
 			usb_fill_bulk_urb(urb, dev, usb_rcvbulkpipe(dev, 0x84), p, buf_size, itedtv_usb_complete, &works[i]);
 
+#ifdef __linux__
 			if (!no_dma) {
 				urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 				urb->transfer_dma = dma;
 			}
+#endif
 		}
 
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
@@ -252,6 +285,7 @@ static void itedtv_usb_free_urb_buffers(struct itedtv_usb_context *ctx, bool fre
 			continue;
 
 		if (urb->transfer_buffer) {
+#ifdef __linux__
 			if (!no_dma) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 				usb_free_coherent(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
@@ -262,6 +296,9 @@ static void itedtv_usb_free_urb_buffers(struct itedtv_usb_context *ctx, bool fre
 				urb->transfer_dma = 0;
 			} else
 				kfree(urb->transfer_buffer);
+#else
+			kfree(urb->transfer_buffer);
+#endif
 
 			urb->transfer_buffer = NULL;
 			urb->transfer_buffer_length = 0;
@@ -363,7 +400,7 @@ static int itedtv_usb_start_streaming(struct itedtv_bus *bus, itedtv_bus_stream_
 	for (i = 0; i < num; i++) {
 		ret = usb_submit_urb(works[i].urb, GFP_KERNEL);
 		if (ret) {
-			int j;
+			u32 j;
 
 			dev_err(bus->dev, "itedtv_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
 
@@ -446,7 +483,7 @@ int itedtv_bus_init(struct itedtv_bus *bus)
 			break;
 		}
 
-		if (bus->usb.dev->speed <= USB_SPEED_LOW) {
+		if (bus->usb.dev->descriptor.bcdUSB < 0x0110) {
 			ret = -EIO;
 			break;
 		}
@@ -475,7 +512,7 @@ int itedtv_bus_init(struct itedtv_bus *bus)
 		bus->usb.priv = ctx;
 
 		if (!bus->usb.max_bulk_size)
-			bus->usb.max_bulk_size = (bus->usb.dev->speed == USB_SPEED_FULL) ? 64 : 512;
+			bus->usb.max_bulk_size = (bus->usb.dev->descriptor.bcdUSB == 0x0110) ? 64 : 512;
 
 		bus->ops.ctrl_tx = itedtv_usb_ctrl_tx;
 		bus->ops.ctrl_rx = itedtv_usb_ctrl_rx;

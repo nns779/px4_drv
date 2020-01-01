@@ -9,6 +9,9 @@
 
 #include "print_format.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#else
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
@@ -16,6 +19,7 @@
 #include <linux/mutex.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#endif
 
 #include "r850.h"
 
@@ -1013,7 +1017,7 @@ static int _r850_imr_check_iq_cross(struct r850_tuner *t, struct r850_imr *imr, 
 	struct {
 		u8 gain;
 		u8 phase;
-	} cross[9] = {};
+	} cross[9] = { 0 };
 
 	cross[1].phase = 1;
 	cross[2].phase = (0x20 | 1);

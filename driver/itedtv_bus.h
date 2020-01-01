@@ -8,8 +8,13 @@
 #ifndef	__ITEDTV_BUS_H__
 #define __ITEDTV_BUS_H__
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#include "winusb_compat.h"
+#else
 #include <linux/device.h>
 #include <linux/usb.h>
+#endif
 
 enum itedtv_bus_type {
 	ITEDTV_BUS_NONE = 0,

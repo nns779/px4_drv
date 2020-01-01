@@ -8,7 +8,11 @@
 #ifndef __I2C_COMM_H__
 #define __I2C_COMM_H__
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#else
 #include <linux/types.h>
+#endif
 
 struct i2c_comm_request {
 	enum i2c_request_type {

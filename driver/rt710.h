@@ -8,9 +8,13 @@
 #ifndef __RT710_H__
 #define __RT710_H__
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#else
 #include <linux/types.h>
 #include <linux/mutex.h>
 #include <linux/device.h>
+#endif
 
 #include "i2c_comm.h"
 
