@@ -625,7 +625,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 		// send firmware block
 
 		wb.buf = (u8 *)p;
-		wb.len = len;
+		wb.len = (u8)len;
 
 		ret = it930x_ctrl_msg(it930x, IT930X_CMD_FW_SCATTER_WRITE, &wb, NULL, NULL, false);
 		if (ret) {
