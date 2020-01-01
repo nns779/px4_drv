@@ -85,13 +85,15 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_
 	u16 csum, csum2;
 	int rlen = 256;
 
-	if (!wbuf || wbuf->len > (255 - 3 - 2))
+	if (wbuf && wbuf->len > (255 - 3 - 2))
 		return -EINVAL;
 
 	mutex_lock(&priv->ctrl_lock);
 
 	buf = priv->buf;
-	len = 4 + wbuf->len + 2;
+	len = 4 + 2;
+	if (wbuf)
+		len += wbuf->len;
 	seq = priv->seq++;
 
 	buf[0] = len - 1;
