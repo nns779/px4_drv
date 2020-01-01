@@ -1,15 +1,16 @@
 // tsv.c
 
+#include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "tsv.h"
 
-int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, size_t *str_poolsize)
+int load(const uint8_t *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, size_t *str_poolsize)
 {
-	const char *p = buf;
-	char *pool_p = str_pool;
+	const uint8_t *p = buf;
+	uint8_t *pool_p = (uint8_t *)str_pool;
 	size_t l = buf_len, pool_size = 0, pool_remain = 0;
 	int col_num = 0, row_num = 0;
 
@@ -21,7 +22,7 @@ int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, 
 		int newline = 0;
 
 		do {
-			const char *pb = p, *pp = NULL;
+			const uint8_t *pb = p, *pp = NULL;
 
 			while(l && *p != '\0') {
 				if (*p == '\t') {
@@ -62,9 +63,9 @@ int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, 
 					pool_p[sl - 1] = '\0';
 
 					if (!col_num)
-						tsv->name[num] = pool_p;
+						tsv->name[num] = (char *)pool_p;
 					else
-						tsv->field[row_num][num] = pool_p;
+						tsv->field[row_num][num] = (char *)pool_p;
 
 					pool_p += sl;
 					pool_remain -= sl;
@@ -73,7 +74,7 @@ int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, 
 				pool_size += sl;
 				num++;
 			}
-		} while(!newline && l && *p != '\0');
+		} while (!newline && l && *p != '\0');
 
 		if (num) {
 			if (!col_num) {
@@ -99,7 +100,7 @@ int load(const char *buf, size_t buf_len, struct tsv_data *tsv, void *str_pool, 
 	return 0;
 }
 
-int tsv_load(const char *buf, size_t len, struct tsv_data **tsv)
+int tsv_load(const uint8_t *buf, size_t len, struct tsv_data **tsv)
 {
 	int ret = 0, i;
 	struct tsv_data tsv_tmp, *tsv_ret;
