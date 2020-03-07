@@ -5,7 +5,7 @@
  * Copyright (c) 2018-2019 nns779
  */
 
-#ifndef	__ITEDTV_BUS_H__
+#ifndef __ITEDTV_BUS_H__
 #define __ITEDTV_BUS_H__
 
 #if defined(_WIN32) || defined(_WIN64)

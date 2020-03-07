@@ -606,7 +606,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 
 	n = fw->size;
 
-	for(i = 0; i < n; i += len) {
+	for (i = 0; i < n; i += len) {
 		const u8 *p = &fw->data[i];
 		unsigned j, m = p[3];
 
