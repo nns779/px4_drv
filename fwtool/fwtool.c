@@ -18,8 +18,14 @@
 
 #define le32_load(p)	(*((uint8_t *)(p)) | *(((uint8_t *)(p)) + 1) << 8 | *(((uint8_t *)(p)) + 2) << 16 | *(((uint8_t *)(p)) + 3) << 24)
 
+enum fw_target {
+	FW_TARGET_UNKNOWN = 0,
+	FW_TARGET_IT930X
+};
+
 struct fwinfo {
 	char *desc;
+	enum fw_target target;
 	unsigned long size;
 	uint32_t crc32;
 	uint8_t align;
@@ -31,6 +37,7 @@ struct fwinfo {
 
 static const char *name[] = {
 	"description",
+	"target",
 	"size",
 	"crc32",
 	"align",
@@ -40,7 +47,15 @@ static const char *name[] = {
 	"firmware_crc32"
 };
 
+static struct {
+	char str[16];
+	enum fw_target target;
+} target_list[] = {
+	{ "it930x", FW_TARGET_IT930X }
+};
+
 #define NAME_NUM	(sizeof(name) / sizeof(name[0]))
+#define TARGET_LIST_NUM	(sizeof(target_list) / sizeof(target_list[0]))
 
 static int load_file(const char *path, uint8_t **buf, unsigned long *size)
 {
@@ -130,6 +145,29 @@ static int load_tsv_file(struct tsv_data **tsv)
 	return ret;
 }
 
+static int parse_fw_target(const char *str, enum fw_target *target)
+{
+	int i;
+
+	for (i = 0; i < TARGET_LIST_NUM; i++) {
+#if defined(_WIN32) || defined(_WIN64)
+		if (!_stricmp(str, target_list[i].str)) {
+#else
+		if (!strcasecmp(str, target_list[i].str)) {
+#endif
+			*target = target_list[i].target;
+			break;
+		}
+	}
+
+	if (i >= TARGET_LIST_NUM) {
+		*target = FW_TARGET_UNKNOWN;
+		return -1;
+	}
+
+	return 0;
+}
+
 static int load_fwinfo(struct tsv_data *tsv, struct fwinfo *fi, int num)
 {
 	int i, j;
@@ -154,13 +192,17 @@ static int load_fwinfo(struct tsv_data *tsv, struct fwinfo *fi, int num)
 
 	for (i = 0; i < num; i++) {
 		fi[i].desc = tsv->field[i][name_map[0]];
-		fi[i].size = strtoul(tsv->field[i][name_map[1]], NULL, 10);
-		fi[i].crc32 = strtoul(tsv->field[i][name_map[2]], NULL, 16);
-		fi[i].align = (uint8_t)strtoul(tsv->field[i][name_map[3]], NULL, 10);
-		fi[i].code_ofs = strtoul(tsv->field[i][name_map[4]], NULL, 16);
-		fi[i].segment_ofs = strtoul(tsv->field[i][name_map[5]], NULL, 16);
-		fi[i].partition_ofs = strtoul(tsv->field[i][name_map[6]], NULL, 16);
-		fi[i].fw_crc32 = strtoul(tsv->field[i][name_map[7]], NULL, 16);
+		if (parse_fw_target(tsv->field[i][name_map[1]], &fi[i].target)) {
+			fprintf(stderr, "Unknown firmware target '%s'.\n", tsv->field[i][name_map[1]]);
+			return -1;
+		}
+		fi[i].size = strtoul(tsv->field[i][name_map[2]], NULL, 10);
+		fi[i].crc32 = strtoul(tsv->field[i][name_map[3]], NULL, 16);
+		fi[i].align = (uint8_t)strtoul(tsv->field[i][name_map[4]], NULL, 10);
+		fi[i].code_ofs = strtoul(tsv->field[i][name_map[5]], NULL, 16);
+		fi[i].segment_ofs = strtoul(tsv->field[i][name_map[6]], NULL, 16);
+		fi[i].partition_ofs = strtoul(tsv->field[i][name_map[7]], NULL, 16);
+		fi[i].fw_crc32 = strtoul(tsv->field[i][name_map[8]], NULL, 16);
 	}
 
 	return 0;
@@ -256,6 +298,8 @@ static void usage()
 int main(int argc, char *argv[])
 {
 	int ret, num, i;
+	char *in = NULL, *out = NULL;
+	enum fw_target target = FW_TARGET_UNKNOWN;
 	struct tsv_data *tsv = NULL;
 	struct fwinfo *fi = NULL;
 	uint8_t *buf = NULL;
@@ -264,13 +308,46 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "fwtool for px4 drivers\n\n");
 
-	if (argc < 3) {
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			if (argv[i][1] == 't') {
+				// target parameter
+				char *t = NULL;
+					
+				if (argv[i][2] == '\0') {
+					if ((i + 1) < argc)
+						t = argv[++i];
+				} else
+					t = &argv[i][2];
+
+				if (!t)
+					continue;
+
+				parse_fw_target(t, &target);
+			}
+		} else if (!in)
+			in = argv[i];
+		else if (!out)
+			out = argv[i];
+	}
+
+	if (!in) {
 		usage();
 		return 0;
 	}
 
-	fprintf(stderr, "Driver file (in)    : %s\n", argv[1]);
-	fprintf(stderr, "Firmware file (out) : %s\n\n", argv[2]);
+	if (out && target == FW_TARGET_UNKNOWN)
+		target = FW_TARGET_IT930X;
+	else if (!out && target == FW_TARGET_IT930X)
+		out = "it930x-firmware.bin";
+
+	if (!out || target == FW_TARGET_UNKNOWN) {
+		usage();
+		return 0;
+	}
+
+	fprintf(stderr, "Driver file (in)    : %s\n", in);
+	fprintf(stderr, "Firmware file (out) : %s\n\n", out);
 
 	ret = load_tsv_file(&tsv);
 	if (ret) {
@@ -297,7 +374,7 @@ int main(int argc, char *argv[])
 		goto fail;
 	}
 
-	ret = load_file(argv[1], &buf, &size);
+	ret = load_file(in, &buf, &size);
 	if (ret == -1) {
 		fprintf(stderr, "Failed to load driver file.\n");
 		goto fail;
@@ -306,10 +383,10 @@ int main(int argc, char *argv[])
 	crc32 = crc32_calc(buf, size);
 
 	for (i = 0; i < num; i++) {
-		if (size == fi[i].size && crc32 == fi[i].crc32) {
+		if (target == fi[i].target && size == fi[i].size && crc32 == fi[i].crc32) {
 			fprintf(stderr, "Driver description: %s\n", fi[i].desc);
 
-			ret = output_firmware(&fi[i], buf, size, argv[2]);
+			ret = output_firmware(&fi[i], buf, size, out);
 			if (!ret)
 				fprintf(stderr, "OK.\n");
 
