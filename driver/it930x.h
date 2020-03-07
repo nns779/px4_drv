@@ -57,6 +57,9 @@ struct it930x_bridge {
 	void *priv;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *rbuf, u8 len);
 int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val);
 int it930x_write_regs(struct it930x_bridge *it930x, u32 reg, u8 *wbuf, u8 len);
@@ -73,5 +76,8 @@ int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable);
 int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high);
 int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high);
 int it930x_purge_psb(struct it930x_bridge *it930x, int timeout);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

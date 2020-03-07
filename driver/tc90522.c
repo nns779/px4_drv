@@ -186,7 +186,7 @@ int tc90522_write_multiple_regs(struct tc90522_demod *demod, struct tc90522_regb
 	return ret;
 }
 
-static int tc90522_i2c_master_request(void *i2c_priv, struct i2c_comm_request *req, int num)
+static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_request *req, int num)
 {
 	int ret = 0, i, master_req_num = 0, n = 0;
 	struct tc90522_demod *demod = i2c_priv;

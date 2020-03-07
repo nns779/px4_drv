@@ -67,7 +67,7 @@ static u16 it930x_calc_checksum(void *buf, size_t len)
 	u8 *b;
 	u16 c = 0;
 
-	i = len / 2;
+	i = (int)(len / 2);
 	b = buf;
 
 	while (i--) {
@@ -107,7 +107,7 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_
 	if (wbuf && wbuf->buf)
 		memcpy(&buf[4], wbuf->buf, wbuf->len);
 
-	csum = it930x_calc_checksum(&buf[1], len - 1 - 2);
+	csum = it930x_calc_checksum(&buf[1], (size_t)len - 1 - 2);
 	buf[len - 2] = ((csum >> 8) & 0xff);
 	buf[len - 1] = (csum & 0xff);
 
@@ -128,7 +128,7 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_
 		goto exit;
 	}
 
-	csum = it930x_calc_checksum(&buf[1], rlen - 1 - 2);
+	csum = it930x_calc_checksum(&buf[1], (size_t)rlen - 1 - 2);
 	csum2 = ((buf[rlen - 2] << 8) | buf[rlen - 1]);
 	if (csum != csum2) {
 		dev_err(it930x->dev, "it930x_ctrl_msg: checksum is incorrect. (0x%02x, 0x%02x)\n", csum, csum2);
@@ -242,7 +242,7 @@ int it930x_write_reg_mask(struct it930x_bridge *it930x, u32 reg, u8 val, u8 mask
 	return it930x_write_reg(it930x, reg, tmp);
 }
 
-static int it930x_i2c_master_request(void *i2c_priv, struct i2c_comm_request *req, int num)
+static int it930x_i2c_master_request(void *i2c_priv, const struct i2c_comm_request *req, int num)
 {
 	int ret = 0, i;
 	struct it930x_i2c_master_info *i2c = i2c_priv;
@@ -626,7 +626,7 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 			continue;
 		}
 
-		len += 4 + (m * 3);
+		len += 4 + ((size_t)m * 3);
 
 		// send firmware block
 

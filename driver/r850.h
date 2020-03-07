@@ -80,13 +80,16 @@ struct r850_priv {
 };
 
 struct r850_tuner {
-	struct device *dev;
-	struct i2c_comm_master *i2c;
+	const struct device *dev;
+	const struct i2c_comm_master *i2c;
 	u8 i2c_addr;
 	struct r850_config config;
 	struct r850_priv priv;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int r850_init(struct r850_tuner *t);
 int r850_term(struct r850_tuner *t);
 
@@ -95,5 +98,8 @@ int r850_wakeup(struct r850_tuner *t);
 int r850_set_system(struct r850_tuner *t, struct r850_system_config *system);
 int r850_set_frequency(struct r850_tuner *t, u32 freq);
 int r850_is_pll_locked(struct r850_tuner *t, bool *locked);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

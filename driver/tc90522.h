@@ -23,8 +23,8 @@ struct tc90522_priv {
 };
 
 struct tc90522_demod {
-	struct device *dev;
-	struct i2c_comm_master *i2c;
+	const struct device *dev;
+	const struct i2c_comm_master *i2c;
 	u8 i2c_addr;
 	struct i2c_comm_master i2c_master;
 	bool is_secondary;
@@ -54,6 +54,9 @@ static inline void tc90522_regbuf_set_buf(struct tc90522_regbuf *regbuf, u8 reg,
 	regbuf->u.len = len;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len);
 int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val);
 int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num);
@@ -78,5 +81,8 @@ int tc90522_set_agc_t(struct tc90522_demod *demod, bool on);
 int tc90522_get_cndat_t(struct tc90522_demod *demod, u32 *cndat);
 int tc90522_enable_ts_pins_t(struct tc90522_demod *demod, bool e);
 int tc90522_is_signal_locked_t(struct tc90522_demod *demod, bool *lock);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

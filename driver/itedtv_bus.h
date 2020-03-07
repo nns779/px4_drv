@@ -44,7 +44,8 @@ struct itedtv_bus {
 			struct {
 				u32 urb_buffer_size;
 				u32 urb_num;
-				bool no_dma;
+				bool no_dma;	// for Linux
+				bool no_raw_io;	// for Windows(WinUSB)
 			} streaming;
 			void *priv;
 		} usb;
@@ -52,8 +53,14 @@ struct itedtv_bus {
 	struct itedtv_bus_operations ops;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int itedtv_bus_init(struct itedtv_bus *bus);
 int itedtv_bus_term(struct itedtv_bus *bus);
+#ifdef __cplusplus
+}
+#endif
 
 static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
 {
