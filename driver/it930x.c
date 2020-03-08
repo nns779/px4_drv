@@ -142,10 +142,10 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_
 		goto exit;
 	}
 
-	if (buf[2] > 1) {
+	if (buf[2]) {
 		dev_err(it930x->dev, "it930x_ctrl_msg: error returned. (result: %u)\n", buf[2]);
 		ret = -EIO;
-	} else if (!buf[2] && rbuf) {
+	} else if (rbuf) {
 		if (rbuf->buf) {
 			rbuf->len = ((rlen - 3 - 2) > rbuf->len) ? rbuf->len : (rlen - 3 - 2);
 			memcpy(rbuf->buf, &buf[3], rbuf->len);
