@@ -317,18 +317,20 @@ int main(int argc, char *argv[])
 				if (argv[i][2] == '\0') {
 					if ((i + 1) < argc)
 						t = argv[++i];
-				} else
+				} else {
 					t = &argv[i][2];
+				}
 
 				if (!t)
 					continue;
 
 				parse_fw_target(t, &target);
 			}
-		} else if (!in)
+		} else if (!in) {
 			in = argv[i];
-		else if (!out)
+		} else if (!out) {
 			out = argv[i];
+		}
 	}
 
 	if (!in) {
