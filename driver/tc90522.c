@@ -22,7 +22,9 @@
 #include "i2c_comm.h"
 #include "tc90522.h"
 
-static int _tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
+static int _tc90522_read_regs(struct tc90522_demod *demod,
+			      u8 reg,
+			      u8 *buf, u8 len)
 {
 	int ret = 0;
 	u8 b;
@@ -45,7 +47,9 @@ static int _tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 l
 
 	ret = i2c_comm_master_request(demod->i2c, req, 2);
 	if (ret)
-		dev_err(demod->dev, "_tc90522_read_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u)\n", demod->i2c_addr, reg, len);
+		dev_err(demod->dev,
+			"_tc90522_read_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u)\n",
+			demod->i2c_addr, reg, len);
 
 	return ret;
 }
@@ -81,7 +85,8 @@ int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val)
 	return ret;
 }
 
-int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
+int tc90522_read_multiple_regs(struct tc90522_demod *demod,
+			       struct tc90522_regbuf *regbuf, int num)
 {
 	int ret = 0, i;
 
@@ -91,7 +96,9 @@ int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbu
 	mutex_lock(&demod->priv.lock);
 
 	for (i = 0; i < num; i++) {
-		ret = _tc90522_read_regs(demod, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
+		ret = _tc90522_read_regs(demod,
+					 regbuf[i].reg,
+					 regbuf[i].buf, regbuf[i].u.len);
 		if (ret)
 			break;
 	}
@@ -101,16 +108,20 @@ int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbu
 	return ret;
 }
 
-static int _tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
+static int _tc90522_write_regs(struct tc90522_demod *demod,
+			       u8 reg,
+			       u8 *buf, u8 len)
 {
 	int ret = 0;
 	u8 b[255];
 	struct i2c_comm_request req[1];
 
-	if (!buf || !len)
+	if (!buf || !len) {
 		return -EINVAL;
-	else if (len > 254) {
-		dev_dbg(demod->dev, "_tc90522_write_regs: Buffer too large. (addr: 0x%x, reg: %u, len: 0x%x)\n", demod->i2c_addr, reg, len);
+	} else if (len > 254) {
+		dev_dbg(demod->dev,
+			"_tc90522_write_regs: Buffer too large. (addr: 0x%x, reg: %u, len: 0x%x)\n",
+			demod->i2c_addr, reg, len);
 		return -EINVAL;
 	}
 
@@ -124,7 +135,9 @@ static int _tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 
 
 	ret = i2c_comm_master_request(demod->i2c, req, 1);
 	if (ret)
-		dev_err(demod->dev, "_tc90522_write_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u, ret: %d)\n", demod->i2c_addr, reg, len, ret);
+		dev_err(demod->dev,
+			"_tc90522_write_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u, ret: %d)\n",
+			demod->i2c_addr, reg, len, ret);
 
 	return ret;
 }
@@ -162,7 +175,8 @@ int tc90522_write_reg(struct tc90522_demod *demod, u8 reg, u8 val)
 	return ret;
 }
 
-int tc90522_write_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num)
+int tc90522_write_multiple_regs(struct tc90522_demod *demod,
+				struct tc90522_regbuf *regbuf, int num)
 {
 	int ret = 0, i;
 
@@ -173,9 +187,15 @@ int tc90522_write_multiple_regs(struct tc90522_demod *demod, struct tc90522_regb
 
 	for (i = 0; i < num; i++) {
 		if (regbuf[i].buf)
-			ret = _tc90522_write_regs(demod, regbuf[i].reg, regbuf[i].buf, regbuf[i].u.len);
+			ret = _tc90522_write_regs(demod,
+						  regbuf[i].reg,
+						  regbuf[i].buf,
+						  regbuf[i].u.len);
 		else
-			ret = _tc90522_write_regs(demod, regbuf[i].reg, &regbuf[i].u.val, 1);
+			ret = _tc90522_write_regs(demod,
+						  regbuf[i].reg,
+						  &regbuf[i].u.val,
+						  1);
 
 		if (ret)
 			break;
@@ -186,7 +206,9 @@ int tc90522_write_multiple_regs(struct tc90522_demod *demod, struct tc90522_regb
 	return ret;
 }
 
-static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_request *req, int num)
+static int tc90522_i2c_master_request(void *i2c_priv,
+				      const struct i2c_comm_request *req,
+				      int num)
 {
 	int ret = 0, i, master_req_num = 0, n = 0;
 	struct tc90522_demod *demod = i2c_priv;
@@ -198,7 +220,9 @@ static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_requ
 		switch (req[i].req) {
 		case I2C_READ_REQUEST:
 			if (!req[i].data || !req[i].len) {
-				dev_dbg(demod->dev, "tc90522_i2c_master_request: Invalid parameter. (i: %d)\n", i);
+				dev_dbg(demod->dev,
+					"tc90522_i2c_master_request: Invalid parameter. (i: %d)\n",
+					i);
 				ret = -EINVAL;
 				break;
 			}
@@ -208,7 +232,9 @@ static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_requ
 
 		case I2C_WRITE_REQUEST:
 			if (!req[i].data || !req[i].len || req[i].len > 253) {
-				dev_dbg(demod->dev, "tc90522_i2c_master_request: Invalid parameter. (i: %d)\n", i);
+				dev_dbg(demod->dev,
+					"tc90522_i2c_master_request: Invalid parameter. (i: %d)\n",
+					i);
 				ret = -EINVAL;
 				break;
 			}
@@ -228,7 +254,8 @@ static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_requ
 	if (!master_req_num)
 		goto exit;
 
-	if ((num == 1 && req[0].req == I2C_WRITE_REQUEST) || (num == 2 && req[0].req == I2C_WRITE_REQUEST && req[1].req == I2C_READ_REQUEST)) {
+	if ((num == 1 && req[0].req == I2C_WRITE_REQUEST) ||
+	    (num == 2 && req[0].req == I2C_WRITE_REQUEST && req[1].req == I2C_READ_REQUEST)) {
 		u8 b[255], br[2];
 		struct i2c_comm_request master_req[3];
 
@@ -256,11 +283,13 @@ static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_requ
 			master_req[2].len = req[1].len;
 		}
 
-		ret = i2c_comm_master_request(demod->i2c, master_req, (num == 2) ? 3 : 1);
+		ret = i2c_comm_master_request(demod->i2c,
+					      master_req, (num == 2) ? 3 : 1);
 		goto exit;
 	}
 
-	master_req = (struct i2c_comm_request *)kmalloc(sizeof(*master_req) * master_req_num, GFP_KERNEL);
+	master_req = (struct i2c_comm_request *)kmalloc(sizeof(*master_req) * master_req_num,
+							GFP_KERNEL);
 	if (!master_req) {
 		ret = -ENOMEM;
 		goto exit;
@@ -294,7 +323,8 @@ static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_requ
 			break;
 
 		case I2C_WRITE_REQUEST:
-			b = (u8 *)kmalloc(sizeof(*b) * (2 + req[i].len), GFP_KERNEL);
+			b = (u8 *)kmalloc(sizeof(*b) * (2 + req[i].len),
+					  GFP_KERNEL);
 			if (!b) {
 				ret = -ENOMEM;
 				break;
@@ -325,7 +355,8 @@ static int tc90522_i2c_master_request(void *i2c_priv, const struct i2c_comm_requ
 
 exit_with_free:
 	for (i = 0; i < master_req_num; i++) {
-		if (master_req[i].req == I2C_WRITE_REQUEST && master_req[i].data)
+		if (master_req[i].req == I2C_WRITE_REQUEST &&
+		    master_req[i].data)
 			kfree(master_req[i].data);
 	}
 

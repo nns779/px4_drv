@@ -60,18 +60,27 @@ struct it930x_bridge {
 #ifdef __cplusplus
 extern "C" {
 #endif
-int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *rbuf, u8 len);
+int it930x_read_regs(struct it930x_bridge *it930x,
+		     u32 reg,
+		     u8 *rbuf, u8 len);
 int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val);
-int it930x_write_regs(struct it930x_bridge *it930x, u32 reg, u8 *wbuf, u8 len);
+int it930x_write_regs(struct it930x_bridge *it930x,
+		      u32 reg,
+		      u8 *wbuf, u8 len);
 int it930x_write_reg(struct it930x_bridge *it930x, u32 reg, u8 val);
-int it930x_write_reg_mask(struct it930x_bridge *it930x, u32 reg, u8 val, u8 mask);
+int it930x_write_reg_mask(struct it930x_bridge *it930x,
+			  u32 reg,
+			  u8 val, u8 mask);
 
 int it930x_init(struct it930x_bridge *it930x);
 int it930x_term(struct it930x_bridge *it930x);
 
 int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename);
 int it930x_init_warm(struct it930x_bridge *it930x);
-int it930x_set_gpio_mode(struct it930x_bridge *it930x, int gpio, enum it930x_gpio_mode mode, bool enable);
+int it930x_set_gpio_mode(struct it930x_bridge *it930x,
+			 int gpio,
+			 enum it930x_gpio_mode mode,
+			 bool enable);
 int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable);
 int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high);
 int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high);

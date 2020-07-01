@@ -40,14 +40,16 @@ struct tc90522_regbuf {
 	} u;
 };
 
-static inline void tc90522_regbuf_set_val(struct tc90522_regbuf *regbuf, u8 reg, u8 val)
+static inline void tc90522_regbuf_set_val(struct tc90522_regbuf *regbuf,
+					  u8 reg, u8 val)
 {
 	regbuf->reg = reg;
 	regbuf->buf = NULL;
 	regbuf->u.val = val;
 }
 
-static inline void tc90522_regbuf_set_buf(struct tc90522_regbuf *regbuf, u8 reg, u8 *buf, u8 len)
+static inline void tc90522_regbuf_set_buf(struct tc90522_regbuf *regbuf,
+					  u8 reg, u8 *buf, u8 len)
 {
 	regbuf->reg = reg;
 	regbuf->buf = buf;
@@ -59,10 +61,12 @@ extern "C" {
 #endif
 int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len);
 int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val);
-int tc90522_read_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num);
+int tc90522_read_multiple_regs(struct tc90522_demod *demod,
+			       struct tc90522_regbuf *regbuf, int num);
 int tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len);
 int tc90522_write_reg(struct tc90522_demod *demod, u8 reg, u8 val);
-int tc90522_write_multiple_regs(struct tc90522_demod *demod, struct tc90522_regbuf *regbuf, int num);
+int tc90522_write_multiple_regs(struct tc90522_demod *demod,
+			        struct tc90522_regbuf *regbuf, int num);
 
 int tc90522_init(struct tc90522_demod *demod);
 int tc90522_term(struct tc90522_demod *demod);

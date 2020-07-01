@@ -76,7 +76,8 @@ int ringbuffer_destroy(struct ringbuffer *ringbuffer)
 
 static void _ringbuffer_free(struct ringbuffer *ringbuffer)
 {
-	free_pages((unsigned long)ringbuffer->buf, get_order(ringbuffer->buf_size));
+	free_pages((unsigned long)ringbuffer->buf,
+		   get_order(ringbuffer->buf_size));
 
 	ringbuffer->buf = NULL;
 	ringbuffer->buf_size = 0;
@@ -198,7 +199,8 @@ int ringbuffer_stop(struct ringbuffer *ringbuffer)
 	return 0;
 }
 
-int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, size_t len)
+int ringbuffer_write_atomic(struct ringbuffer *ringbuffer,
+			    const void *data, size_t len)
 {
 #ifdef RINGBUFFER_USE_SPINLOCK
 	unsigned long flags;
@@ -255,17 +257,20 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, siz
 				wake_up(&ringbuffer->data_wait);
 				ringbuffer->write_size = 0;
 			}
-		} else
+		} else {
 			ringbuffer->write_size += write_size;
+		}
 	}
 
-	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) && atomic_read(&ringbuffer->wait_cnt))
+	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) &&
+	    atomic_read(&ringbuffer->wait_cnt))
 		wake_up(&ringbuffer->wait);
 
 	return (write_size != len) ? (-ECANCELED) : (0);
 }
 
-int ringbuffer_read_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len)
+int ringbuffer_read_user(struct ringbuffer *ringbuffer,
+			 void __user *buf, size_t *len)
 {
 	int ret = 0;
 	u8 *p = buf;
@@ -328,7 +333,8 @@ int ringbuffer_read_user(struct ringbuffer *ringbuffer, void __user *buf, size_t
 			pr_debug("ringbuffer_read_user: copy_to_user() 1 failed. remain: %lu\n", r);
 
 		if (t < read_size) {
-			r = copy_to_user(p + buf_pos + t, ringbuffer->buf, read_size - t);
+			r = copy_to_user(p + buf_pos + t,
+					 ringbuffer->buf, read_size - t);
 			if (r)
 				pr_debug("ringbuffer_read_user: copy_to_user() 2 failed. remain: %lu\n", r);
 
@@ -351,7 +357,8 @@ int ringbuffer_read_user(struct ringbuffer *ringbuffer, void __user *buf, size_t
 
 	*len = buf_pos;
 
-	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) && atomic_read(&ringbuffer->wait_cnt))
+	if (!atomic_sub_return(1, &ringbuffer->rw_cnt) &&
+	    atomic_read(&ringbuffer->wait_cnt))
 		wake_up(&ringbuffer->wait);
 
 	return ret;

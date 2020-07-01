@@ -41,7 +41,9 @@ int ringbuffer_alloc(struct ringbuffer *ringbuffer, size_t size);
 int ringbuffer_free(struct ringbuffer *ringbuffer);
 int ringbuffer_start(struct ringbuffer *ringbuffer);
 int ringbuffer_stop(struct ringbuffer *ringbuffer);
-int ringbuffer_write_atomic(struct ringbuffer *ringbuffer, const void *data, size_t len);
-int ringbuffer_read_user(struct ringbuffer *ringbuffer, void __user *buf, size_t *len);
+int ringbuffer_write_atomic(struct ringbuffer *ringbuffer,
+			    const void *data, size_t len);
+int ringbuffer_read_user(struct ringbuffer *ringbuffer,
+			 void __user *buf, size_t *len);
 
 #endif

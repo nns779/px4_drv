@@ -125,9 +125,11 @@ static int _rt710_read_regs(struct rt710_tuner *t, u8 reg, u8 *buf, int len)
 	req[1].len = reg + len;
 
 	ret = i2c_comm_master_request(t->i2c, req, 2);
-	if (ret)
-		dev_err(t->dev, "_rt710_read_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n", reg, len, ret);
-	else {
+	if (ret) {
+		dev_err(t->dev,
+			"_rt710_read_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n",
+			reg, len, ret);
+	} else {
 		for (i = reg; i < (reg + len); i++)
 			buf[i - reg] = reverse_bit(b[i]);
 	}
@@ -135,7 +137,9 @@ static int _rt710_read_regs(struct rt710_tuner *t, u8 reg, u8 *buf, int len)
 	return ret;
 }
 
-static int _rt710_write_regs(struct rt710_tuner *t, u8 reg, const u8 *buf, int len)
+static int _rt710_write_regs(struct rt710_tuner *t,
+			     u8 reg,
+			     const u8 *buf, int len)
 {
 	int ret = 0;
 	u8 b[1 + NUM_REGS];
@@ -157,7 +161,9 @@ static int _rt710_write_regs(struct rt710_tuner *t, u8 reg, const u8 *buf, int l
 
 	ret = i2c_comm_master_request(t->i2c, req, 1);
 	if (ret)
-		dev_err(t->dev, "_rt710_write_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n", reg, len, ret);
+		dev_err(t->dev,
+			"_rt710_write_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n",
+			reg, len, ret);
 
 	return ret;
 }
@@ -310,7 +316,9 @@ int rt710_init(struct rt710_tuner *t)
 
 	ret = _rt710_read_regs(t, 0x03, &tmp, 1);
 	if (ret) {
-		dev_err(t->dev, "rt710_init: rt710_read_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev,
+			"rt710_init: rt710_read_regs() failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
@@ -348,8 +356,9 @@ int rt710_sleep(struct rt710_tuner *t)
 	if (t->priv.chip == RT710_CHIP_TYPE_RT720) {
 		regs[0x01] = 0x5e;
 		regs[0x03] |= 0x20;
-	} else if (t->config.clock_out)
+	} else if (t->config.clock_out) {
 		regs[0x03] = 0x20;
+	}
 
 	ret = _rt710_write_regs(t, 0x00, regs, NUM_REGS);
 
@@ -358,7 +367,9 @@ int rt710_sleep(struct rt710_tuner *t)
 	return ret;
 }
 
-int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rolloff)
+int rt710_set_params(struct rt710_tuner *t,
+		     u32 freq,
+		     u32 symbol_rate, u32 rolloff)
 {
 	int ret = 0;
 	u8 regs[NUM_REGS];
@@ -371,7 +382,9 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	if (rolloff > 5)
 		return -EINVAL;
 
-	memcpy(regs, (t->priv.chip == RT710_CHIP_TYPE_RT710) ? rt710_init_regs : rt720_init_regs, sizeof(regs));
+	memcpy(regs,
+	       (t->priv.chip == RT710_CHIP_TYPE_RT710) ? rt710_init_regs : rt720_init_regs,
+	       sizeof(regs));
 
 	if (t->config.loop_through)
 		regs[0x01] &= 0xfb;
@@ -417,12 +430,14 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 	}
 
 	if (t->priv.chip == RT710_CHIP_TYPE_RT710) {
-		if (t->config.fine_gain >= RT710_FINE_GAIN_3DB && t->config.fine_gain <= RT710_FINE_GAIN_0DB) {
+		if (t->config.fine_gain >= RT710_FINE_GAIN_3DB &&
+		    t->config.fine_gain <= RT710_FINE_GAIN_0DB) {
 			regs[0x0e] &= 0xfc;
 			regs[0x0e] |= (t->config.fine_gain & 0x03);
 		}
 	} else {
-		if (t->config.fine_gain == RT710_FINE_GAIN_3DB || t->config.fine_gain == RT710_FINE_GAIN_2DB)
+		if (t->config.fine_gain == RT710_FINE_GAIN_3DB ||
+		    t->config.fine_gain == RT710_FINE_GAIN_2DB)
 			regs[0x0e] &= 0xfe;
 		else
 			regs[0x0e] |= 0x01;
@@ -434,13 +449,17 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 
 	ret = _rt710_write_regs(t, 0x00, regs, NUM_REGS);
 	if (ret) {
-		dev_err(t->dev, "rt710_set_params: rt710_write_regs(0x00, NUM_REGS) failed. (ret: %d)", ret);
+		dev_err(t->dev,
+			"rt710_set_params: rt710_write_regs(0x00, NUM_REGS) failed. (ret: %d)",
+			ret);
 		goto fail;
 	}
 
 	ret = _rt710_set_pll(t, regs, freq);
 	if (ret) {
-		dev_err(t->dev, "rt710_set_params: rt710_set_pll() failed. (ret: %d)\n", ret);
+		dev_err(t->dev,
+			"rt710_set_params: rt710_set_pll() failed. (ret: %d)\n",
+			ret);
 		goto fail;
 	}
 
@@ -539,9 +558,9 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 		else if (symbol_rate <= 30000)
 			symbol_rate += 1000;
 
-		if (s <= (88000 + range))
+		if (s <= (88000 + range)) {
 			bw_param.coarse = 0;
-		else if (s <= (368000 + range)) {
+		} else if (s <= (368000 + range)) {
 			bw_param.coarse = (s - 88000 - range) / 20000;
 
 			if ((s - 88000 - range) % 20000)
@@ -565,8 +584,9 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 				bw_param.coarse += 2;
 			else if (bw_param.coarse >= 19)
 				bw_param.coarse++;
-		} else
+		} else {
 			bw_param.coarse = 42;
+		}
 	}
 
 	regs[0x0f] = ((bw_param.coarse << 2) & 0xfc) | (bw_param.fine & 0x03);
@@ -600,7 +620,9 @@ int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked)
 	mutex_unlock(&t->priv.lock);
 
 	if (ret) {
-		dev_err(t->dev, "rt710_is_pll_locked: _rt710_read_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev,
+			"rt710_is_pll_locked: _rt710_read_regs() failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
@@ -624,7 +646,9 @@ int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
 	mutex_unlock(&t->priv.lock);
 
 	if (ret) {
-		dev_err(t->dev, "rt710_get_rf_gain: _rt710_read_regs() failed. (ret: %d)\n", ret);
+		dev_err(t->dev,
+			"rt710_get_rf_gain: _rt710_read_regs() failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
@@ -657,7 +681,9 @@ int rt710_get_rf_signal_strength(struct rt710_tuner *t, s32 *ss)
 
 	ret = rt710_get_rf_gain(t, &gain);
 	if (ret) {
-		dev_err(t->dev, "rt710_get_rf_signal_strength: rt710_get_rf_gain() failed. (ret: %d)\n", ret);
+		dev_err(t->dev,
+			"rt710_get_rf_signal_strength: rt710_get_rf_gain() failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 

@@ -81,7 +81,11 @@ static u16 it930x_calc_checksum(void *buf, size_t len)
 	return ~c;
 }
 
-static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_ctrl_buf *wbuf, struct it930x_ctrl_buf *rbuf, u8 *result, bool no_rx)
+static int it930x_ctrl_msg(struct it930x_bridge *it930x,
+			   u16 cmd,
+			   struct it930x_ctrl_buf *wbuf,
+			   struct it930x_ctrl_buf *rbuf,
+			   u8 *result, bool no_rx)
 {
 	int ret;
 	struct it930x_priv *priv = it930x->priv;
@@ -123,7 +127,9 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_
 		goto exit;
 
 	if (rlen < 5) {
-		dev_err(it930x->dev, "it930x_ctrl_msg: no enough response length. (rlen: %d)\n", rlen);
+		dev_err(it930x->dev,
+			"it930x_ctrl_msg: no enough response length. (rlen: %d)\n",
+			rlen);
 		ret = -EBADMSG;
 		goto exit;
 	}
@@ -131,26 +137,33 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_
 	csum = it930x_calc_checksum(&buf[1], (size_t)rlen - 1 - 2);
 	csum2 = ((buf[rlen - 2] << 8) | buf[rlen - 1]);
 	if (csum != csum2) {
-		dev_err(it930x->dev, "it930x_ctrl_msg: checksum is incorrect. (0x%02x, 0x%02x)\n", csum, csum2);
+		dev_err(it930x->dev,
+			"it930x_ctrl_msg: checksum is incorrect. (0x%02x, 0x%02x)\n",
+			csum, csum2);
 		ret = -EBADMSG;
 		goto exit;
 	}
 
 	if (buf[1] != seq) {
-		dev_err(it930x->dev, "it930x_ctrl_msg: sequence number is incorrect. (tx: 0x%02x, rx: 0x%02x)\n", seq, buf[1]);
+		dev_err(it930x->dev,
+			"it930x_ctrl_msg: sequence number is incorrect. (tx: 0x%02x, rx: 0x%02x)\n",
+			seq, buf[1]);
 		ret = -EBADMSG;
 		goto exit;
 	}
 
 	if (buf[2]) {
-		dev_err(it930x->dev, "it930x_ctrl_msg: error returned. (result: %u)\n", buf[2]);
+		dev_err(it930x->dev,
+			"it930x_ctrl_msg: error returned. (result: %u)\n",
+			buf[2]);
 		ret = -EIO;
 	} else if (rbuf) {
 		if (rbuf->buf) {
 			rbuf->len = ((rlen - 3 - 2) > rbuf->len) ? rbuf->len : (rlen - 3 - 2);
 			memcpy(rbuf->buf, &buf[3], rbuf->len);
-		} else
+		} else {
 			rbuf->len = rlen - 3 - 2;
+		}
 	}
 
 	if (result)
@@ -158,7 +171,9 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x, u16 cmd, struct it930x_
 
 exit:
 	if (ret)
-		dev_err(it930x->dev, "it930x_ctrl_msg: operation failed. (cmd: 0x%04x, ret: %d)\n", cmd, ret);
+		dev_err(it930x->dev,
+			"it930x_ctrl_msg: operation failed. (cmd: 0x%04x, ret: %d)\n",
+			cmd, ret);
 
 	mutex_unlock(&priv->ctrl_lock);
 
@@ -186,7 +201,10 @@ int it930x_read_regs(struct it930x_bridge *it930x, u32 reg, u8 *rbuf, u8 len)
 	rb.buf = rbuf;
 	rb.len = len;
 
-	return it930x_ctrl_msg(it930x, IT930X_CMD_REG_READ, &wb, &rb, NULL, false);
+	return it930x_ctrl_msg(it930x,
+			       IT930X_CMD_REG_READ,
+			       &wb, &rb,
+			       NULL, false);
 }
 
 int it930x_read_reg(struct it930x_bridge *it930x, u32 reg, u8 *val)
@@ -213,7 +231,10 @@ int it930x_write_regs(struct it930x_bridge *it930x, u32 reg, u8 *wbuf, u8 len)
 	wb.buf = buf;
 	wb.len = 6 + len;
 
-	return it930x_ctrl_msg(it930x, IT930X_CMD_REG_WRITE, &wb, NULL, NULL, false);
+	return it930x_ctrl_msg(it930x,
+			       IT930X_CMD_REG_WRITE,
+			       &wb, NULL,
+			       NULL, false);
 }
 
 int it930x_write_reg(struct it930x_bridge *it930x, u32 reg, u8 val)
@@ -221,7 +242,9 @@ int it930x_write_reg(struct it930x_bridge *it930x, u32 reg, u8 val)
 	return it930x_write_regs(it930x, reg, &val, 1);
 }
 
-int it930x_write_reg_mask(struct it930x_bridge *it930x, u32 reg, u8 val, u8 mask)
+int it930x_write_reg_mask(struct it930x_bridge *it930x,
+			  u32 reg,
+			  u8 val, u8 mask)
 {
 	int ret = 0;
 	u8 tmp;
@@ -236,13 +259,16 @@ int it930x_write_reg_mask(struct it930x_bridge *it930x, u32 reg, u8 val, u8 mask
 
 		tmp &= ~mask;
 		tmp |= (val & mask);
-	} else
+	} else {
 		tmp = val;
+	}
 
 	return it930x_write_reg(it930x, reg, tmp);
 }
 
-static int it930x_i2c_master_request(void *i2c_priv, const struct i2c_comm_request *req, int num)
+static int it930x_i2c_master_request(void *i2c_priv,
+				     const struct i2c_comm_request *req,
+				     int num)
 {
 	int ret = 0, i;
 	struct it930x_i2c_master_info *i2c = i2c_priv;
@@ -285,7 +311,10 @@ static int it930x_i2c_master_request(void *i2c_priv, const struct i2c_comm_reque
 			rb.buf = data;
 			rb.len = len;
 
-			ret = it930x_ctrl_msg(i2c->it930x, IT930X_CMD_I2C_READ, &wb, &rb, NULL, false);
+			ret = it930x_ctrl_msg(i2c->it930x,
+					      IT930X_CMD_I2C_READ,
+					      &wb, &rb,
+					      NULL, false);
 			break;
 		}
 
@@ -306,7 +335,10 @@ static int it930x_i2c_master_request(void *i2c_priv, const struct i2c_comm_reque
 			wb.buf = buf;
 			wb.len = 3 + len;
 
-			ret = it930x_ctrl_msg(i2c->it930x, IT930X_CMD_I2C_WRITE, &wb, NULL, NULL, false);
+			ret = it930x_ctrl_msg(i2c->it930x,
+					      IT930X_CMD_I2C_WRITE,
+					      &wb, NULL,
+					      NULL, false);
 			break;
 		}
 
@@ -324,7 +356,8 @@ static int it930x_i2c_master_request(void *i2c_priv, const struct i2c_comm_reque
 	return ret;
 }
 
-static int it930x_read_firmware_version(struct it930x_bridge *it930x, u32 *fw_version)
+static int it930x_read_firmware_version(struct it930x_bridge *it930x,
+					u32 *fw_version)
 {
 	int ret = 0;
 	u8 buf[4];
@@ -338,7 +371,10 @@ static int it930x_read_firmware_version(struct it930x_bridge *it930x, u32 *fw_ve
 	rb.buf = buf;
 	rb.len = 4;
 
-	ret = it930x_ctrl_msg(it930x, IT930X_CMD_QUERYINFO, &wb, &rb, NULL, false);
+	ret = it930x_ctrl_msg(it930x,
+			      IT930X_CMD_QUERYINFO,
+			      &wb, &rb,
+			      NULL, false);
 	if (!ret)
 		*fw_version = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
 
@@ -347,7 +383,6 @@ static int it930x_read_firmware_version(struct it930x_bridge *it930x, u32 *fw_ve
 
 static int it930x_config_i2c(struct it930x_bridge *it930x)
 {
-	int ret = 0, i;
 	u32 i2c_regs[5][2] = {
 		{ 0x4975, 0x4971 },
 		{ 0x4974, 0x4970 },
@@ -355,8 +390,9 @@ static int it930x_config_i2c(struct it930x_bridge *it930x)
 		{ 0x4972, 0x496e },
 		{ 0x4964, 0x4963 }
 	};
+	int ret = 0, i;
 
-	// set i2c speed
+	/* set i2c speed */
 
 	ret = it930x_write_reg(it930x, 0xf6a7, it930x->config.i2c_speed);
 	if (ret)
@@ -366,17 +402,21 @@ static int it930x_config_i2c(struct it930x_bridge *it930x)
 	if (ret)
 		return ret;
 
-	// set i2c address and bus
+	/* set i2c address and bus */
 
 	for(i = 0; i < 5; i++) {
 		struct it930x_stream_input *input = &it930x->config.input[i];
 
 		if (input->enable) {
-			ret = it930x_write_reg(it930x, i2c_regs[input->slave_number][0], input->i2c_addr);
+			ret = it930x_write_reg(it930x,
+					       i2c_regs[input->slave_number][0],
+					       input->i2c_addr);
 			if (ret)
 				break;
 
-			ret = it930x_write_reg(it930x, i2c_regs[input->slave_number][1], input->i2c_bus);
+			ret = it930x_write_reg(it930x,
+					       i2c_regs[input->slave_number][1],
+					       input->i2c_bus);
 			if (ret)
 				break;
 		}
@@ -393,8 +433,9 @@ static int it930x_config_stream_input(struct it930x_bridge *it930x)
 		struct it930x_stream_input *input = &it930x->config.input[i];
 
 		if (!input->enable) {
-			// disable input port
-			ret = it930x_write_reg(it930x, 0xda4c + input->port_number, 0);
+			/* disable input port */
+			ret = it930x_write_reg(it930x,
+					       0xda4c + input->port_number, 0);
 			if (ret)
 				break;
 
@@ -402,23 +443,29 @@ static int it930x_config_stream_input(struct it930x_bridge *it930x)
 		}
 
 		if (input->port_number < 2) {
-			ret = it930x_write_reg(it930x, 0xda58 + input->port_number, (input->is_parallel) ? 1 : 0);
+			ret = it930x_write_reg(it930x,
+					       0xda58 + input->port_number,
+					       (input->is_parallel) ? 1 : 0);
 			if (ret)
 				break;
 		}
 
-		// aggregation mode: sync byte
-		ret = it930x_write_reg(it930x, 0xda73 + input->port_number, 1);
+		/* aggregation mode: sync byte */
+		ret = it930x_write_reg(it930x, 
+				       0xda73 + input->port_number, 1);
 		if (ret)
 			break;
 
-		// write sync byte
-		ret = it930x_write_reg(it930x, 0xda78 + input->port_number, input->sync_byte);
+		/* set sync byte */
+		ret = it930x_write_reg(it930x,
+				       0xda78 + input->port_number,
+				       input->sync_byte);
 		if (ret)
 			break;
 
-		// enable input port
-		ret = it930x_write_reg(it930x, 0xda4c + input->port_number, 1);
+		/* enable input port */
+		ret = it930x_write_reg(it930x,
+				       0xda4c + input->port_number, 1);
 		if (ret)
 			break;
 	}
@@ -440,17 +487,17 @@ static int it930x_config_stream_output(struct it930x_bridge *it930x)
 		u16 x;
 		u8 buf[2];
 
-		// disable ep
+		/* disable ep4 */
 		ret = it930x_write_reg_mask(it930x, 0xdd11, 0x00, 0x20);
 		if (ret)
 			goto exit;
 
-		// disable nak
+		/* disable nak of ep4 */
 		ret = it930x_write_reg_mask(it930x, 0xdd13, 0x00, 0x20);
 		if (ret)
 			goto exit;
 
-		// enable ep
+		/* enable ep4 */
 		ret = it930x_write_reg_mask(it930x, 0xdd11, 0x20, 0x20);
 		if (ret)
 			goto exit;
@@ -460,13 +507,15 @@ static int it930x_config_stream_output(struct it930x_bridge *it930x)
 		buf[0] = (x & 0xff);
 		buf[1] = ((x >> 8) & 0xff);
 
-		// transfer size
+		/* threshold of transfer size */
 		ret = it930x_write_regs(it930x, 0xdd88, buf, 2);
 		if (ret)
 			goto exit;
 
-		// max packet size
-		ret = it930x_write_reg(it930x, 0xdd0c, (it930x->bus.usb.max_bulk_size / 4) & 0xff);
+		/* max bulk packet size */
+		ret = it930x_write_reg(it930x,
+				       0xdd0c,
+				       (it930x->bus.usb.max_bulk_size / 4) & 0xff);
 		if (ret)
 			goto exit;
 
@@ -488,7 +537,7 @@ static int it930x_config_stream_output(struct it930x_bridge *it930x)
 exit:
 	ret2 = it930x_write_reg_mask(it930x, 0xda1d, 0x00, 0x01);
 
-	// reverse: no
+	/* reverse: no */
 	ret2 = it930x_write_reg(it930x, 0xd920, 0);
 
 	return (ret) ? ret : ret2;
@@ -519,7 +568,7 @@ int it930x_init(struct it930x_bridge *it930x)
 
 	priv->buf = buf;
 
-	// setup the i2c operator
+	/* setup the i2c operator */
 
 	for (i = 0; i < 3; i++) {
 		priv->i2c[i].it930x = it930x;
@@ -551,7 +600,7 @@ int it930x_term(struct it930x_bridge *it930x)
 	if (priv->buf)
 		kfree(priv->buf);
 
-	// clear the i2c operator
+	/* clear the i2c operator */
 
 	for (i = 0; i < 3; i++) {
 		it930x->i2c_master[i].request = NULL;
@@ -582,25 +631,35 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 
 	ret = it930x_read_firmware_version(it930x, &fw_version);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_load_firmware: it930x_read_firmware_version() failed. 1 (ret: %d)\n", ret);
+		dev_err(it930x->dev,
+			"it930x_load_firmware: it930x_read_firmware_version() failed. 1 (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
 	if (fw_version) {
-		dev_info(it930x->dev, "Firmware is already loaded. version: %d.%d.%d.%d\n", ((fw_version >> 24) & 0xff), ((fw_version >> 16) & 0xff), ((fw_version >> 8) & 0xff), (fw_version & 0xff));
+		dev_info(it930x->dev,
+			 "Firmware is already loaded. version: %d.%d.%d.%d\n",
+			 (fw_version >> 24) & 0xff, (fw_version >> 16) & 0xff,
+			 (fw_version >> 8) & 0xff, fw_version & 0xff);
 		return ret;
 	}
 
 	ret = it930x_write_reg(it930x, 0xf103, it930x->config.i2c_speed);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_load_firmware: it930x_write_reg(0xf103) failed. (ret: %d)\n", ret);
+		dev_err(it930x->dev,
+			"it930x_load_firmware: it930x_write_reg(0xf103) failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
 	ret = request_firmware(&fw, filename, it930x->dev);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_load_firmware: request_firmware() failed. (ret: %d)\n", ret);
-		dev_err(it930x->dev, "Couldn't load firmware from the file.\n");
+		dev_err(it930x->dev,
+			"it930x_load_firmware: request_firmware() failed. (ret: %d)\n",
+			ret);
+		dev_err(it930x->dev,
+			"Couldn't load firmware from the file.\n");
 		return ret;
 	}
 
@@ -613,53 +672,69 @@ int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)
 		len = 0;
 
 		if (p[0] != 0x03) {
-			dev_err(it930x->dev, "it930x_load_firmware: Invalid firmware block was found. Abort. (ofs: %zx)\n", i);
+			dev_err(it930x->dev,
+				"it930x_load_firmware: Invalid firmware block was found. Abort. (ofs: %zx)\n",
+				i);
 			ret = -ECANCELED;
-			goto exit_release_fw;
+			goto exit;
 		}
 
 		for(j = 0; j < m; j++)
 			len += p[6 + (j * 3)];
 
 		if (!len) {
-			dev_warn(it930x->dev, "it930x_load_firmware: No data in the block. (ofs: %zx)\n", i);
+			dev_warn(it930x->dev,
+				 "it930x_load_firmware: No data in the block. (ofs: %zx)\n",
+				 i);
 			continue;
 		}
 
 		len += 4 + ((size_t)m * 3);
 
-		// send firmware block
+		/* send firmware block */
 
 		wb.buf = (u8 *)p;
 		wb.len = (u8)len;
 
-		ret = it930x_ctrl_msg(it930x, IT930X_CMD_FW_SCATTER_WRITE, &wb, NULL, NULL, false);
+		ret = it930x_ctrl_msg(it930x,
+				      IT930X_CMD_FW_SCATTER_WRITE,
+				      &wb, NULL,
+				      NULL, false);
 		if (ret) {
-			dev_err(it930x->dev, "it930x_load_firmware: it930x_ctrl_msg(IT930X_CMD_FW_SCATTER_WRITE) failed. (ofs: %zx, ret: %d)\n", i, ret);
-			goto exit_release_fw;
+			dev_err(it930x->dev,
+				"it930x_load_firmware: it930x_ctrl_msg(IT930X_CMD_FW_SCATTER_WRITE) failed. (ofs: %zx, ret: %d)\n",
+				i, ret);
+			goto exit;
 		}
 	}
 
 	ret = it930x_ctrl_msg(it930x, IT930X_CMD_BOOT, NULL, NULL, NULL, false);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_load_firmware: it930x_ctrl_msg(IT930X_CMD_BOOT) failed. (ret: %d)\n", ret);
-		goto exit_release_fw;
+		dev_err(it930x->dev,
+			"it930x_load_firmware: it930x_ctrl_msg(IT930X_CMD_BOOT) failed. (ret: %d)\n",
+			ret);
+		goto exit;
 	}
 
 	ret = it930x_read_firmware_version(it930x, &fw_version);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_load_firmware: it930x_read_firmware_version() failed. 2 (ret: %d)\n", ret);
-		goto exit_release_fw;
+		dev_err(it930x->dev,
+			"it930x_load_firmware: it930x_read_firmware_version() failed. 2 (ret: %d)\n",
+			ret);
+		goto exit;
 	}
 
 	if (!fw_version) {
 		ret = -EIO;
-		goto exit_release_fw;
+		goto exit;
 	}
 
-	dev_info(it930x->dev, "Firmware loaded. version: %d.%d.%d.%d\n", ((fw_version >> 24) & 0xff), ((fw_version >> 16) & 0xff), ((fw_version >> 8) & 0xff), (fw_version & 0xff));
+	dev_info(it930x->dev,
+		 "Firmware loaded. version: %d.%d.%d.%d\n",
+		 (fw_version >> 24) & 0xff, (fw_version >> 16) & 0xff,
+		 (fw_version >> 8) & 0xff, fw_version & 0xff);
 
-exit_release_fw:
+exit:
 	release_firmware(fw);
 
 	return ret;
@@ -670,7 +745,8 @@ int it930x_init_warm(struct it930x_bridge *it930x)
 	int ret = 0;
 
 	if (it930x->bus.type != ITEDTV_BUS_USB) {
-		dev_dbg(it930x->dev, "it930x_init_warm: This driver only supports USB.\n");
+		dev_dbg(it930x->dev,
+			"it930x_init_warm: This driver only supports USB.\n");
 		return -EINVAL;
 	}
 
@@ -690,33 +766,35 @@ int it930x_init_warm(struct it930x_bridge *it930x)
 	if (ret)
 		return ret;
 
-	// ignore sync byte: no
+	/* ignore sync byte: no */
 	ret = it930x_write_reg(it930x, 0xda1a, 0);
 	if (ret)
 		return ret;
 
-	// dvb-t interrupt: enable
+	/* dvb-t interrupt: enable */
 	ret = it930x_write_reg_mask(it930x, 0xf41f, 0x04, 0x04);
 	if (ret)
 		return ret;
 
-	// mpeg full speed
+	/* mpeg full speed */
 	ret = it930x_write_reg_mask(it930x, 0xda10, 0x00, 0x01);
 	if (ret)
 		return ret;
 
-	// dvb-t mode: enable
+	/* dvb-t mode: enable */
 	ret = it930x_write_reg_mask(it930x, 0xf41a, 0x01, 0x01);
 	if (ret)
 		return ret;
 
 	ret = it930x_config_stream_output(it930x);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_init_warm: it930x_config_stream_output() failed. (ret: %d)\n", ret);
+		dev_err(it930x->dev,
+			"it930x_init_warm: it930x_config_stream_output() failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
-	// power config ?
+	/* power config ? */
 
 	ret = it930x_write_reg(it930x, 0xd833, 1);
 	if (ret)
@@ -736,44 +814,52 @@ int it930x_init_warm(struct it930x_bridge *it930x)
 
 	ret = it930x_config_i2c(it930x);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_init_warm: _it930x_config_i2c() failed. (ret: %d)\n", ret);
+		dev_err(it930x->dev,
+			"it930x_init_warm: _it930x_config_i2c() failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
 	ret = it930x_config_stream_input(it930x);
 	if (ret) {
-		dev_err(it930x->dev, "it930x_init_warm: _it930x_config_stream_input() failed. (ret: %d)\n", ret);
+		dev_err(it930x->dev,
+			"it930x_init_warm: _it930x_config_stream_input() failed. (ret: %d)\n",
+			ret);
 		return ret;
 	}
 
 	return 0;
 }
 
-int it930x_set_gpio_mode(struct it930x_bridge *it930x, int gpio, enum it930x_gpio_mode mode, bool enable)
+int it930x_set_gpio_mode(struct it930x_bridge *it930x,
+			 int gpio,
+			 enum it930x_gpio_mode mode,
+			 bool enable)
 {
+	/* GPIO mode registers (gpioh1 to gpioh16) */
 	u32 gpio_en_regs[] = {
-		0xd8b0,		// gpioh1
-		0xd8b8,		// gpioh2
-		0xd8b4,		// gpioh3
-		0xd8c0,		// gpioh4
-		0xd8bc,		// gpioh5
-		0xd8c8,		// gpioh6
-		0xd8c4,		// gpioh7
-		0xd8d0,		// gpioh8
-		0xd8cc,		// gpioh9
-		0xd8d8,		// gpioh10
-		0xd8d4,		// gpioh11
-		0xd8e0,		// gpioh12
-		0xd8dc,		// gpioh13
-		0xd8e4,		// gpioh14
-		0xd8e8,		// gpioh15
-		0xd8ec,		// gpioh16
+		0xd8b0,
+		0xd8b8,
+		0xd8b4,
+		0xd8c0,
+		0xd8bc,
+		0xd8c8,
+		0xd8c4,
+		0xd8d0,
+		0xd8cc,
+		0xd8d8,
+		0xd8d4,
+		0xd8e0,
+		0xd8dc,
+		0xd8e4,
+		0xd8e8,
+		0xd8ec,
 	};
 	int ret = 0;
 	struct it930x_priv *priv = it930x->priv;
 	u8 val;
 
-	if (gpio <= 0 || gpio > (sizeof(gpio_en_regs) / sizeof(gpio_en_regs[0])))
+	if (gpio <= 0 || gpio > ARRAY_SIZE(gpio_en_regs))
 		return -EINVAL;
 
 	switch (mode) {
@@ -817,35 +903,37 @@ exit:
 
 int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable)
 {
+	/* GPIO enable/disable registers (gpioh1 to gpioh16) */
 	u32 gpio_on_regs[] = {
-		0xd8b1,		// gpioh1
-		0xd8b9,		// gpioh2
-		0xd8b5,		// gpioh3
-		0xd8c1,		// gpioh4
-		0xd8bd,		// gpioh5
-		0xd8c9,		// gpioh6
-		0xd8c5,		// gpioh7
-		0xd8d1,		// gpioh8
-		0xd8cd,		// gpioh9
-		0xd8d9,		// gpioh10
-		0xd8d5,		// gpioh11
-		0xd8e1,		// gpioh12
-		0xd8dd,		// gpioh13
-		0xd8e5,		// gpioh14
-		0xd8e9,		// gpioh15
-		0xd8ed,		// gpioh16
+		0xd8b1,
+		0xd8b9,
+		0xd8b5,
+		0xd8c1,
+		0xd8bd,
+		0xd8c9,
+		0xd8c5,
+		0xd8d1,
+		0xd8cd,
+		0xd8d9,
+		0xd8d5,
+		0xd8e1,
+		0xd8dd,
+		0xd8e5,
+		0xd8e9,
+		0xd8ed,
 	};
 	int ret = 0;
 	struct it930x_priv *priv = it930x->priv;
 
-	if (gpio <= 0 || gpio > (sizeof(gpio_on_regs) / sizeof(gpio_on_regs[0])))
+	if (gpio <= 0 || gpio > ARRAY_SIZE(gpio_on_regs))
 		return -EINVAL;
 
 	gpio--;
 
 	mutex_lock(&priv->gpio_lock);
 
-	if ((!priv->status[gpio].enable && !enable) || (priv->status[gpio].enable && enable))
+	if ((!priv->status[gpio].enable && !enable) ||
+	    (priv->status[gpio].enable && enable))
 		goto exit;
 
 	priv->status[gpio].enable = (enable) ? true : false;
@@ -860,29 +948,30 @@ exit:
 
 int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high)
 {
+	/* GPIO input registers (gpioh1 to gpioh16) */
 	u32 gpio_i_regs[] = {
-		0xd8ae,		// gpioh1
-		0xd8b6,		// gpioh2
-		0xd8b2,		// gpioh3
-		0xd8be,		// gpioh4
-		0xd8ba,		// gpioh5
-		0xd8c6,		// gpioh6
-		0xd8c2,		// gpioh7
-		0xd8ce,		// gpioh8
-		0xd8ca,		// gpioh9
-		0xd8d6,		// gpioh10
-		0xd8d2,		// gpioh11
-		0xd8de,		// gpioh12
-		0xd8da,		// gpioh13
-		0xd8e2,		// gpioh14
-		0xd8e6,		// gpioh15
-		0xd8ea,		// gpioh16
+		0xd8ae,
+		0xd8b6,
+		0xd8b2,
+		0xd8be,
+		0xd8ba,
+		0xd8c6,
+		0xd8c2,
+		0xd8ce,
+		0xd8ca,
+		0xd8d6,
+		0xd8d2,
+		0xd8de,
+		0xd8da,
+		0xd8e2,
+		0xd8e6,
+		0xd8ea,
 	};
 	int ret = 0;
 	struct it930x_priv *priv = it930x->priv;
 	u8 tmp;
 
-	if (gpio <= 0 || gpio > (sizeof(gpio_i_regs) / sizeof(gpio_i_regs[0])))
+	if (gpio <= 0 || gpio > ARRAY_SIZE(gpio_i_regs))
 		return -EINVAL;
 
 	gpio--;
@@ -893,8 +982,9 @@ int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high)
 		ret = it930x_read_reg(it930x, gpio_i_regs[gpio], &tmp);
 		if (!ret)
 			*high = (tmp) ? true : false;
-	} else
+	} else {
 		ret = -EINVAL;
+	}
 
 	mutex_unlock(&priv->gpio_lock);
 
@@ -903,28 +993,29 @@ int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high)
 
 int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high)
 {
+	/* GPIO output registers (gpioh1 to gpioh16) */
 	u32 gpio_o_regs[] = {
-		0xd8af,		// gpioh1
-		0xd8b7,		// gpioh2
-		0xd8b3,		// gpioh3
-		0xd8bf,		// gpioh4
-		0xd8bb,		// gpioh5
-		0xd8c7,		// gpioh6
-		0xd8c3,		// gpioh7
-		0xd8cf,		// gpioh8
-		0xd8cb,		// gpioh9
-		0xd8d7,		// gpioh10
-		0xd8d3,		// gpioh11
-		0xd8df,		// gpioh12
-		0xd8db,		// gpioh13
-		0xd8e3,		// gpioh14
-		0xd8e7,		// gpioh15
-		0xd8eb,		// gpioh16
+		0xd8af,
+		0xd8b7,
+		0xd8b3,
+		0xd8bf,
+		0xd8bb,
+		0xd8c7,
+		0xd8c3,
+		0xd8cf,
+		0xd8cb,
+		0xd8d7,
+		0xd8d3,
+		0xd8df,
+		0xd8db,
+		0xd8e3,
+		0xd8e7,
+		0xd8eb,
 	};
 	int ret = 0;
 	struct it930x_priv *priv = it930x->priv;
 
-	if (gpio <= 0 || gpio > (sizeof(gpio_o_regs) / sizeof(gpio_o_regs[0])))
+	if (gpio <= 0 || gpio > ARRAY_SIZE(gpio_o_regs))
 		return -EINVAL;
 
 	gpio--;
@@ -932,7 +1023,8 @@ int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high)
 	mutex_lock(&priv->gpio_lock);
 
 	if (priv->status[gpio].mode == IT930X_GPIO_OUT)
-		ret = it930x_write_reg(it930x, gpio_o_regs[gpio], (high) ? 1 : 0);
+		ret = it930x_write_reg(it930x,
+				       gpio_o_regs[gpio], (high) ? 1 : 0);
 	else
 		ret = -EINVAL;
 
@@ -966,7 +1058,9 @@ int it930x_purge_psb(struct it930x_bridge *it930x, int timeout)
 	it930x_write_reg_mask(it930x, 0xda1d, 0x00, 0x01);
 
 	if (ret)
-		dev_dbg(it930x->dev, "it930x_purge_psb: itedtv_bus_stream_rx() returned error code %d.\n", ret);
+		dev_dbg(it930x->dev,
+			"it930x_purge_psb: itedtv_bus_stream_rx() returned error code %d.\n",
+			ret);
 
 	dev_dbg(it930x->dev, "it930x_purge_psb: len: %d\n", len);
 

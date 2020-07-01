@@ -26,17 +26,22 @@ struct i2c_comm_request {
 };
 
 struct i2c_comm_master {
-	int (*request) (void *i2c_priv, const struct i2c_comm_request *req, int num);
+	int (*request) (void *i2c_priv,
+			const struct i2c_comm_request *req,
+			int num);
 	void *priv;
 };
 
-static inline int i2c_comm_master_request(const struct i2c_comm_master *m, const struct i2c_comm_request *req, int num)
+static inline int i2c_comm_master_request(const struct i2c_comm_master *m,
+					  const struct i2c_comm_request *req,
+					  int num)
 {
 	return ((m && m->request) ? m->request(m->priv, req, num) : -EFAULT);
 }
 
 #if 0
-static inline int i2c_comm_master_read(const struct i2c_comm_master *m, u8 addr, u8 *data, int len)
+static inline int i2c_comm_master_read(const struct i2c_comm_master *m,
+				       u8 addr, u8 *data, int len)
 {
 	struct i2c_comm_request req[1];
 
@@ -48,7 +53,8 @@ static inline int i2c_comm_master_read(const struct i2c_comm_master *m, u8 addr,
 	return i2c_comm_master_request(m, &req, 1);
 }
 
-static inline int i2c_comm_master_write(const struct i2c_comm_master *m, u8 addr, const u8 *data, int len)
+static inline int i2c_comm_master_write(const struct i2c_comm_master *m,
+					u8 addr, const u8 *data, int len)
 {
 	struct i2c_comm_request req[1];
 

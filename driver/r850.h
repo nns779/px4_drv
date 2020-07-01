@@ -95,7 +95,8 @@ int r850_term(struct r850_tuner *t);
 
 int r850_sleep(struct r850_tuner *t);
 int r850_wakeup(struct r850_tuner *t);
-int r850_set_system(struct r850_tuner *t, struct r850_system_config *system);
+int r850_set_system(struct r850_tuner *t,
+		    struct r850_system_config *system);
 int r850_set_frequency(struct r850_tuner *t, u32 freq);
 int r850_is_pll_locked(struct r850_tuner *t, bool *locked);
 #ifdef __cplusplus

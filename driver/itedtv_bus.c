@@ -60,7 +60,10 @@ static int itedtv_usb_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
 		return -EINVAL;
 
 	/* Endpoint 0x02: Host->Device bulk endpoint for controlling the device */
-	ret = usb_bulk_msg(dev, usb_sndbulkpipe(dev, 0x02), buf, len, &rlen, bus->usb.ctrl_timeout);
+	ret = usb_bulk_msg(dev,
+			   usb_sndbulkpipe(dev, 0x02),
+			   buf, len,
+			   &rlen, bus->usb.ctrl_timeout);
 
 	mdelay(1);
 
@@ -76,7 +79,10 @@ static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
 		return -EINVAL;
 
 	/* Endpoint 0x81: Device->Host bulk endpoint for controlling the device */
-	ret = usb_bulk_msg(dev, usb_rcvbulkpipe(dev, 0x81), buf, *len, &rlen, bus->usb.ctrl_timeout);
+	ret = usb_bulk_msg(dev,
+			   usb_rcvbulkpipe(dev, 0x81),
+			   buf, *len,
+			   &rlen, bus->usb.ctrl_timeout);
 
 	*len = rlen;
 
@@ -85,7 +91,9 @@ static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
 	return ret;
 }
 
-static int itedtv_usb_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int timeout)
+static int itedtv_usb_stream_rx(struct itedtv_bus *bus,
+				void *buf, int *len,
+				int timeout)
 {
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
@@ -94,7 +102,10 @@ static int itedtv_usb_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int
 		return -EINVAL;
 
 	/* Endpoint 0x84: Device->Host bulk endpoint for receiving TS from the device */
-	ret = usb_bulk_msg(dev, usb_rcvbulkpipe(dev, 0x84), buf, *len, &rlen, timeout);
+	ret = usb_bulk_msg(dev,
+			   usb_rcvbulkpipe(dev, 0x84),
+			   buf, *len,
+			   &rlen, timeout);
 
 	*len = rlen;
 
@@ -104,13 +115,16 @@ static int itedtv_usb_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
 static void itedtv_usb_workqueue_handler(struct work_struct *work)
 {
-	struct itedtv_usb_work *w = container_of(work, struct itedtv_usb_work, work);
+	struct itedtv_usb_work *w = container_of(work,
+						 struct itedtv_usb_work, work);
 	struct itedtv_usb_context *ctx = w->ctx;
 	int ret = 0;
 
 	ret = usb_submit_urb(w->urb, GFP_KERNEL);
 	if (ret)
-		dev_err(ctx->bus->dev, "itedtv_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n", ret);
+		dev_err(ctx->bus->dev,
+			"itedtv_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n",
+			ret);
 }
 #endif
 
@@ -121,31 +135,41 @@ static void itedtv_usb_complete(struct urb *urb)
 	struct itedtv_usb_context *ctx = w->ctx;
 
 	if (urb->status) {
-		dev_dbg(ctx->bus->dev, "itedtv_usb_complete: status: %d\n", urb->status);
+		dev_dbg(ctx->bus->dev,
+			"itedtv_usb_complete: status: %d\n",
+			urb->status);
 		return;
 	}
 
 	if (urb->actual_length)
-		ret = ctx->stream_handler(ctx->ctx, urb->transfer_buffer, urb->actual_length);
+		ret = ctx->stream_handler(ctx->ctx,
+					  urb->transfer_buffer,
+					  urb->actual_length);
 	else
-		dev_dbg(ctx->bus->dev, "itedtv_usb_complete: !urb->actual_length\n");
+		dev_dbg(ctx->bus->dev,
+			"itedtv_usb_complete: !urb->actual_length\n");
 
 	if (!ret && (atomic_read(&ctx->streaming) == 1)) {
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
 		ret = queue_work(ctx->wq, &w->work);
 		if (ret)
-			dev_err(ctx->bus->dev, "itedtv_usb_complete: queue_work() failed. (ret: %d)\n", ret);
+			dev_err(ctx->bus->dev,
+				"itedtv_usb_complete: queue_work() failed. (ret: %d)\n",
+				ret);
 #else
 		ret = usb_submit_urb(urb, GFP_ATOMIC);
 		if (ret)
-			dev_err(ctx->bus->dev, "itedtv_usb_complete: usb_submit_urb() failed. (ret: %d)\n", ret);
+			dev_err(ctx->bus->dev,
+				"itedtv_usb_complete: usb_submit_urb() failed. (ret: %d)\n",
+				ret);
 #endif
 	}
 
 	return;
 }
 
-static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_size)
+static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx,
+					u32 buf_size)
 {
 	u32 i;
 	struct itedtv_bus *bus = ctx->bus;
@@ -169,11 +193,18 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 
 			if (urb->transfer_buffer) {
 #ifdef __linux__
-				if ((urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP) && (no_dma || urb->transfer_buffer_length != buf_size)) {
+				if ((urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP) &&
+				    (no_dma || urb->transfer_buffer_length != buf_size)) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
-					usb_free_coherent(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
+					usb_free_coherent(dev,
+							  urb->transfer_buffer_length,
+							  urb->transfer_buffer,
+							  urb->transfer_dma);
 #else
-					usb_buffer_free(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
+					usb_buffer_free(dev,
+							urb->transfer_buffer_length,
+							urb->transfer_buffer,
+							urb->transfer_dma);
 #endif
 					urb->transfer_flags &= ~URB_NO_TRANSFER_DMA_MAP;
 					urb->transfer_dma = 0;
@@ -181,7 +212,8 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 					urb->transfer_buffer = NULL;
 					urb->transfer_buffer_length = 0;
 					urb->actual_length = 0;
-				} else if (!(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP) && (!no_dma || urb->transfer_buffer_length != buf_size)) {
+				} else if (!(urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP) &&
+					   (!no_dma || urb->transfer_buffer_length != buf_size)) {
 					kfree(urb->transfer_buffer);
 
 					urb->transfer_buffer = NULL;
@@ -199,7 +231,9 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 		} else {
 			urb = usb_alloc_urb(0, GFP_KERNEL);
 			if (!urb) {
-				dev_err(bus->dev, "itedtv_usb_alloc_urb_buffers: usb_alloc_urb() failed. (i: %u)\n", i);
+				dev_err(bus->dev,
+					"itedtv_usb_alloc_urb_buffers: usb_alloc_urb() failed. (i: %u)\n",
+					i);
 				break;
 			}
 
@@ -212,9 +246,11 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 #ifdef __linux__
 			if (!no_dma)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
-				p = usb_alloc_coherent(dev, buf_size, GFP_KERNEL, &dma);
+				p = usb_alloc_coherent(dev, buf_size,
+						       GFP_KERNEL, &dma);
 #else
-				p = usb_buffer_alloc(dev, buf_size, GFP_KERNEL, &dma);
+				p = usb_buffer_alloc(dev, buf_size,
+						     GFP_KERNEL, &dma);
 #endif
 			else
 				p = kmalloc(buf_size, GFP_KERNEL);
@@ -225,11 +261,17 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 			if (!p) {
 #ifdef __linux__
 				if (!no_dma)
-					dev_err(bus->dev, "itedtv_usb_alloc_urb_buffers: usb_alloc_coherent() failed. (i: %u)\n", i);
+					dev_err(bus->dev,
+						"itedtv_usb_alloc_urb_buffers: usb_alloc_coherent() failed. (i: %u)\n",
+						i);
 				else
-					dev_err(bus->dev, "itedtv_usb_alloc_urb_buffers: kmalloc() failed. (i: %u)\n", i);
+					dev_err(bus->dev,
+						"itedtv_usb_alloc_urb_buffers: kmalloc() failed. (i: %u)\n",
+						i);
 #else
-				dev_err(bus->dev, "itedtv_usb_alloc_urb_buffers: kmalloc() failed. (i: %u)\n", i);
+				dev_err(bus->dev,
+					"itedtv_usb_alloc_urb_buffers: kmalloc() failed. (i: %u)\n",
+					i);
 #endif
 
 				usb_free_urb(urb);
@@ -239,12 +281,19 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 			}
 
 #ifdef __linux__
-			dev_dbg(bus->dev, "itedtv_usb_alloc_urb_buffers: p: %p, buf_size: %u, dma: %pad\n", p, buf_size, &dma);
+			dev_dbg(bus->dev,
+				"itedtv_usb_alloc_urb_buffers: p: %p, buf_size: %u, dma: %pad\n",
+				p, buf_size, &dma);
 #else
-			dev_dbg(bus->dev, "itedtv_usb_alloc_urb_buffers: p: %p, buf_size: %u\n", p, buf_size);
+			dev_dbg(bus->dev,
+				"itedtv_usb_alloc_urb_buffers: p: %p, buf_size: %u\n",
+				p, buf_size);
 #endif
 
-			usb_fill_bulk_urb(urb, dev, usb_rcvbulkpipe(dev, 0x84), p, buf_size, itedtv_usb_complete, &works[i]);
+			usb_fill_bulk_urb(urb, dev,
+					  usb_rcvbulkpipe(dev, 0x84),
+					  p, buf_size,
+					  itedtv_usb_complete, &works[i]);
 
 #ifdef __linux__
 			if (!no_dma) {
@@ -267,7 +316,8 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx, u32 buf_
 	return 0;
 }
 
-static void itedtv_usb_free_urb_buffers(struct itedtv_usb_context *ctx, bool free_urb)
+static void itedtv_usb_free_urb_buffers(struct itedtv_usb_context *ctx,
+					bool free_urb)
 {
 	u32 i;
 	struct usb_device *dev = ctx->bus->usb.dev;
@@ -288,14 +338,21 @@ static void itedtv_usb_free_urb_buffers(struct itedtv_usb_context *ctx, bool fre
 #ifdef __linux__
 			if (!no_dma) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
-				usb_free_coherent(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
+				usb_free_coherent(dev,
+						  urb->transfer_buffer_length,
+						  urb->transfer_buffer,
+						  urb->transfer_dma);
 #else
-				usb_buffer_free(dev, urb->transfer_buffer_length, urb->transfer_buffer, urb->transfer_dma);
+				usb_buffer_free(dev,
+						urb->transfer_buffer_length,
+						urb->transfer_buffer,
+						urb->transfer_dma);
 #endif
 				urb->transfer_flags &= ~URB_NO_TRANSFER_DMA_MAP;
 				urb->transfer_dma = 0;
-			} else
+			} else {
 				kfree(urb->transfer_buffer);
+			}
 #else
 			kfree(urb->transfer_buffer);
 #endif
@@ -340,7 +397,9 @@ static void itedtv_usb_clean_context(struct itedtv_usb_context *ctx)
 	ctx->works = NULL;
 }
 
-static int itedtv_usb_start_streaming(struct itedtv_bus *bus, itedtv_bus_stream_handler_t stream_handler, void *context)
+static int itedtv_usb_start_streaming(struct itedtv_bus *bus,
+				      itedtv_bus_stream_handler_t stream_handler,
+				      void *context)
 {
 	int ret = 0;
 	u32 i, buf_size, num;
@@ -370,7 +429,8 @@ static int itedtv_usb_start_streaming(struct itedtv_bus *bus, itedtv_bus_stream_
 	ctx->num_works = num;
 
 	if (!ctx->works) {
-		ctx->works = kcalloc(ctx->num_works, sizeof(*works), GFP_KERNEL);
+		ctx->works = kcalloc(ctx->num_works,
+				     sizeof(*works), GFP_KERNEL);
 		if (!ctx->works) {
 			ret = -ENOMEM;
 			goto fail;
@@ -402,7 +462,9 @@ static int itedtv_usb_start_streaming(struct itedtv_bus *bus, itedtv_bus_stream_
 		if (ret) {
 			u32 j;
 
-			dev_err(bus->dev, "itedtv_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n", i, ret);
+			dev_err(bus->dev,
+				"itedtv_usb_start_streaming: usb_submit_urb() failed. (i: %u, ret: %d)\n",
+				i, ret);
 
 			for (j = 0; j < i; j++)
 				usb_kill_urb(works[i].urb);

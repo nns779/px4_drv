@@ -28,8 +28,12 @@ struct itedtv_bus;
 struct itedtv_bus_operations {
 	int (*ctrl_tx)(struct itedtv_bus *bus, void *buf, int len);
 	int (*ctrl_rx)(struct itedtv_bus *bus, void *buf, int *len);
-	int (*stream_rx)(struct itedtv_bus *bus, void *buf, int *len, int timeout);
-	int (*start_streaming)(struct itedtv_bus *bus, itedtv_bus_stream_handler_t stream_handler, void *context);
+	int (*stream_rx)(struct itedtv_bus *bus,
+			 void *buf, int *len,
+			 int timeout);
+	int (*start_streaming)(struct itedtv_bus *bus,
+			       itedtv_bus_stream_handler_t stream_handler,
+			       void *context);
 	int (*stop_streaming)(struct itedtv_bus *bus);
 };
 
@@ -62,7 +66,8 @@ int itedtv_bus_term(struct itedtv_bus *bus);
 }
 #endif
 
-static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
+static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus,
+				     void *buf, int len)
 {
 	if (!bus || !bus->ops.ctrl_tx)
 		return -EINVAL;
@@ -70,7 +75,8 @@ static inline int itedtv_bus_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
 	return bus->ops.ctrl_tx(bus, buf, len);
 }
 
-static inline int itedtv_bus_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
+static inline int itedtv_bus_ctrl_rx(struct itedtv_bus *bus,
+				     void *buf, int *len)
 {
 	if (!bus || !bus->ops.ctrl_rx)
 		return -EINVAL;
@@ -78,7 +84,9 @@ static inline int itedtv_bus_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len
 	return bus->ops.ctrl_rx(bus, buf, len);
 }
 
-static inline int itedtv_bus_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int timeout)
+static inline int itedtv_bus_stream_rx(struct itedtv_bus *bus,
+				       void *buf, int *len,
+				       int timeout)
 {
 	if (!bus || !bus->ops.stream_rx)
 		return -EINVAL;
@@ -86,7 +94,9 @@ static inline int itedtv_bus_stream_rx(struct itedtv_bus *bus, void *buf, int *l
 	return bus->ops.stream_rx(bus, buf, len, timeout);
 }
 
-static inline int itedtv_bus_start_streaming(struct itedtv_bus *bus, itedtv_bus_stream_handler_t stream_handler, void *context)
+static inline int itedtv_bus_start_streaming(struct itedtv_bus *bus,
+					     itedtv_bus_stream_handler_t stream_handler,
+					     void *context)
 {
 	if (!bus || !bus->ops.start_streaming)
 		return -EINVAL;
