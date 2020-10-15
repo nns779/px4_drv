@@ -2,25 +2,18 @@
 /*
  * RafaelMicro RT710 driver (rt710.c)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #include "print_format.h"
+#include "rt710.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#else
-#include <linux/types.h>
+#ifdef __linux__
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/string.h>
 #include <linux/delay.h>
-#include <linux/mutex.h>
-#include <linux/device.h>
 #endif
-
-#include "i2c_comm.h"
-#include "rt710.h"
 
 #define NUM_REGS	0x10
 

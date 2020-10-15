@@ -2,25 +2,19 @@
 /*
  * ITE IT930x driver (it930x.c)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #include "print_format.h"
+#include "it930x.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#else
-#include <linux/types.h>
+#ifdef __linux__
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/slab.h>
 #include <linux/mutex.h>
-#include <linux/device.h>
 #include <linux/firmware.h>
 #endif
-
-#include "it930x.h"
-#include "itedtv_bus.h"
 
 struct it930x_i2c_master_info {
 	struct it930x_bridge *it930x;
@@ -451,7 +445,7 @@ static int it930x_config_stream_input(struct it930x_bridge *it930x)
 		}
 
 		/* aggregation mode: sync byte */
-		ret = it930x_write_reg(it930x, 
+		ret = it930x_write_reg(it930x,
 				       0xda73 + input->port_number, 1);
 		if (ret)
 			break;

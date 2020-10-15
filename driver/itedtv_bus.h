@@ -2,18 +2,18 @@
 /*
  * ITE IT930x bus driver definitions (itedtv_bus.h)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #ifndef __ITEDTV_BUS_H__
 #define __ITEDTV_BUS_H__
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#include "winusb_compat.h"
-#else
+#ifdef __linux__
 #include <linux/device.h>
 #include <linux/usb.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#include "winusb_compat.h"
 #endif
 
 enum itedtv_bus_type {

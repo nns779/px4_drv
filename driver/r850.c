@@ -2,26 +2,20 @@
 /*
  * RafaelMicro R850 driver (r850.c)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 // Some features are not implemented.
 
 #include "print_format.h"
+#include "r850.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#else
-#include <linux/types.h>
+#ifdef __linux__
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/string.h>
-#include <linux/mutex.h>
 #include <linux/delay.h>
-#include <linux/device.h>
 #endif
-
-#include "r850.h"
 
 enum r850_imr_direction {
 	R850_IMR_DIRECTION_GAIN = 0,

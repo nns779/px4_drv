@@ -2,18 +2,18 @@
 /*
  * Toshiba TC90522 driver definitions (tc90522.c)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #ifndef __TC90522_H__
 #define __TC90522_H__
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#else
+#ifdef __linux__
 #include <linux/types.h>
 #include <linux/mutex.h>
 #include <linux/device.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
 #endif
 
 #include "i2c_comm.h"

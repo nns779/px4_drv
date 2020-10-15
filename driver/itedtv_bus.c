@@ -2,25 +2,19 @@
 /*
  * ITE IT930x bus driver (itedtv_bus.c)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #include "print_format.h"
+#include "itedtv_bus.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#include "winusb_compat.h"
-#else
+#ifdef __linux__
 #include <linux/version.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/atomic.h>
 #include <linux/slab.h>
-#include <linux/device.h>
-#include <linux/usb.h>
 #endif
-
-#include "itedtv_bus.h"
 
 #if defined(ITEDTV_BUS_USE_WORKQUEUE) && !defined(__linux__)
 #undef ITEDTV_BUS_USE_WORKQUEUE
@@ -125,6 +119,8 @@ static void itedtv_usb_workqueue_handler(struct work_struct *work)
 		dev_err(ctx->bus->dev,
 			"itedtv_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n",
 			ret);
+
+	return;
 }
 #endif
 
@@ -149,7 +145,7 @@ static void itedtv_usb_complete(struct urb *urb)
 		dev_dbg(ctx->bus->dev,
 			"itedtv_usb_complete: !urb->actual_length\n");
 
-	if (!ret && (atomic_read(&ctx->streaming) == 1)) {
+	if (!ret && (atomic_read_acquire(&ctx->streaming) == 1)) {
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
 		ret = queue_work(ctx->wq, &w->work);
 		if (ret)
@@ -395,6 +391,8 @@ static void itedtv_usb_clean_context(struct itedtv_usb_context *ctx)
 #endif
 	ctx->num_works = 0;
 	ctx->works = NULL;
+
+	return;
 }
 
 static int itedtv_usb_start_streaming(struct itedtv_bus *bus,
@@ -452,7 +450,7 @@ static int itedtv_usb_start_streaming(struct itedtv_bus *bus,
 #endif
 
 	usb_reset_endpoint(bus->usb.dev, 0x84);
-	atomic_set(&ctx->streaming, 1);
+	atomic_xchg(&ctx->streaming, 1);
 
 	num = ctx->num_urb;
 	works = ctx->works;
@@ -483,7 +481,7 @@ static int itedtv_usb_start_streaming(struct itedtv_bus *bus,
 	return ret;
 
 fail:
-	atomic_set(&ctx->streaming, 0);
+	atomic_xchg(&ctx->streaming, 0);
 
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
 	if (ctx->wq)
@@ -506,7 +504,7 @@ static int itedtv_usb_stop_streaming(struct itedtv_bus *bus)
 
 	mutex_lock(&ctx->lock);
 
-	atomic_set(&ctx->streaming, 0);
+	atomic_xchg(&ctx->streaming, 0);
 
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
 	if (ctx->wq)
@@ -608,7 +606,9 @@ int itedtv_bus_term(struct itedtv_bus *bus)
 		struct itedtv_usb_context *ctx = bus->usb.priv;
 
 		if (ctx) {
-			itedtv_usb_stop_streaming(bus);
+			if (atomic_read_acquire(&ctx->streaming))
+				itedtv_usb_stop_streaming(bus);
+
 			mutex_destroy(&ctx->lock);
 			kfree(ctx);
 		}

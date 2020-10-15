@@ -2,17 +2,17 @@
 /*
  * ITE IT930x driver definitions (it930x.h)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #ifndef __IT930X_H__
 #define __IT930X_H__
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#else
+#ifdef __linux__
 #include <linux/types.h>
 #include <linux/device.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
 #endif
 
 #include "itedtv_bus.h"

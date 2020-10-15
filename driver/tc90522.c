@@ -2,25 +2,18 @@
 /*
  * Toshiba TC90522 driver (tc90522.c)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #include "print_format.h"
+#include "tc90522.h"
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#else
-#include <linux/types.h>
+#ifdef __linux__
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/string.h>
-#include <linux/mutex.h>
 #include <linux/slab.h>
-#include <linux/device.h>
 #endif
-
-#include "i2c_comm.h"
-#include "tc90522.h"
 
 static int _tc90522_read_regs(struct tc90522_demod *demod,
 			      u8 reg,
