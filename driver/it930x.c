@@ -568,6 +568,7 @@ int it930x_init(struct it930x_bridge *it930x)
 		priv->i2c[i].it930x = it930x;
 		priv->i2c[i].bus = i + 1;
 
+		it930x->i2c_master[i].gate_ctrl = NULL;
 		it930x->i2c_master[i].request = it930x_i2c_master_request;
 		it930x->i2c_master[i].priv = &priv->i2c[i];
 	}
@@ -597,6 +598,7 @@ int it930x_term(struct it930x_bridge *it930x)
 	/* clear the i2c operator */
 
 	for (i = 0; i < 3; i++) {
+		it930x->i2c_master[i].gate_ctrl = NULL;
 		it930x->i2c_master[i].request = NULL;
 		it930x->i2c_master[i].priv = NULL;
 	}

@@ -366,6 +366,7 @@ int tc90522_init(struct tc90522_demod *demod)
 {
 	mutex_init(&demod->priv.lock);
 
+	demod->i2c_master.gate_ctrl = NULL;
 	demod->i2c_master.request = tc90522_i2c_master_request;
 	demod->i2c_master.priv = demod;
 
@@ -374,6 +375,7 @@ int tc90522_init(struct tc90522_demod *demod)
 
 int tc90522_term(struct tc90522_demod *demod)
 {
+	demod->i2c_master.gate_ctrl = NULL;
 	demod->i2c_master.request = NULL;
 	demod->i2c_master.priv = NULL;
 

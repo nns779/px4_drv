@@ -26,11 +26,18 @@ struct i2c_comm_request {
 };
 
 struct i2c_comm_master {
-	int (*request) (void *i2c_priv,
-			const struct i2c_comm_request *req,
-			int num);
+	int (*gate_ctrl)(void *i2c_priv, bool open);
+	int (*request)(void *i2c_priv,
+		       const struct i2c_comm_request *req,
+		       int num);
 	void *priv;
 };
+
+static inline int i2c_comm_master_gate_ctrl(const struct i2c_comm_master *m,
+					    bool open)
+{
+	return ((m && m ->gate_ctrl) ? m->gate_ctrl(m->priv, open) : -EFAULT);
+}
 
 static inline int i2c_comm_master_request(const struct i2c_comm_master *m,
 					  const struct i2c_comm_request *req,
