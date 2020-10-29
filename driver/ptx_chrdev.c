@@ -251,32 +251,32 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 						break;
 					}
 					chrdev->params.freq = 1049480 + (38360 * freq.freq_no);
+					chrdev->params.bandwidth = 0;
+					chrdev->params.stream_id = freq.slot;
+					chrdev->params.system = PTX_ISDB_S_SYSTEM;
+					break;
 				} else if (freq.freq_no < 24) {
 					// CS
 					chrdev->params.freq = 1613000 + (40000 * (freq.freq_no - 12));
-
-				} else {
-					ret = -EINVAL;
+					chrdev->params.bandwidth = 0;
+					chrdev->params.stream_id = freq.slot;
+					chrdev->params.system = PTX_ISDB_S_SYSTEM;
 					break;
 				}
-				chrdev->params.bandwidth = 0;
-				chrdev->params.stream_id = freq.slot;
-				chrdev->params.system = PTX_ISDB_S_SYSTEM;
-			} else if (chrdev->system_cap & PTX_ISDB_T_SYSTEM) {
+			}
+
+			if (chrdev->system_cap & PTX_ISDB_T_SYSTEM) {
 				if (freq.freq_no >= 63 && freq.freq_no <= 102) {
 					// UHF 13-52ch
 					chrdev->params.freq = 95143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 					chrdev->params.bandwidth = 6;
 					chrdev->params.stream_id = 0;
 					chrdev->params.system = PTX_ISDB_T_SYSTEM;
-				} else {
-					ret = -EINVAL;
 					break;
 				}
-			} else {
-				ret = -EINVAL;
-				break;
 			}
+
+			ret = -EINVAL;
 			break;
 
 		default:
