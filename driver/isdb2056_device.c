@@ -958,6 +958,7 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 		goto fail_device;
 
 	chrdev_config.ops = &isdb2056_chrdev_ops;
+	chrdev_config.options = 0;
 	chrdev_config.ringbuf_size = 188 * px4_device_params.tsdev_max_packets;
 	chrdev_config.priv = &isdb2056->chrdev2056;
 

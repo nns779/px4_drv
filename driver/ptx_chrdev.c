@@ -287,6 +287,15 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 		if (ret)
 			break;
 
+		if (chrdev->params.system == PTX_ISDB_S_SYSTEM &&
+		    (chrdev->options & PTX_CHRDEV_SAT_SET_STREAM_ID_BEFORE_TUNE) &&
+		    chrdev->ops->set_stream_id) {
+			ret = chrdev->ops->set_stream_id(chrdev,
+							 chrdev->params.stream_id);
+			if (ret)
+				break;
+		}
+
 		ret = chrdev->ops->tune(chrdev, &chrdev->params);
 		if (ret) {
 			chrdev->params.system = system;
@@ -316,6 +325,7 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 		}
 
 		if (chrdev->current_system == PTX_ISDB_S_SYSTEM &&
+		    !(chrdev->options & PTX_CHRDEV_SAT_SET_STREAM_ID_BEFORE_TUNE) &&
 		    chrdev->ops->set_stream_id)
 			ret = chrdev->ops->set_stream_id(chrdev,
 							 chrdev->params.stream_id);
@@ -747,6 +757,7 @@ int ptx_chrdev_context_add_group(struct ptx_chrdev_context *chrdev_ctx,
 		chrdev->ops = chrdev_config->ops;
 		chrdev->parent = group;
 		memset(&chrdev->params, 0, sizeof(chrdev->params));
+		chrdev->options = chrdev_config->options;
 		chrdev->streaming = false;
 		init_waitqueue_head(&chrdev->ringbuf_wait);
 		chrdev->ringbuf_threshold_size = chrdev_config->ringbuf_size / 8;

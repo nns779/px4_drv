@@ -45,9 +45,12 @@ struct ptx_chrdev_operations {
 	int (*read_cnr_raw)(struct ptx_chrdev *chrdev, u32 *value);
 };
 
+#define PTX_CHRDEV_SAT_SET_STREAM_ID_BEFORE_TUNE	0x00000010
+
 struct ptx_chrdev_config {
 	enum ptx_system_type system_cap;
 	const struct ptx_chrdev_operations *ops;
+	u32 options;
 	size_t ringbuf_size;
 	void *priv;
 };
@@ -69,6 +72,7 @@ struct ptx_chrdev {
 	const struct ptx_chrdev_operations *ops;
 	struct ptx_chrdev_group *parent;
 	struct ptx_tune_params params;
+	u32 options;
 	bool streaming;
 	struct ringbuffer *ringbuf;
 	wait_queue_head_t ringbuf_wait;

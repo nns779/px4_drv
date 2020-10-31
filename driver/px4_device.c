@@ -1254,6 +1254,7 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		if (ret)
 			goto fail_device;
 
+		chrdev_config[i].options = 0;
 		chrdev_config[i].ringbuf_size = 188 * px4_device_params.tsdev_max_packets;
 		chrdev_config[i].priv = &px4->chrdev4[i];
 	}
