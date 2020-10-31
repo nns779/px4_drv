@@ -404,7 +404,7 @@ static int it930x_config_i2c(struct it930x_bridge *it930x)
 		if (input->enable) {
 			ret = it930x_write_reg(it930x,
 					       i2c_regs[input->slave_number][0],
-					       input->i2c_addr);
+					       input->i2c_addr << 1);
 			if (ret)
 				break;
 
