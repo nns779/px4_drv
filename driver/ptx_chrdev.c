@@ -312,16 +312,17 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 			i = 300;
 			while (i--) {
 				ret = chrdev->ops->check_lock(chrdev, &locked);
-				if (!ret && locked)
+				if ((!ret && locked) || ret == -ECANCELED)
 					break;
 
 				msleep(10);
 			}
 
-			if (!locked) {
+			if (ret != -ECANCELED && !locked)
 				ret = -EAGAIN;
+
+			if (ret)
 				break;
-			}
 		}
 
 		if (chrdev->current_system == PTX_ISDB_S_SYSTEM &&
