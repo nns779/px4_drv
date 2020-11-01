@@ -8,7 +8,6 @@
 #include "print_format.h"
 #include "driver_module.h"
 
-#include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 
