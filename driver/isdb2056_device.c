@@ -26,7 +26,8 @@ struct isdb2056_stream_context {
 
 static void isdb2056_device_release(struct kref *kref);
 
-static int isdb2056_backend_set_power(struct isdb2056_device *isdb2056, bool state)
+static int isdb2056_backend_set_power(struct isdb2056_device *isdb2056,
+				      bool state)
 {
 	int ret = 0;
 	struct it930x_bridge *it930x = &isdb2056->it930x;
@@ -253,7 +254,7 @@ static int isdb2056_chrdev_open(struct ptx_chrdev *chrdev)
 		goto fail_backend_init;
 	}
 
-	// Initialization for ISDB-T
+	/* Initialization for ISDB-T */
 
 	ret = tc90522_write_multiple_regs(&chrdev2056->tc90522_t,
 					  tc_init_t, ARRAY_SIZE(tc_init_t));
@@ -264,7 +265,7 @@ static int isdb2056_chrdev_open(struct ptx_chrdev *chrdev)
 		goto fail_backend;
 	}
 
-	// disable ts pins
+	/* disable ts pins */
 	ret = tc90522_enable_ts_pins_t(&chrdev2056->tc90522_t, false);
 	if (ret) {
 		dev_err(isdb2056->dev,
@@ -273,7 +274,7 @@ static int isdb2056_chrdev_open(struct ptx_chrdev *chrdev)
 		return ret;
 	}
 
-	// sleep
+	/* sleep */
 	ret = tc90522_sleep_t(&chrdev2056->tc90522_t, true);
 	if (ret) {
 		dev_err(isdb2056->dev,
@@ -294,7 +295,7 @@ static int isdb2056_chrdev_open(struct ptx_chrdev *chrdev)
 		return ret;
 	}
 
-	// Initialization for ISDB-S
+	/* Initialization for ISDB-S */
 
 	ret = tc90522_write_multiple_regs(&chrdev2056->tc90522_s,
 					  tc_init_s, ARRAY_SIZE(tc_init_s));
@@ -305,7 +306,7 @@ static int isdb2056_chrdev_open(struct ptx_chrdev *chrdev)
 		return ret;
 	}
 
-	// disable ts pins
+	/* disable ts pins */
 	ret = tc90522_enable_ts_pins_s(&chrdev2056->tc90522_s, false);
 	if (ret) {
 		dev_err(isdb2056->dev,
@@ -314,7 +315,7 @@ static int isdb2056_chrdev_open(struct ptx_chrdev *chrdev)
 		return ret;
 	}
 
-	// sleep
+	/* sleep */
 	ret = tc90522_sleep_s(&chrdev2056->tc90522_s, true);
 	if (ret) {
 		dev_err(isdb2056->dev,
@@ -452,7 +453,7 @@ static int isdb2056_chrdev_tune(struct ptx_chrdev *chrdev,
 				chrdev_group->id, ret);
 			break;
 		} else if (!tuner_locked) {
-			// PLL error
+			/* PLL error */
 			dev_dbg(isdb2056->dev,
 				"isdb2056_chrdev_tune %u: PLL is NOT locked.\n",
 				chrdev_group->id);
@@ -552,7 +553,8 @@ static int isdb2056_chrdev_tune(struct ptx_chrdev *chrdev,
 
 		i = 50;
 		while (i--) {
-			ret = rt710_is_pll_locked(&chrdev2056->rt710, &tuner_locked);
+			ret = rt710_is_pll_locked(&chrdev2056->rt710,
+						  &tuner_locked);
 			if (!ret && tuner_locked)
 				break;
 
@@ -565,7 +567,7 @@ static int isdb2056_chrdev_tune(struct ptx_chrdev *chrdev,
 				chrdev_group->id, ret);
 			break;
 		} else if (!tuner_locked) {
-			// PLL error
+			/* PLL error */
 			dev_err(isdb2056->dev,
 				"isdb2056_chrdev_tune %u: PLL is NOT locked.\n",
 				chrdev_group->id);
@@ -672,7 +674,7 @@ static int isdb2056_chrdev_set_stream_id(struct ptx_chrdev *chrdev,
 		return ret;
 	}
 
-	// check slot
+	/* check slot */
 
 	i = 100;
 	while(i--) {
@@ -806,7 +808,8 @@ static int isdb2056_chrdev_stop_capture(struct ptx_chrdev *chrdev)
 
 static int isdb2056_chrdev_set_capture(struct ptx_chrdev *chrdev, bool status)
 {
-	return (status) ? isdb2056_chrdev_start_capture(chrdev) : isdb2056_chrdev_stop_capture(chrdev);
+	return (status) ? isdb2056_chrdev_start_capture(chrdev)
+			: isdb2056_chrdev_stop_capture(chrdev);
 }
 
 static int isdb2056_chrdev_read_cnr_raw(struct ptx_chrdev *chrdev, u32 *value)
@@ -858,7 +861,8 @@ static int isdb2056_device_load_config(struct isdb2056_device *isdb2056,
 
 	ret = it930x_read_reg(it930x, 0x4979, &tmp);
 	if (ret) {
-		dev_err(dev, "isdb2056_load_config: it930x_read_reg(0x4979) failed.\n");
+		dev_err(dev,
+			"isdb2056_load_config: it930x_read_reg(0x4979) failed.\n");
 		return ret;
 	} else if (!tmp) {
 		dev_warn(dev, "EEPROM error.\n");
@@ -970,7 +974,7 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 	if (ret)
 		goto fail_device;
 
-	// GPIO
+	/* GPIO */
 	ret = it930x_set_gpio_mode(it930x, 3, IT930X_GPIO_OUT, true);
 	if (ret)
 		goto fail_device;
@@ -992,14 +996,14 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 	if (ret)
 		goto fail_device;
 
-	// LNB power supply: off
+	/* LNB power supply: off */
 	ret = it930x_write_gpio(it930x, 11, false);
 	if (ret)
 		goto fail_device;
 #endif
 
 	chrdev_group_config.reserved = false;
-	chrdev_group_config.minor_base = 0;	// unused
+	chrdev_group_config.minor_base = 0;	/* unused */
 	chrdev_group_config.chrdev_num = 1;
 	chrdev_group_config.chrdev_config = &chrdev_config;
 
@@ -1035,7 +1039,9 @@ fail:
 
 static void isdb2056_device_release(struct kref *kref)
 {
-	struct isdb2056_device *isdb2056 = container_of(kref, struct isdb2056_device, kref);
+	struct isdb2056_device *isdb2056 = container_of(kref,
+							struct isdb2056_device,
+							kref);
 
 	dev_dbg(isdb2056->dev, "isdb2056_device_release\n");
 
@@ -1051,7 +1057,8 @@ static void isdb2056_device_release(struct kref *kref)
 void isdb2056_device_term(struct isdb2056_device *isdb2056)
 {
 	dev_dbg(isdb2056->dev,
-		"isdb2056_device_term: kref count: %u\n", kref_read(&isdb2056->kref));
+		"isdb2056_device_term: kref count: %u\n",
+		kref_read(&isdb2056->kref));
 
 	atomic_xchg(&isdb2056->available, 0);
 	ptx_chrdev_group_destroy(isdb2056->chrdev_group);

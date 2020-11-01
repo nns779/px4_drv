@@ -572,7 +572,8 @@ int itedtv_bus_init(struct itedtv_bus *bus)
 		bus->usb.priv = ctx;
 
 		if (!bus->usb.max_bulk_size)
-			bus->usb.max_bulk_size = (bus->usb.dev->descriptor.bcdUSB == 0x0110) ? 64 : 512;
+			bus->usb.max_bulk_size = (bus->usb.dev->descriptor.bcdUSB == 0x0110) ? 64
+											     : 512;
 
 		bus->ops.ctrl_tx = itedtv_usb_ctrl_tx;
 		bus->ops.ctrl_rx = itedtv_usb_ctrl_rx;

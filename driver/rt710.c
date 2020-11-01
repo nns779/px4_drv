@@ -315,7 +315,8 @@ int rt710_init(struct rt710_tuner *t)
 		return ret;
 	}
 
-	t->priv.chip = ((tmp & 0xf0) == 0x70) ? RT710_CHIP_TYPE_RT710 : RT710_CHIP_TYPE_RT720;
+	t->priv.chip = ((tmp & 0xf0) == 0x70) ? RT710_CHIP_TYPE_RT710
+					      : RT710_CHIP_TYPE_RT720;
 
 	t->priv.init = true;
 
@@ -376,7 +377,8 @@ int rt710_set_params(struct rt710_tuner *t,
 		return -EINVAL;
 
 	memcpy(regs,
-	       (t->priv.chip == RT710_CHIP_TYPE_RT710) ? rt710_init_regs : rt720_init_regs,
+	       (t->priv.chip == RT710_CHIP_TYPE_RT710) ? rt710_init_regs
+						       : rt720_init_regs,
 	       sizeof(regs));
 
 	if (t->config.loop_through)
@@ -530,7 +532,7 @@ int rt710_set_params(struct rt710_tuner *t,
 		} else {
 			int i;
 
-			for (i = 0; i < (sizeof(bandwidth_params) / sizeof(bandwidth_params[0])); i++) {
+			for (i = 0; i < ARRAY_SIZE(bandwidth_params); i++) {
 				if (bandwidth <= bandwidth_params[i].bandwidth) {
 					bw_param = bandwidth_params[i].param;
 					break;
@@ -651,12 +653,12 @@ int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain)
 		if (g <= 2) {
 			*gain = 0;
 		} else if (g <= 9) {
-			// 1 - 7
+			/* 1 - 7 */
 			*gain = g - 2;
 		} else if (g <= 12) {
 			*gain = 7;
 		} else if (g <= 22) {
-			// 8 - 17
+			/* 8 - 17 */
 			*gain = g - 5;
 		} else {
 			*gain = 18;

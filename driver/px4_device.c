@@ -374,7 +374,7 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 		}
 	}
 
-	// wakeup
+	/* wake up */
 	switch (chrdev->system_cap) {
 	case PTX_ISDB_T_SYSTEM:
 	{
@@ -390,7 +390,7 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 			break;
 		}
 
-		// disable ts pins
+		/* disable ts pins */
 		ret = tc90522_enable_ts_pins_t(&chrdev4->tc90522, false);
 		if (ret) {
 			dev_err(px4->dev,
@@ -399,7 +399,7 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 			break;
 		}
 
-		// wake up
+		/* wake up */
 		ret = tc90522_sleep_t(&chrdev4->tc90522, false);
 		if (ret) {
 			dev_err(px4->dev,
@@ -443,7 +443,7 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 			break;
 		}
 
-		// disable ts pins
+		/* disable ts pins */
 		ret = tc90522_enable_ts_pins_s(&chrdev4->tc90522, false);
 		if (ret) {
 			dev_err(px4->dev,
@@ -452,7 +452,7 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 			break;
 		}
 
-		// wake up
+		/* wake up */
 		ret = tc90522_sleep_s(&chrdev4->tc90522, false);
 		if (ret) {
 			dev_err(px4->dev,
@@ -472,6 +472,7 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 		goto fail_backend;
 
 	if (!px4->open_count) {
+		/* S0 */
 		ret = tc90522_write_multiple_regs(&px4->chrdev4[0].tc90522,
 						  tc_init_s0,
 						  ARRAY_SIZE(tc_init_s0));
@@ -482,7 +483,7 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 			goto fail_backend;
 		}
 
-		// T0
+		/* T0 */
 		ret = tc90522_write_multiple_regs(&px4->chrdev4[2].tc90522,
 						  tc_init_t0,
 						  ARRAY_SIZE(tc_init_t0));
@@ -548,7 +549,7 @@ static int px4_chrdev_release(struct ptx_chrdev *chrdev)
 		else
 			px4_backend_set_power(px4, false);
 	} else if (atomic_read(&px4->available)) {
-		// sleep tuners
+		/* sleep tuners */
 		switch (chrdev->system_cap) {
 		case PTX_ISDB_T_SYSTEM:
 			r850_sleep(&chrdev4->tuner.r850);
@@ -630,7 +631,7 @@ static int px4_chrdev_tune_t(struct ptx_chrdev *chrdev,
 			chrdev_group->id, chrdev->id, ret);
 		return ret;
 	} else if (!tuner_locked) {
-		// PLL error
+		/* PLL error */
 		dev_dbg(px4->dev,
 			"px4_chrdev_tune_t %u:%u: PLL is NOT locked.\n",
 			chrdev_group->id, chrdev->id);
@@ -685,7 +686,7 @@ static int px4_chrdev_tune_s(struct ptx_chrdev *chrdev,
 	if (params->system != PTX_ISDB_S_SYSTEM)
 		return -EINVAL;
 
-	// set frequency
+	/* set frequency */
 
 	ret = tc90522_set_agc_s(tc90522, false);
 	if (ret) {
@@ -726,7 +727,7 @@ static int px4_chrdev_tune_s(struct ptx_chrdev *chrdev,
 			chrdev_group->id, chrdev->id, ret);
 		return ret;
 	} else if (!tuner_locked) {
-		// PLL error
+		/* PLL error */
 		dev_err(px4->dev,
 			"px4_chrdev_tune_s %u:%u: PLL is NOT locked.\n",
 			chrdev_group->id, chrdev->id);
@@ -811,7 +812,7 @@ static int px4_chrdev_set_stream_id_s(struct ptx_chrdev *chrdev, u16 stream_id)
 		return ret;
 	}
 
-	// check slot
+	/* check slot */
 
 	i = 100;
 	while(i--) {
@@ -1013,7 +1014,8 @@ static int px4_chrdev_stop_capture(struct ptx_chrdev *chrdev)
 
 static int px4_chrdev_set_capture(struct ptx_chrdev *chrdev, bool status)
 {
-	return (status) ? px4_chrdev_start_capture(chrdev) : px4_chrdev_stop_capture(chrdev);
+	return (status) ? px4_chrdev_start_capture(chrdev)
+			: px4_chrdev_stop_capture(chrdev);
 }
 
 static int px4_chrdev_read_cnr_raw_t(struct ptx_chrdev *chrdev, u32 *value)
@@ -1120,7 +1122,7 @@ static int px4_device_load_config(struct px4_device *px4,
 		input->slave_number = i;
 		input->i2c_bus = 2;
 		input->packet_len = 188;
-		input->sync_byte = ((i + 1) << 4) | 0x07;	// 0x17 0x27 0x37 0x47
+		input->sync_byte = ((i + 1) << 4) | 0x07;	/* 0x17 0x27 0x37 0x47 */
 
 		chrdev4->tc90522.dev = dev;
 		chrdev4->tc90522.i2c = &it930x->i2c_master[1];
@@ -1147,7 +1149,8 @@ static int px4_device_load_config(struct px4_device *px4,
 			chrdev4->tuner.r850.i2c = &chrdev4->tc90522.i2c_master;
 			chrdev4->tuner.r850.i2c_addr = 0x7c;
 			chrdev4->tuner.r850.config.xtal = 24000;
-			chrdev4->tuner.r850.config.loop_through = (i % 2) ? false : true;
+			chrdev4->tuner.r850.config.loop_through = (i % 2) ? false
+									  : true;
 			chrdev4->tuner.r850.config.clock_out = false;
 			chrdev4->tuner.r850.config.no_imr_calibration = true;
 			chrdev4->tuner.r850.config.no_lpf_calibration = true;
@@ -1270,7 +1273,7 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 	if (ret)
 		goto fail_device;
 
-	// GPIO
+	/* GPIO */
 	ret = it930x_set_gpio_mode(it930x, 7, IT930X_GPIO_OUT, true);
 	if (ret)
 		goto fail_device;
@@ -1283,7 +1286,8 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		if (px4_mldev_search(px4->serial.serial_number, &px4->mldev))
 			ret = px4_mldev_add(px4->mldev, px4);
 		else
-			ret = px4_mldev_alloc(&px4->mldev, px4, px4_backend_set_power);
+			ret = px4_mldev_alloc(&px4->mldev, px4,
+					      px4_backend_set_power);
 
 		if (ret)
 			goto fail_device;
@@ -1301,13 +1305,13 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 	if (ret)
 		goto fail_device;
 
-	// LNB power supply: off
+	/* LNB power supply: off */
 	ret = it930x_write_gpio(it930x, 11, false);
 	if (ret)
 		goto fail_device;
 
 	chrdev_group_config.reserved = false;
-	chrdev_group_config.minor_base = 0;	// unused
+	chrdev_group_config.minor_base = 0;	/* unused */
 	chrdev_group_config.chrdev_num = 4;
 	chrdev_group_config.chrdev_config = chrdev_config;
 

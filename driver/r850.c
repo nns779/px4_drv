@@ -5,7 +5,7 @@
  * Copyright (c) 2018-2020 nns779
  */
 
-// Some features are not implemented.
+/* Some features are not implemented. */
 
 #include "print_format.h"
 #include "r850.h"
@@ -345,7 +345,7 @@ static const struct r850_system_frequency_params j83b_freq_params[3] = {
 };
 
 static const struct r850_system_frequency_params isdb_t_freq_params[10] = {
-	// ISDB-T 4063
+	/* ISDB-T 4063 */
 	{
 		4063, 0, 340000,
 		5, 0x6b, 0, 1, 1, 1, 0x05,
@@ -391,7 +391,7 @@ static const struct r850_system_frequency_params isdb_t_freq_params[10] = {
 		12, 0x09, 0x04,
 		1, 3, 1, 0, 1, 1, 3, 2, 1
 	},
-	// ISDB-T other
+	/* ISDB-T other */
 	{
 		0, 0, 340000,
 		5, 0x6b, 0, 1, 1, 1, 0x05,
@@ -705,7 +705,7 @@ static int _r850_set_pll(struct r850_tuner *t,
 	t->priv.regs[0x22] &= 0xcf;
 	t->priv.regs[0x22] |= ((b << 4) & 0x30);
 
-	// xtal == 24000
+	/* xtal == 24000 */
 	div_judge = ((lo_freq + if_freq) / 1000 / 12);
 
 	t->priv.regs[0x1e] &= 0x1f;
@@ -1067,7 +1067,8 @@ static int _r850_imr_check_iq_cross(struct r850_tuner *t,
 
 	if (!ret) {
 		*imr = imr_tmp;
-		*direction = (imr_tmp.phase) ? R850_IMR_DIRECTION_PHASE : R850_IMR_DIRECTION_GAIN;
+		*direction = (imr_tmp.phase) ? R850_IMR_DIRECTION_PHASE
+					     : R850_IMR_DIRECTION_GAIN;
 	}
 
 	return ret;
@@ -1221,7 +1222,7 @@ static int _r850_imr_check_iq_step(struct r850_tuner *t,
 				imr_tmp.phase = val;
 
 			imr_tmp.value = tmp;
-		} else if ((imr_tmp.value + 2) < tmp) {	// (imr_tmp.value < (tmp - 2))
+		} else if ((imr_tmp.value + 2) < tmp) {	/* (imr_tmp.value < (tmp - 2)) */
 			break;
 		}
 	}
@@ -1496,7 +1497,9 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 				return ret;
 
 			ret = _r850_imr_check_iq_tree(t, imr,
-						      (d == R850_IMR_DIRECTION_GAIN) ? R850_IMR_DIRECTION_PHASE : R850_IMR_DIRECTION_GAIN,
+						      (d == R850_IMR_DIRECTION_GAIN)
+							  ? R850_IMR_DIRECTION_PHASE
+							  : R850_IMR_DIRECTION_GAIN,
 						      5);
 			if (ret)
 				return ret;
@@ -1523,7 +1526,7 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 			t->priv.imr_cal[mixer_mode].result[j] = false;
 
 		if (full) {
-			// reset gain/phase/iqcap
+			/* reset gain/phase/iqcap */
 			t->priv.regs[0x14] &= 0xd0;
 			t->priv.regs[0x15] &= 0x10;
 
@@ -1588,7 +1591,7 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 			if (ret)
 				return ret;
 		} else {
-			// failed.
+			/* failed. */
 			return -EIO;
 		}
 	}
@@ -1987,7 +1990,7 @@ static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 static int _r850_check_xtal_power(struct r850_tuner *t)
 {
 	int ret = 0, i;
-	u8 bank = 55, pwr = 3;		// xtal: 24MHz
+	u8 bank = 55, pwr = 3;		/* xtal: 24MHz */
 
 	_r850_init_regs(t);
 

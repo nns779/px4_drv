@@ -174,7 +174,7 @@ static void px4_usb_disconnect(struct usb_interface *intf)
 		break;
 
 	default:
-		// unknown device
+		/* unknown device */
 		break;
 	}
 

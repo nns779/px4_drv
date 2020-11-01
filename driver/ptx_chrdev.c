@@ -202,14 +202,14 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 				ret = -EINVAL;
 				break;
 			} else if (freq.freq_no < 12) {
-				// BS
+				/* BS */
 				if (freq.slot >= 8) {
 					ret = -EINVAL;
 					break;
 				}
 				chrdev->params.freq = 1049480 + (38360 * freq.freq_no);
 			} else if (freq.freq_no < 24) {
-				// CS
+				/* CS */
 				chrdev->params.freq = 1613000 + (40000 * (freq.freq_no - 12));
 			} else {
 				ret = -EINVAL;
@@ -222,16 +222,15 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 		case PTX_ISDB_T_SYSTEM:
 			if ((freq.freq_no >= 3 && freq.freq_no <= 12) ||
 			    (freq.freq_no >= 22 && freq.freq_no <= 62)) {
-				// CATV C13-C22ch, C23-63ch
+				/* CATV C13-C22ch, C23-63ch */
 				chrdev->params.freq = 93143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 
 				if (freq.freq_no == 12)
 					chrdev->params.freq += 2000;
 			} else if (freq.freq_no >= 63 && freq.freq_no <= 102) {
-				// UHF 13-52ch
+				/* UHF 13-52ch */
 				chrdev->params.freq = 95143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 			} else {
-				// Unknown channel
 				ret = -EINVAL;
 				break;
 			}
@@ -245,7 +244,7 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 					ret = -EINVAL;
 					break;
 				} else if (freq.freq_no < 12) {
-					// BS
+					/* BS */
 					if (freq.slot >= 8) {
 						ret = -EINVAL;
 						break;
@@ -256,7 +255,7 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 					chrdev->params.system = PTX_ISDB_S_SYSTEM;
 					break;
 				} else if (freq.freq_no < 24) {
-					// CS
+					/* CS */
 					chrdev->params.freq = 1613000 + (40000 * (freq.freq_no - 12));
 					chrdev->params.bandwidth = 0;
 					chrdev->params.stream_id = freq.slot;
@@ -267,7 +266,7 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 
 			if (chrdev->system_cap & PTX_ISDB_T_SYSTEM) {
 				if (freq.freq_no >= 63 && freq.freq_no <= 102) {
-					// UHF 13-52ch
+					/* UHF 13-52ch */
 					chrdev->params.freq = 95143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 					chrdev->params.bandwidth = 6;
 					chrdev->params.stream_id = 0;
@@ -617,7 +616,7 @@ static int __ptx_chrdev_context_search_minor(struct ptx_chrdev_context *chrdev_c
 			continue;
 		}
 
-		// found
+		/* found */
 		*base = i;
 		return 0;
 	}
@@ -874,7 +873,7 @@ int ptx_chrdev_context_remove_group(struct ptx_chrdev_context *chrdev_ctx,
 
 	if (!__ptx_chrdev_context_search_group(chrdev_ctx,
 					       minor_base, &group)) {
-		// not found
+		/* not found */
 		ret = -ENOENT;
 		goto exit;
 	}

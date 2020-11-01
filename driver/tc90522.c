@@ -248,7 +248,8 @@ static int tc90522_i2c_master_request(void *i2c_priv,
 		goto exit;
 
 	if ((num == 1 && req[0].req == I2C_WRITE_REQUEST) ||
-	    (num == 2 && req[0].req == I2C_WRITE_REQUEST && req[1].req == I2C_READ_REQUEST)) {
+	    (num == 2 && req[0].req == I2C_WRITE_REQUEST &&
+	     req[1].req == I2C_READ_REQUEST)) {
 		u8 b[255], br[2];
 		struct i2c_comm_request master_req[3];
 
@@ -393,7 +394,7 @@ int tc90522_sleep_s(struct tc90522_demod *demod, bool sleep)
 	};
 
 	if (sleep) {
-		// sleep
+		/* sleep */
 		regbuf[0].u.val = 0x80;
 		regbuf[1].u.val = 0xff;
 	}
@@ -417,7 +418,7 @@ int tc90522_set_agc_s(struct tc90522_demod *demod, bool on)
 		regbuf[1].u.val = 0x30;
 
 	if (on) {
-		// on
+		/* on */
 		regbuf[0].u.val = 0xff;
 		regbuf[1].u.val |= 0x02;
 		regbuf[2].u.val = 0x00;
@@ -523,7 +524,7 @@ int tc90522_set_agc_t(struct tc90522_demod *demod, bool on)
 	};
 
 	if (on)
-		// on
+		/* on */
 		regbuf[2].u.val &= ~0x01;
 
 	return tc90522_write_multiple_regs(demod, regbuf, 4);

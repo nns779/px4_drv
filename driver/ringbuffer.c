@@ -178,7 +178,8 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 
 	read_size = (*len <= actual_size) ? *len : actual_size;
 	if (read_size) {
-		size_t tmp = (head + read_size <= buf_size) ? read_size : (buf_size - head);
+		size_t tmp = (head + read_size <= buf_size) ? read_size
+							    : (buf_size - head);
 		unsigned long res;
 
 		res = copy_to_user(buf, p + head, tmp);
@@ -188,7 +189,8 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 					   read_size - tmp);
 			head = read_size - tmp;
 		} else {
-			head = (head + read_size == buf_size) ? 0 : (head + read_size);
+			head = (head + read_size == buf_size) ? 0
+							      : (head + read_size);
 		}
 
 		atomic_long_xchg(&ringbuf->head, head);
@@ -222,9 +224,11 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 	actual_size = atomic_long_read_acquire(&ringbuf->actual_size);
 	tail = atomic_long_read(&ringbuf->tail);
 
-	write_size = (actual_size + *len <= buf_size) ? *len : (buf_size - actual_size);
+	write_size = (actual_size + *len <= buf_size) ? *len
+						      : (buf_size - actual_size);
 	if (write_size) {
-		size_t tmp = (tail + write_size <= buf_size) ? write_size : (buf_size - tail);
+		size_t tmp = (tail + write_size <= buf_size) ? write_size
+							     : (buf_size - tail);
 
 		memcpy(p + tail, buf, tmp);
 
@@ -232,7 +236,8 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 			memcpy(p, ((u8 *)buf) + tmp, write_size - tmp);
 			tail = write_size - tmp;
 		} else {
-			tail = (tail + write_size == buf_size) ? 0 : (tail + write_size);
+			tail = (tail + write_size == buf_size) ? 0
+							       : (tail + write_size);
 		}
 
 		atomic_long_xchg(&ringbuf->tail, tail);

@@ -153,7 +153,8 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x,
 		ret = -EIO;
 	} else if (rbuf) {
 		if (rbuf->buf) {
-			rbuf->len = ((rlen - 3 - 2) > rbuf->len) ? rbuf->len : (rlen - 3 - 2);
+			rbuf->len = ((rlen - 3 - 2) > rbuf->len) ? rbuf->len
+								 : (rlen - 3 - 2);
 			memcpy(rbuf->buf, &buf[3], rbuf->len);
 		} else {
 			rbuf->len = rlen - 3 - 2;
@@ -370,7 +371,8 @@ static int it930x_read_firmware_version(struct it930x_bridge *it930x,
 			      &wb, &rb,
 			      NULL, false);
 	if (!ret)
-		*fw_version = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+		*fw_version = (buf[0] << 24) | (buf[1] << 16) |
+			      (buf[2] << 8) | buf[3];
 
 	return ret;
 }
