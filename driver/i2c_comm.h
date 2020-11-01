@@ -8,10 +8,10 @@
 #ifndef __I2C_COMM_H__
 #define __I2C_COMM_H__
 
-#if defined(_WIN32) || defined(_WIN64)
-#include "misc_win.h"
-#else
+#ifdef __linux__
 #include <linux/types.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
 #endif
 
 struct i2c_comm_request {
