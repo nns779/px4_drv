@@ -265,7 +265,14 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 			}
 
 			if (chrdev->system_cap & PTX_ISDB_T_SYSTEM) {
-				if (freq.freq_no >= 63 && freq.freq_no <= 102) {
+				if (freq.freq_no >= 24 && freq.freq_no <= 62) {
+					/* CATV C25-63ch */
+					chrdev->params.freq = 93143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
+					chrdev->params.bandwidth = 6;
+					chrdev->params.stream_id = 0;
+					chrdev->params.system = PTX_ISDB_T_SYSTEM;
+					break;
+				} else if (freq.freq_no >= 63 && freq.freq_no <= 102) {
 					/* UHF 13-52ch */
 					chrdev->params.freq = 95143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 					chrdev->params.bandwidth = 6;
