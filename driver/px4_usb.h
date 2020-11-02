@@ -12,12 +12,12 @@
 #define USB_PID_PX_Q3U4			0x084a
 #define USB_PID_PX_W3PE4		0x023f
 #define USB_PID_PX_Q3PE4		0x024a
-#define USB_PID_DIGIBEST_ISDB2056	0x004b
-
-// Not supported devices
 #define USB_PID_PX_MLT5PE		0x024e
 #define USB_PID_PX_MLT8PE3		0x0252
 #define USB_PID_PX_MLT8PE5		0x0253
+#define USB_PID_DIGIBEST_ISDB2056	0x004b
+
+// Not supported devices
 #define USB_PID_DIGIBEST_ISDBT2053	0x0046
 #define USB_PID_DIGIBEST_ISDBT2057	0x004c
 #define USB_PID_DIGIBEST_ISDBT6013	0x024d
@@ -25,7 +25,8 @@
 enum px4_usb_device_type {
 	UNKNOWN_USB_DEVICE = 0,
 	PX4_USB_DEVICE,
-	PXMLT_USB_DEVICE,	// not supported
+	PXMLT5_USB_DEVICE,
+	PXMLT8_USB_DEVICE,
 	ISDBT2053_USB_DEVICE,	// not supported
 	ISDB2056_USB_DEVICE,
 	ISDBT2057_USB_DEVICE,	// not supported
