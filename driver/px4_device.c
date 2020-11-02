@@ -497,8 +497,8 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 
 	px4->open_count++;
 	kref_get(&px4->kref);
-	mutex_unlock(&px4->lock);
 
+	mutex_unlock(&px4->lock);
 	return 0;
 
 fail_backend:
@@ -541,7 +541,6 @@ static int px4_chrdev_release(struct ptx_chrdev *chrdev)
 	}
 
 	px4->open_count--;
-
 	if (!px4->open_count) {
 		px4_backend_term(px4);
 		if (px4->mldev)
@@ -918,7 +917,7 @@ static int px4_chrdev_start_capture(struct ptx_chrdev *chrdev)
 	}
 
 	if (ret)
-		goto fail_tc;
+		goto fail;
 
 	if (!px4->streaming_count) {
 		struct px4_stream_context *stream_ctx = px4->stream_ctx;
@@ -946,8 +945,6 @@ static int px4_chrdev_start_capture(struct ptx_chrdev *chrdev)
 	return 0;
 
 fail_bus:
-
-fail_tc:
 	switch (chrdev->system_cap) {
 	case PTX_ISDB_T_SYSTEM:
 		tc90522_enable_ts_pins_t(tc90522, false);
@@ -978,6 +975,11 @@ static int px4_chrdev_stop_capture(struct ptx_chrdev *chrdev)
 		chrdev_group->id, chrdev->id);
 
 	mutex_lock(&px4->lock);
+
+	if (!px4->streaming_count) {
+		mutex_unlock(&px4->lock);
+		return -EALREADY;
+	}
 
 	px4->streaming_count--;
 	if (!px4->streaming_count) {
