@@ -12,6 +12,7 @@
 #include <linux/atomic.h>
 #include <linux/kref.h>
 #include <linux/mutex.h>
+#include <linux/completion.h>
 #include <linux/device.h>
 
 #include "px4_mldev.h"
@@ -48,6 +49,7 @@ struct px4_device {
 	struct device *dev;
 	struct px4_serial_number serial;
 	struct px4_mldev *mldev;
+	struct completion *quit_completion;
 	unsigned int open_count;
 	unsigned int lnb_power_count;
 	unsigned int streaming_count;
@@ -59,7 +61,8 @@ struct px4_device {
 
 int px4_device_init(struct px4_device *px4, struct device *dev,
 		    const char *dev_serial, bool use_mldev,
-		    struct ptx_chrdev_context *chrdev_ctx);
+		    struct ptx_chrdev_context *chrdev_ctx,
+		    struct completion *quit_completion);
 void px4_device_term(struct px4_device *px4);
 
 #endif

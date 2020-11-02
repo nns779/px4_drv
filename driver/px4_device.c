@@ -1171,7 +1171,8 @@ static int px4_device_load_config(struct px4_device *px4,
 
 int px4_device_init(struct px4_device *px4, struct device *dev,
 		    const char *dev_serial, bool use_mldev,
-		    struct ptx_chrdev_context *chrdev_ctx)
+		    struct ptx_chrdev_context *chrdev_ctx,
+		    struct completion *quit_completion)
 {
 	int ret = 0, i;
 	struct it930x_bridge *it930x;
@@ -1181,7 +1182,7 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 	struct ptx_chrdev_group *chrdev_group;
 	struct px4_stream_context *stream_ctx;
 
-	if (!px4 || !dev || !dev_serial || !chrdev_ctx)
+	if (!px4 || !dev || !dev_serial || !chrdev_ctx || !quit_completion)
 		return -EINVAL;
 
 	dev_dbg(dev,
@@ -1191,6 +1192,7 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 	mutex_init(&px4->lock);
 	px4->dev = dev;
 	px4->mldev = NULL;
+	px4->quit_completion = quit_completion;
 	px4->open_count = 0;
 	px4->lnb_power_count = 0;
 	px4->streaming_count = 0;
@@ -1371,6 +1373,7 @@ static void px4_device_release(struct kref *kref)
 	mutex_destroy(&px4->lock);
 	put_device(px4->dev);
 
+	complete(px4->quit_completion);
 	return;
 }
 

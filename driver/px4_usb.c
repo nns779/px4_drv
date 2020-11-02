@@ -11,6 +11,7 @@
 #include <linux/types.h>
 #include <linux/list.h>
 #include <linux/mutex.h>
+#include <linux/completion.h>
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -31,6 +32,7 @@
 struct px4_usb_context {
 	struct list_head list;
 	enum px4_usb_device_type type;
+	struct completion quit_completion;
 	union {
 		struct px4_device px4;
 		struct isdb2056_device isdb2056;
@@ -81,6 +83,8 @@ static int px4_usb_probe(struct usb_interface *intf,
 		return -ENOMEM;
 	}
 
+	init_completion(&ctx->quit_completion);
+
 	switch (id->idVendor) {
 	case 0x0511:
 	{
@@ -102,7 +106,8 @@ static int px4_usb_probe(struct usb_interface *intf,
 			ctx->type = PX4_USB_DEVICE;
 			ret = px4_device_init(&ctx->ctx.px4, dev,
 					      usb_dev->serial, px4_use_mldev,
-					      px4_usb_chrdev_ctx[PX4_USB_DEVICE]);
+					      px4_usb_chrdev_ctx[PX4_USB_DEVICE],
+					      &ctx->quit_completion);
 			break;
 
 		case USB_PID_DIGIBEST_ISDB2056:
@@ -113,7 +118,8 @@ static int px4_usb_probe(struct usb_interface *intf,
 
 			ctx->type = ISDB2056_USB_DEVICE;
 			ret = isdb2056_device_init(&ctx->ctx.isdb2056, dev,
-						   px4_usb_chrdev_ctx[ISDB2056_USB_DEVICE]);
+						   px4_usb_chrdev_ctx[ISDB2056_USB_DEVICE],
+						   &ctx->quit_completion);
 			break;
 
 		default:
@@ -167,16 +173,20 @@ static void px4_usb_disconnect(struct usb_interface *intf)
 	switch (ctx->type) {
 	case PX4_USB_DEVICE:
 		px4_device_term(&ctx->ctx.px4);
+		wait_for_completion(&ctx->quit_completion);
 		break;
 
 	case ISDB2056_USB_DEVICE:
 		isdb2056_device_term(&ctx->ctx.isdb2056);
+		wait_for_completion(&ctx->quit_completion);
 		break;
 
 	default:
 		/* unknown device */
 		break;
 	}
+
+	dev_dbg(&intf->dev, "px4_usb_disconnect: release\n");
 
 	put_device(&intf->dev);
 	kfree(ctx);

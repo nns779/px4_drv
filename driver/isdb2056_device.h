@@ -11,6 +11,7 @@
 #include <linux/atomic.h>
 #include <linux/kref.h>
 #include <linux/mutex.h>
+#include <linux/completion.h>
 #include <linux/device.h>
 
 #include "ptx_chrdev.h"
@@ -33,6 +34,7 @@ struct isdb2056_device {
 	struct kref kref;
 	atomic_t available;
 	struct device *dev;
+	struct completion *quit_completion;
 	struct ptx_chrdev_group *chrdev_group;
 	struct isdb2056_chrdev chrdev2056;
 	struct it930x_bridge it930x;
@@ -40,7 +42,8 @@ struct isdb2056_device {
 };
 
 int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
-			 struct ptx_chrdev_context *chrdev_ctx);
+			 struct ptx_chrdev_context *chrdev_ctx,
+			 struct completion *quit_completion);
 void isdb2056_device_term(struct isdb2056_device *isdb2056);
 
 #endif

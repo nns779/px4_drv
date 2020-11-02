@@ -920,7 +920,8 @@ static int isdb2056_device_load_config(struct isdb2056_device *isdb2056,
 }
 
 int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
-			 struct ptx_chrdev_context *chrdev_ctx)
+			 struct ptx_chrdev_context *chrdev_ctx,
+			 struct completion *quit_completion)
 {
 	int ret = 0;
 	struct it930x_bridge *it930x;
@@ -930,12 +931,13 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 	struct ptx_chrdev_group *chrdev_group;
 	struct isdb2056_stream_context *stream_ctx;
 
-	if (!isdb2056 || !dev || !chrdev_ctx)
+	if (!isdb2056 || !dev || !chrdev_ctx || !quit_completion)
 		return -EINVAL;
 
 	dev_dbg(dev, "isdb2056_device_init\n");
 
 	isdb2056->dev = dev;
+	isdb2056->quit_completion = quit_completion;
 
 	stream_ctx = kzalloc(sizeof(*stream_ctx), GFP_KERNEL);
 	if (!stream_ctx) {
@@ -1051,6 +1053,7 @@ static void isdb2056_device_release(struct kref *kref)
 	kfree(isdb2056->stream_ctx);
 	put_device(isdb2056->dev);
 
+	complete(isdb2056->quit_completion);
 	return;
 }
 
