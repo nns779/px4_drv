@@ -14,6 +14,8 @@ PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式
 	- PX-Q3U4
 	- PX-W3PE4
 	- PX-Q3PE4
+	- PX-MLT5PE
+	- PX-MLT8PE
 
 - e-Better
 
@@ -133,7 +135,7 @@ e-Better DTV02-1T1S-Uは、個体により正常に動作しないことのあ�
 
 ### デバイスの構成
 
-PX-W3PE4/Q3PE4は、電源の供給をPCIeスロットから受け、データのやり取りをUSBを介して行います。  
+PX-W3PE4/Q3PE4/MLT5PE/MLT8PEは、電源の供給をPCIeスロットから受け、データのやり取りをUSBを介して行います。  
 PX-Q3U4/Q3PE4は、PX-W3U4/W3PE4相当のデバイスがUSBハブを介して2つぶら下がる構造となっています。
 
 - PX-W3U4/W3PE4
@@ -149,6 +151,20 @@ PX-Q3U4/Q3PE4は、PX-W3U4/W3PE4相当のデバイスがUSBハブを介して2�
 	- ISDB-T/S Demodulator: Toshiba TC90522XBG (x2)
 	- Terrestrial Tuner: RafaelMicro R850 (x4)
 	- Satellite Tuner: RafaelMicro RT710 (x4)
+
+PX-MLT8PEは、同一基板上にPX-MLT5PE相当のデバイスと、3チャンネル分のチューナーを持つデバイスが実装されている構造となっています。
+
+- PX-MLT5PE/MLT8PE5
+
+	- USB Bridge: ITE IT9305E
+	- ISDB-T/S Demodulator: Sony CXD2856ER (x5)
+	- Terrestrial/Satellite Tuner: Sony CXD2858ER (x5)
+
+- PX-MLT8PE3
+
+	- USB Bridge: ITE IT9305E
+	- ISDB-T/S Demodulator: Sony CXD2856ER (x3)
+	- Terrestrial/Satellite Tuner: Sony CXD2858ER (x3)
 
 DTV02-1T1S-Uは、ISDB-T側のTSシリアル出力をISDB-S側と共有しています。そのため、同時に受信できるチャンネル数は1チャンネルのみです。
 
