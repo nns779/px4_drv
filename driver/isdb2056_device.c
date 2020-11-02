@@ -936,6 +936,9 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 
 	dev_dbg(dev, "isdb2056_device_init\n");
 
+	get_device(dev);
+
+	kref_init(&isdb2056->kref);
 	isdb2056->dev = dev;
 	isdb2056->quit_completion = quit_completion;
 
@@ -1004,6 +1007,8 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 		goto fail_device;
 #endif
 
+	chrdev_group_config.owner_kref = &isdb2056->kref;
+	chrdev_group_config.owner_kref_release = isdb2056_device_release;
 	chrdev_group_config.reserved = false;
 	chrdev_group_config.minor_base = 0;	/* unused */
 	chrdev_group_config.chrdev_num = 1;
@@ -1018,10 +1023,7 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 	isdb2056->chrdev2056.chrdev = &chrdev_group->chrdev[0];
 	stream_ctx->chrdev = &chrdev_group->chrdev[0];
 
-	kref_init(&isdb2056->kref);
 	atomic_set(&isdb2056->available, 1);
-	get_device(dev);
-
 	return 0;
 
 fail_chrdev:
@@ -1036,6 +1038,7 @@ fail_bus:
 	kfree(isdb2056->stream_ctx);
 
 fail:
+	put_device(dev);
 	return ret;
 }
 

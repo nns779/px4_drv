@@ -1189,7 +1189,10 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		"px4_device_init: use_mldev: %s\n",
 		(use_mldev) ? "true" : "false");
 
+	get_device(dev);
+
 	mutex_init(&px4->lock);
+	kref_init(&px4->kref);
 	px4->dev = dev;
 	px4->mldev = NULL;
 	px4->quit_completion = quit_completion;
@@ -1314,6 +1317,8 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 	if (ret)
 		goto fail_device;
 
+	chrdev_group_config.owner_kref = &px4->kref;
+	chrdev_group_config.owner_kref_release = px4_device_release;
 	chrdev_group_config.reserved = false;
 	chrdev_group_config.minor_base = 0;	/* unused */
 	chrdev_group_config.chrdev_num = 4;
@@ -1331,10 +1336,7 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		stream_ctx->chrdev[i] = &chrdev_group->chrdev[i];
 	}
 
-	kref_init(&px4->kref);
 	atomic_set(&px4->available, 1);
-	get_device(dev);
-
 	return 0;
 
 fail_chrdev:
@@ -1353,6 +1355,8 @@ fail_bus:
 
 fail:
 	mutex_destroy(&px4->lock);
+	put_device(dev);
+
 	return ret;
 }
 

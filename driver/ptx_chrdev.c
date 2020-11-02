@@ -55,6 +55,9 @@ static int ptx_chrdev_open(struct inode *inode, struct file *file)
 		goto fail_ctx;
 	}
 
+	if (group->owner_kref)
+		kref_get(group->owner_kref);
+
 	kref_get(&group->kref);
 	mutex_lock(&group->lock);
 	mutex_unlock(&ctx->lock);
@@ -91,10 +94,16 @@ static int ptx_chrdev_open(struct inode *inode, struct file *file)
 
 fail_chrdev:
 	atomic_dec_return(&chrdev->open);
+
 fail_group:
 	kref_put(&group->kref, ptx_chrdev_group_release);
+
+	if (group->owner_kref)
+		kref_put(group->owner_kref, group->owner_kref_release);
+
 fail_ctx:
 	kref_put(&ctx->kref, ptx_chrdev_context_release);
+
 fail:
 	return ret;
 }
@@ -162,6 +171,10 @@ static int ptx_chrdev_release(struct inode *inode, struct file *file)
 	atomic_dec_return(&chrdev->open);
 	kref_put(&chrdev->parent->kref, ptx_chrdev_group_release);
 	kref_put(&chrdev->parent->parent->kref, ptx_chrdev_context_release);
+
+	if (chrdev->parent->owner_kref)
+		kref_put(chrdev->parent->owner_kref,
+			 chrdev->parent->owner_kref_release);
 
 	return ret;
 }
@@ -705,6 +718,9 @@ int ptx_chrdev_context_add_group(struct ptx_chrdev_context *chrdev_ctx,
 
 	num = config->chrdev_num;
 
+	if (config->owner_kref)
+		kref_get(config->owner_kref);
+
 	kref_get(&chrdev_ctx->kref);
 	mutex_lock(&chrdev_ctx->lock);
 
@@ -750,6 +766,8 @@ int ptx_chrdev_context_add_group(struct ptx_chrdev_context *chrdev_ctx,
 	atomic_set(&group->available, 1);
 	group->parent = chrdev_ctx;
 	group->dev = dev;
+	group->owner_kref = config->owner_kref;
+	group->owner_kref_release = config->owner_kref_release;
 	group->minor_base = MINOR(chrdev_ctx->dev_base) + base;
 	group->chrdev_num = 0;
 
@@ -867,6 +885,9 @@ fail:
 	mutex_unlock(&chrdev_ctx->lock);
 	kref_put(&chrdev_ctx->kref, ptx_chrdev_context_release);
 
+	if (config->owner_kref)
+		kref_put(config->owner_kref, config->owner_kref_release);
+
 	return ret;
 }
 
@@ -958,6 +979,10 @@ void ptx_chrdev_group_destroy(struct ptx_chrdev_group *chrdev_group)
 
 	mutex_unlock(&chrdev_group->lock);
 	kref_put(&chrdev_group->kref, ptx_chrdev_group_release);
+
+	if (chrdev_group->owner_kref)
+		kref_put(chrdev_group->owner_kref,
+			 chrdev_group->owner_kref_release);
 
 	return;
 }

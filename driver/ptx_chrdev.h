@@ -56,6 +56,8 @@ struct ptx_chrdev_config {
 };
 
 struct ptx_chrdev_group_config {
+	struct kref *owner_kref;
+	void (*owner_kref_release)(struct kref *);
 	bool reserved;
 	unsigned int minor_base;
 	unsigned int chrdev_num;
@@ -90,6 +92,8 @@ struct ptx_chrdev_group {
 	struct ptx_chrdev_context *parent;
 	struct device *dev;
 	struct cdev cdev;
+	struct kref *owner_kref;
+	void (*owner_kref_release)(struct kref *);
 	unsigned int minor_base;
 	unsigned int chrdev_num;
 	struct ptx_chrdev chrdev[1];
