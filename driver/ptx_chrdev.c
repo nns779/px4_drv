@@ -894,23 +894,19 @@ fail:
 int ptx_chrdev_context_remove_group(struct ptx_chrdev_context *chrdev_ctx,
 				    unsigned int minor_base)
 {
-	int ret = 0;
 	struct ptx_chrdev_group *group;
 
 	mutex_lock(&chrdev_ctx->lock);
-
 	if (!__ptx_chrdev_context_search_group(chrdev_ctx,
 					       minor_base, &group)) {
 		/* not found */
-		ret = -ENOENT;
-		goto exit;
+		mutex_unlock(&chrdev_ctx->lock);
+		return -ENOENT;
 	}
+	mutex_unlock(&chrdev_ctx->lock);
 
 	ptx_chrdev_group_destroy(group);
-
-exit:
-	mutex_unlock(&chrdev_ctx->lock);
-	return ret;
+	return 0;
 }
 
 static void ptx_chrdev_group_release(struct kref *kref)
