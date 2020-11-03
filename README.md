@@ -82,13 +82,39 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 #### 3.2 デバイスファイルの確認
 
-インストールに成功し、カーネルモジュールがロードされた状態でデバイスが接続されると、`/dev/` 以下に `px4video*` のような名前のデバイスファイルが作成されます。
+インストールに成功し、カーネルモジュールがロードされた状態でデバイスが接続されると、`/dev/` 以下にデバイスファイルが作成されます。
 下記のようなコマンドで確認できます。
+
+##### PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4を接続した場合
 
 	$ ls /dev/px4video*
 	/dev/px4video0  /dev/px4video1  /dev/px4video2  /dev/px4video3
 
 チューナーは、`px4video0`から ISDB-S, ISDB-S, ISDB-T, ISDB-T というように、SとTが2つずつ交互に割り当てられます。
+
+##### PLEX PX-MLT5PEを接続した場合
+
+	$ ls /dev/pxmlt5video*
+	/dev/pxmlt5video0  /dev/pxmlt5video2  /dev/pxmlt5video4
+	/dev/pxmlt5video1  /dev/pxmlt5video3
+
+すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
+
+##### PLEX PX-MLT8PEを接続した場合
+
+	$ ls /dev/pxmlt8video*
+	/dev/pxmlt8video0  /dev/pxmlt8video3  /dev/pxmlt8video6
+	/dev/pxmlt8video1  /dev/pxmlt8video4  /dev/pxmlt8video7
+	/dev/pxmlt8video2  /dev/pxmlt8video5
+
+すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
+
+##### e-Better DTV02-1T1S-Uを接続した場合
+
+	$ ls /dev/isdb2056video*
+	/dev/isdb2056video0
+
+すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
 
 ## アンインストール
 
@@ -111,13 +137,21 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 ## 受信方法
 
-recpt1や[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等の、PTシリーズ用chardevドライバに対応したソフトウェアを使用することで、TSデータの受信を行うことができます。  
+recpt1を使用することで、TSデータの受信を行うことが出来ます。  
 recpt1は、PLEX社より配布されているものを使用する必要はありません。
+
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4を使用する場合は、recpt1に限らず[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等のPTシリーズ用chardevドライバに対応したソフトウェアが使用できます。
 
 ## LNB電源の出力
 
+### PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE
+
 出力なしと15Vの出力のみに対応しています。デフォルトではLNB電源の出力を行いません。  
 LNB電源の出力を行うには、recpt1を実行する際のパラメータに `--lnb 15` を追加してください。
+
+### e-Better DTV02-1T1S-U
+
+対応しておりません。
 
 ## 備考
 
