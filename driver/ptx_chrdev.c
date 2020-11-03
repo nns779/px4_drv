@@ -414,15 +414,15 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 	case PTX_ENABLE_LNB_POWER:
 		if (chrdev->ops && chrdev->ops->set_lnb_voltage)
 			ret = chrdev->ops->set_lnb_voltage(chrdev, (int)arg);
-		else
+		else if (arg)
 			ret = -ENOSYS;
+
 		break;
 
 	case PTX_DISABLE_LNB_POWER:
 		if (chrdev->ops && chrdev->ops->set_lnb_voltage)
 			ret = chrdev->ops->set_lnb_voltage(chrdev, 0);
-		else
-			ret = -ENOSYS;
+
 		break;
 
 	case PTX_SET_SYSTEM_MODE:
