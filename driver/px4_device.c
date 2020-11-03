@@ -662,8 +662,6 @@ static int px4_chrdev_tune_t(struct ptx_chrdev *chrdev,
 	if (ret)
 		return ret;
 
-	msleep(100);
-
 	return 0;
 }
 
