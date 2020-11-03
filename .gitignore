@@ -6,6 +6,8 @@ modules.order
 *.ko
 *.o.cmd
 *.ko.cmd
+*.mod.cmd
+*.mod
 *.mod.c
 *.mod.o
 

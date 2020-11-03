@@ -1,6 +1,6 @@
-# px4_drv - Unofficial Linux driver for PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4 ISDB-T/S receivers
+# px4_drv - Unofficial Linux driver for PLEX PX4/PX-MLT series ISDB-T/S receivers
 
-PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4用の非公式版Linuxドライバです。  
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE用の非公式版Linuxドライバです。  
 PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式Linuxドライバとは**別物**です。
 
 現在開発中につき、環境によっては動作が安定しない可能性があります。  
@@ -14,10 +14,18 @@ PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式
 	- PX-Q3U4
 	- PX-W3PE4
 	- PX-Q3PE4
+	- PX-MLT5PE
+	- PX-MLT8PE
 
 - e-Better
 
 	- DTV02-1T1S-U (実験的)
+
+## 対応予定のデバイス
+
+- PLEX
+
+	- PX-W3PE5
 
 ## インストール
 
@@ -74,13 +82,39 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 #### 3.2 デバイスファイルの確認
 
-インストールに成功し、カーネルモジュールがロードされた状態でデバイスが接続されると、`/dev/` 以下に `px4video*` のような名前のデバイスファイルが作成されます。
+インストールに成功し、カーネルモジュールがロードされた状態でデバイスが接続されると、`/dev/` 以下にデバイスファイルが作成されます。
 下記のようなコマンドで確認できます。
+
+##### PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4を接続した場合
 
 	$ ls /dev/px4video*
 	/dev/px4video0  /dev/px4video1  /dev/px4video2  /dev/px4video3
 
 チューナーは、`px4video0`から ISDB-S, ISDB-S, ISDB-T, ISDB-T というように、SとTが2つずつ交互に割り当てられます。
+
+##### PLEX PX-MLT5PEを接続した場合
+
+	$ ls /dev/pxmlt5video*
+	/dev/pxmlt5video0  /dev/pxmlt5video2  /dev/pxmlt5video4
+	/dev/pxmlt5video1  /dev/pxmlt5video3
+
+すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
+
+##### PLEX PX-MLT8PEを接続した場合
+
+	$ ls /dev/pxmlt8video*
+	/dev/pxmlt8video0  /dev/pxmlt8video3  /dev/pxmlt8video6
+	/dev/pxmlt8video1  /dev/pxmlt8video4  /dev/pxmlt8video7
+	/dev/pxmlt8video2  /dev/pxmlt8video5
+
+すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
+
+##### e-Better DTV02-1T1S-Uを接続した場合
+
+	$ ls /dev/isdb2056video*
+	/dev/isdb2056video0
+
+すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
 
 ## アンインストール
 
@@ -103,13 +137,21 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 ## 受信方法
 
-recpt1や[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等の、PTシリーズ用chardevドライバに対応したソフトウェアを使用することで、TSデータの受信を行うことができます。  
+recpt1を使用することで、TSデータの受信を行うことが出来ます。  
 recpt1は、PLEX社より配布されているものを使用する必要はありません。
+
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4を使用する場合は、recpt1に限らず[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等のPTシリーズ用chardevドライバに対応したソフトウェアが使用できます。
 
 ## LNB電源の出力
 
+### PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE
+
 出力なしと15Vの出力のみに対応しています。デフォルトではLNB電源の出力を行いません。  
 LNB電源の出力を行うには、recpt1を実行する際のパラメータに `--lnb 15` を追加してください。
+
+### e-Better DTV02-1T1S-U
+
+対応しておりません。
 
 ## 備考
 
@@ -127,7 +169,7 @@ e-Better DTV02-1T1S-Uは、個体により正常に動作しないことのあ�
 
 ### デバイスの構成
 
-PX-W3PE4/Q3PE4は、電源の供給をPCIeスロットから受け、データのやり取りをUSBを介して行います。  
+PX-W3PE4/Q3PE4/MLT5PE/MLT8PEは、電源の供給をPCIeスロットから受け、データのやり取りをUSBを介して行います。  
 PX-Q3U4/Q3PE4は、PX-W3U4/W3PE4相当のデバイスがUSBハブを介して2つぶら下がる構造となっています。
 
 - PX-W3U4/W3PE4
@@ -143,6 +185,20 @@ PX-Q3U4/Q3PE4は、PX-W3U4/W3PE4相当のデバイスがUSBハブを介して2�
 	- ISDB-T/S Demodulator: Toshiba TC90522XBG (x2)
 	- Terrestrial Tuner: RafaelMicro R850 (x4)
 	- Satellite Tuner: RafaelMicro RT710 (x4)
+
+PX-MLT8PEは、同一基板上にPX-MLT5PE相当のデバイスと、3チャンネル分のチューナーを持つデバイスが実装されている構造となっています。
+
+- PX-MLT5PE/MLT8PE5
+
+	- USB Bridge: ITE IT9305E
+	- ISDB-T/S Demodulator: Sony CXD2856ER (x5)
+	- Terrestrial/Satellite Tuner: Sony CXD2858ER (x5)
+
+- PX-MLT8PE3
+
+	- USB Bridge: ITE IT9305E
+	- ISDB-T/S Demodulator: Sony CXD2856ER (x3)
+	- Terrestrial/Satellite Tuner: Sony CXD2858ER (x3)
 
 DTV02-1T1S-Uは、ISDB-T側のTSシリアル出力をISDB-S側と共有しています。そのため、同時に受信できるチャンネル数は1チャンネルのみです。
 

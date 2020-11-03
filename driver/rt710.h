@@ -2,15 +2,19 @@
 /*
  * RafaelMicro RT710 driver definitions (rt710.h)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #ifndef __RT710_H__
 #define __RT710_H__
 
+#ifdef __linux__
 #include <linux/types.h>
 #include <linux/mutex.h>
 #include <linux/device.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#endif
 
 #include "i2c_comm.h"
 
@@ -66,13 +70,16 @@ struct rt710_priv {
 };
 
 struct rt710_tuner {
-	struct device *dev;
-	struct i2c_comm_master *i2c;
+	const struct device *dev;
+	const struct i2c_comm_master *i2c;
 	u8 i2c_addr;
 	struct rt710_config config;
 	struct rt710_priv priv;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int rt710_init(struct rt710_tuner *t);
 int rt710_term(struct rt710_tuner *t);
 
@@ -81,5 +88,8 @@ int rt710_set_params(struct rt710_tuner *t, u32 freq, u32 symbol_rate, u32 rollo
 int rt710_is_pll_locked(struct rt710_tuner *t, bool *locked);
 int rt710_get_rf_gain(struct rt710_tuner *t, u8 *gain);
 int rt710_get_rf_signal_strength(struct rt710_tuner *t, s32 *ss);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -2,13 +2,17 @@
 /*
  * Definitions for I2C communicators (i2c_comm.h)
  *
- * Copyright (c) 2018-2019 nns779
+ * Copyright (c) 2018-2020 nns779
  */
 
 #ifndef __I2C_COMM_H__
 #define __I2C_COMM_H__
 
+#ifdef __linux__
 #include <linux/types.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#endif
 
 struct i2c_comm_request {
 	enum i2c_request_type {
@@ -22,17 +26,29 @@ struct i2c_comm_request {
 };
 
 struct i2c_comm_master {
-	int (*request) (void *i2c_priv, struct i2c_comm_request *req, int num);
+	int (*gate_ctrl)(void *i2c_priv, bool open);
+	int (*request)(void *i2c_priv,
+		       const struct i2c_comm_request *req,
+		       int num);
 	void *priv;
 };
 
-static inline int i2c_comm_master_request(struct i2c_comm_master *m, struct i2c_comm_request *req, int num)
+static inline int i2c_comm_master_gate_ctrl(const struct i2c_comm_master *m,
+					    bool open)
+{
+	return ((m && m ->gate_ctrl) ? m->gate_ctrl(m->priv, open) : -EFAULT);
+}
+
+static inline int i2c_comm_master_request(const struct i2c_comm_master *m,
+					  const struct i2c_comm_request *req,
+					  int num)
 {
 	return ((m && m->request) ? m->request(m->priv, req, num) : -EFAULT);
 }
 
 #if 0
-static inline int i2c_comm_master_read(struct i2c_comm_master *m, u8 addr, u8 *data, int len)
+static inline int i2c_comm_master_read(const struct i2c_comm_master *m,
+				       u8 addr, u8 *data, int len)
 {
 	struct i2c_comm_request req[1];
 
@@ -44,7 +60,8 @@ static inline int i2c_comm_master_read(struct i2c_comm_master *m, u8 addr, u8 *d
 	return i2c_comm_master_request(m, &req, 1);
 }
 
-static inline int i2c_comm_master_write(struct i2c_comm_master *m, u8 addr, u8 *data, int len)
+static inline int i2c_comm_master_write(const struct i2c_comm_master *m,
+					u8 addr, const u8 *data, int len)
 {
 	struct i2c_comm_request req[1];
 

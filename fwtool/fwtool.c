@@ -18,9 +18,15 @@
 
 #define le32_load(p)	(*((uint8_t *)(p)) | *(((uint8_t *)(p)) + 1) << 8 | *(((uint8_t *)(p)) + 2) << 16 | *(((uint8_t *)(p)) + 3) << 24)
 
+enum fw_target {
+	FW_TARGET_UNKNOWN = 0,
+	FW_TARGET_IT930X
+};
+
 struct fwinfo {
 	char *desc;
-	long size;
+	enum fw_target target;
+	unsigned long size;
 	uint32_t crc32;
 	uint8_t align;
 	uint32_t code_ofs;
@@ -31,6 +37,7 @@ struct fwinfo {
 
 static const char *name[] = {
 	"description",
+	"target",
 	"size",
 	"crc32",
 	"align",
@@ -40,67 +47,90 @@ static const char *name[] = {
 	"firmware_crc32"
 };
 
-#define NAME_NUM	(sizeof(name) / sizeof(name[0]))
+static struct {
+	char str[16];
+	enum fw_target target;
+} target_list[] = {
+	{ "it930x", FW_TARGET_IT930X }
+};
 
-static int load_file(const char *path, char **buf, long *size)
+#define NAME_NUM	(sizeof(name) / sizeof(name[0]))
+#define TARGET_LIST_NUM	(sizeof(target_list) / sizeof(target_list[0]))
+
+static int load_file(const char *path, uint8_t **buf, unsigned long *size)
 {
-	int ret = -1, fd;
-	FILE *fp;
+	int ret = -1, fd = -1;
+	FILE *fp = NULL;
 	struct stat stbuf;
 	off_t sz;
-	char *b;
+	uint8_t *b;
 
 #if defined(_WIN32) || defined(_WIN64)
-	fd = open(path, O_RDONLY | O_BINARY);
+	if (_sopen_s(&fd, path, _O_RDONLY | O_BINARY, _SH_DENYWR, _S_IREAD) || fd == -1) {
 #else
 	fd = open(path, O_RDONLY);
-#endif
 	if (fd == -1) {
+#endif
 		fprintf(stderr, "Couldn't open file '%s' to read.\n", path);
-		goto end;
+		goto exit;
 	}
 
+#if defined(_WIN32) || defined(_WIN64)
+	fp = _fdopen(fd, "rb");
+	if (!fp) {
+		fprintf(stderr, "_fdopen() failed.\n");
+#else
 	fp = fdopen(fd, "rb");
 	if (!fp) {
 		fprintf(stderr, "fdopen() failed.\n");
-		close(fd);
-		goto end;
+#endif
+		goto exit;
 	}
 
 	if (fstat(fd, &stbuf) == -1) {
 		fprintf(stderr, "fstat() failed.\n");
-		goto end2;
+		goto exit;
 	}
 
 	sz = stbuf.st_size;
+	if (sz < 0) {
+		fprintf(stderr, "Invalid file size.\n");
+		goto exit;
+	}
 
-	b = malloc(sz);
+	b = (uint8_t *)malloc(sz);
 	if (b == NULL) {
 		fprintf(stderr, "No enough memory.\n");
-		goto end2;
+		goto exit;
 	}
 
 	if (fread(b, sz, 1, fp) < 1) {
-		fprintf(stderr, "Incorrect read size.\n");
+		fprintf(stderr, "Failed to read from file '%s'.\n", path);
 		free(b);
-	}
-	else {
+	} else {
 		*buf = b;
 		*size = sz;
 		ret = 0;
 	}
 
-end2:
-	fclose(fp);
-end:
+exit:
+	if (fp)
+		fclose(fp);
+	else if (fd != -1)
+#if defined(_WIN32) || defined(_WIN64)
+		_close(fd);
+#else
+		close(fd);
+#endif
+
 	return ret;
 }
 
 static int load_tsv_file(struct tsv_data **tsv)
 {
 	int ret = -1;
-	char *buf;
-	long size;
+	uint8_t *buf;
+	unsigned long size;
 
 	ret = load_file("fwinfo.tsv", &buf, &size);
 	if (ret == -1)
@@ -113,6 +143,29 @@ static int load_tsv_file(struct tsv_data **tsv)
 	free(buf);
 
 	return ret;
+}
+
+static int parse_fw_target(const char *str, enum fw_target *target)
+{
+	int i;
+
+	for (i = 0; i < TARGET_LIST_NUM; i++) {
+#if defined(_WIN32) || defined(_WIN64)
+		if (!_stricmp(str, target_list[i].str)) {
+#else
+		if (!strcasecmp(str, target_list[i].str)) {
+#endif
+			*target = target_list[i].target;
+			break;
+		}
+	}
+
+	if (i >= TARGET_LIST_NUM) {
+		*target = FW_TARGET_UNKNOWN;
+		return -1;
+	}
+
+	return 0;
 }
 
 static int load_fwinfo(struct tsv_data *tsv, struct fwinfo *fi, int num)
@@ -139,19 +192,23 @@ static int load_fwinfo(struct tsv_data *tsv, struct fwinfo *fi, int num)
 
 	for (i = 0; i < num; i++) {
 		fi[i].desc = tsv->field[i][name_map[0]];
-		fi[i].size = strtol(tsv->field[i][name_map[1]], NULL, 10);
-		fi[i].crc32 = strtoul(tsv->field[i][name_map[2]], NULL, 16);
-		fi[i].align = strtoul(tsv->field[i][name_map[3]], NULL, 10);
-		fi[i].code_ofs = strtoul(tsv->field[i][name_map[4]], NULL, 16);
-		fi[i].segment_ofs = strtoul(tsv->field[i][name_map[5]], NULL, 16);
-		fi[i].partition_ofs = strtoul(tsv->field[i][name_map[6]], NULL, 16);
-		fi[i].fw_crc32 = strtoul(tsv->field[i][name_map[7]], NULL, 16);
+		if (parse_fw_target(tsv->field[i][name_map[1]], &fi[i].target)) {
+			fprintf(stderr, "Unknown firmware target '%s'.\n", tsv->field[i][name_map[1]]);
+			return -1;
+		}
+		fi[i].size = strtoul(tsv->field[i][name_map[2]], NULL, 10);
+		fi[i].crc32 = strtoul(tsv->field[i][name_map[3]], NULL, 16);
+		fi[i].align = (uint8_t)strtoul(tsv->field[i][name_map[4]], NULL, 10);
+		fi[i].code_ofs = strtoul(tsv->field[i][name_map[5]], NULL, 16);
+		fi[i].segment_ofs = strtoul(tsv->field[i][name_map[6]], NULL, 16);
+		fi[i].partition_ofs = strtoul(tsv->field[i][name_map[7]], NULL, 16);
+		fi[i].fw_crc32 = strtoul(tsv->field[i][name_map[8]], NULL, 16);
 	}
 
 	return 0;
 }
 
-static int output_firmware(struct fwinfo *fi, const char *buf, long size, const char *path)
+static int output_firmware(struct fwinfo *fi, const uint8_t *buf, unsigned long size, const char *path)
 {
 	uint8_t i, n;
 	uint8_t align;
@@ -208,18 +265,22 @@ static int output_firmware(struct fwinfo *fi, const char *buf, long size, const 
 	fprintf(stderr, "Firmware CRC32: %08x\n", crc32);
 
 	if (fi->fw_crc32 && crc32 != fi->fw_crc32) {
-		fprintf(stderr, "Incorrect CRC32!\n");
+		fprintf(stderr, "Incorrect CRC32 checksum!\n");
 		return -1;
 	}
 
+#if defined(_WIN32) || defined(_WIN64)
+	if (fopen_s(&fp, path, "wb") || !fp) {
+#else
 	fp = fopen(path, "wb");
 	if (!fp) {
+#endif
 		fprintf(stderr, "Couldn't open file '%s' to write.\n", path);
 		return -1;
 	}
 
 	if (fwrite(&buf[code_ofs], code_len, 1, fp) < 1) {
-		fprintf(stderr, "Incorrect write size.\n");
+		fprintf(stderr, "Failed to write to file '%s'.\n", path);
 		fclose(fp);
 		return -1;
 	}
@@ -237,69 +298,107 @@ static void usage()
 int main(int argc, char *argv[])
 {
 	int ret, num, i;
-	struct tsv_data *tsv;
-	struct fwinfo *fi;
-	char *buf;
-	long size;
+	char *in = NULL, *out = NULL;
+	enum fw_target target = FW_TARGET_UNKNOWN;
+	struct tsv_data *tsv = NULL;
+	struct fwinfo *fi = NULL;
+	uint8_t *buf = NULL;
+	unsigned long size;
 	uint32_t crc32;
 
 	fprintf(stderr, "fwtool for px4 drivers\n\n");
 
-	if (argc < 3) {
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			if (argv[i][1] == 't') {
+				// target parameter
+				char *t = NULL;
+					
+				if (argv[i][2] == '\0') {
+					if ((i + 1) < argc)
+						t = argv[++i];
+				} else {
+					t = &argv[i][2];
+				}
+
+				if (!t)
+					continue;
+
+				parse_fw_target(t, &target);
+			}
+		} else if (!in) {
+			in = argv[i];
+		} else if (!out) {
+			out = argv[i];
+		}
+	}
+
+	if (!in) {
 		usage();
 		return 0;
 	}
 
-	fprintf(stderr, "Driver file: %s\n", argv[1]);
-	fprintf(stderr, "Output file: %s\n\n", argv[2]);
+	if (out && target == FW_TARGET_UNKNOWN)
+		target = FW_TARGET_IT930X;
+	else if (!out && target == FW_TARGET_IT930X)
+		out = "it930x-firmware.bin";
+
+	if (!out || target == FW_TARGET_UNKNOWN) {
+		usage();
+		return 0;
+	}
+
+	fprintf(stderr, "Driver file (in)    : %s\n", in);
+	fprintf(stderr, "Firmware file (out) : %s\n\n", out);
 
 	ret = load_tsv_file(&tsv);
 	if (ret) {
 		fprintf(stderr, "Failed to load firmware information file.\n");
-		return 1;
+		goto fail;
 	}
 
 	num = tsv->row_num;
 
 	if (!num) {
 		fprintf(stderr, "No rows in 'fwinfo.tsv'.\n");
-		goto end;
+		goto fail;
 	}
 
-	fi = malloc(sizeof(struct fwinfo) * num);
+	fi = (struct fwinfo *)malloc(sizeof(struct fwinfo) * num);
 	if (!fi) {
 		fprintf(stderr, "No enough memory.\n");
-		goto end;
+		goto fail;
 	}
 
 	ret = load_fwinfo(tsv, fi, num);
 	if (ret) {
 		fprintf(stderr, "Failed to load firmware information.\n");
-		goto end2;
+		goto fail;
 	}
 
-	ret = load_file(argv[1], &buf, &size);
+	ret = load_file(in, &buf, &size);
 	if (ret == -1) {
 		fprintf(stderr, "Failed to load driver file.\n");
-		goto end2;
+		goto fail;
 	}
 
 	crc32 = crc32_calc(buf, size);
 
 	for (i = 0; i < num; i++) {
-		if (size == fi[i].size && crc32 == fi[i].crc32) {
+		if (target == fi[i].target && size == fi[i].size && crc32 == fi[i].crc32) {
 			fprintf(stderr, "Driver description: %s\n", fi[i].desc);
-			ret = output_firmware(&fi[i], buf, size, argv[2]);
-			if (!ret) {
+
+			ret = output_firmware(&fi[i], buf, size, out);
+			if (!ret)
 				fprintf(stderr, "OK.\n");
-			}
+
 			break;
 		}
 	}
 
 	if (i >= num) {
 		fprintf(stderr, "Unknown driver file.\n");
-		goto end3;
+		goto fail;
 	}
 
 	free(buf);
@@ -308,11 +407,13 @@ int main(int argc, char *argv[])
 
 	return 0;
 
-end3:
-	free(buf);
-end2:
-	free(fi);
-end:
+fail:
+	if (buf)
+		free(buf);
+
+	if (fi)
+		free(fi);
+
 	tsv_free(tsv);
 
 	return 1;

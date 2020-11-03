@@ -1,36 +1,22 @@
-KVER := $(shell uname -r)
-KBUILD_DIR := /lib/modules/$(KVER)/build
-INSTALL_DIR := /lib/modules/$(KVER)/misc
-CURRENT_DIR := $(shell pwd)
-VERBOSE := 0
-DEBUG := 0
+# Makefile for px4_drv
 
-drv-MAX_DEVICE := 0
-drv-RINGBUFFER_USE_SPINLOCK := 0
+KVER := $(shell uname -r)
+KDIR := /lib/modules/$(KVER)/build
+PWD := $(shell pwd)
+INSTALL_DIR := /lib/modules/$(KVER)/misc
+VERBOSE := 0
 
 cmd_prefix := @
-
-ccflags-y := -I$(M)/../include
-ifneq ($(DEBUG),0)
-ccflags-y += -DDEBUG -g
-endif
 ifneq ($(VERBOSE),0)
 cmd_prefix :=
 endif
-ifneq ($(drv-MAX_DEVICE),0)
-ccflags-y += -DMAX_DEVICE=$(drv-MAX_DEVICE)
-endif
-ifneq ($(drv-RINGBUFFER_USE_SPINLOCK),0)
-ccflags-y += -DRINGBUFFER_USE_SPINLOCK
-endif
 
-obj-m := px4_drv.o
-px4_drv-objs := driver.o module_param.o px4.o isdb2056.o it930x-bus.o it930x.o tc90522.o rt710.o r850.o ringbuffer.o
+all: modules
 
-all: px4_drv.ko
+modules: px4_drv.ko
 
 px4_drv.ko: FORCE revision.h
-	$(cmd_prefix)$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) modules
+	$(cmd_prefix)$(MAKE) -C $(KDIR) M=$(PWD) KBUILD_VERBOSE=$(VERBOSE) px4_drv.ko
 
 revision.h: FORCE
 	$(cmd_prefix)rev=`git rev-list --count HEAD` 2>/dev/null; \
@@ -57,7 +43,7 @@ revision.h: FORCE
 	fi
 
 clean:
-	$(cmd_prefix)$(MAKE) -C $(KBUILD_DIR) M=$(CURRENT_DIR) KBUILD_VERBOSE=$(VERBOSE) clean
+	$(cmd_prefix)$(MAKE) -C $(KDIR) M=$(PWD) KBUILD_VERBOSE=$(VERBOSE) clean
 	$(cmd_prefix)rm -f revision.h
 
 install:

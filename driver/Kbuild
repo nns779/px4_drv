@@ -1,0 +1,26 @@
+# Kbuild for px4_drv
+
+DEBUG := 0
+
+dMAX_DEVICE := 0
+dPSB_DEBUG := 0
+dITEDTV_BUS_USE_WORKQUEUE := 0
+
+ccflags-y := -I$(M)/../include
+
+ifneq ($(DEBUG),0)
+ccflags-y += -DDEBUG -g
+endif
+
+ifneq ($(dPX4_USB_MAX_DEVICE),0)
+ccflags-y += -DMAX_DEVICE=$(dPX4_USB_MAX_DEVICE)
+endif
+ifneq ($(dPSB_DEBUG),0)
+ccflags-y += -DPSB_DEBUG
+endif
+ifneq ($(dITEDTV_BUS_USE_WORKQUEUE),0)
+ccflags-y += -DITEDTV_BUS_USE_WORKQUEUE
+endif
+
+obj-m := px4_drv.o
+px4_drv-y := driver_module.o ptx_chrdev.o px4_usb.o px4_usb_params.o px4_device.o px4_device_params.o px4_mldev.o pxmlt_device.o isdb2056_device.o it930x.o itedtv_bus.o tc90522.o r850.o rt710.o cxd2856er.o cxd2858er.o ringbuffer.o
