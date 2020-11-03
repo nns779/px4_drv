@@ -1,6 +1,6 @@
-# px4_drv - Unofficial Linux driver for PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4 ISDB-T/S receivers
+# px4_drv - Unofficial Linux driver for PLEX PX4/PX-MLT series ISDB-T/S receivers
 
-PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4用の非公式版Linuxドライバです。  
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE用の非公式版Linuxドライバです。  
 PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式Linuxドライバとは**別物**です。
 
 現在開発中につき、環境によっては動作が安定しない可能性があります。  
