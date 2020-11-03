@@ -1253,10 +1253,12 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		switch (chrdev_config[i].system_cap) {
 		case PTX_ISDB_T_SYSTEM:
 			chrdev_config[i].ops = &px4_chrdev_t_ops;
+			chrdev_config[i].options = PTX_CHRDEV_WAIT_AFTER_LOCK_TC_T;
 			break;
 
 		case PTX_ISDB_S_SYSTEM:
 			chrdev_config[i].ops = &px4_chrdev_s_ops;
+			chrdev_config[i].options = 0;
 			break;
 
 		default:
@@ -1267,7 +1269,6 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		if (ret)
 			goto fail_device;
 
-		chrdev_config[i].options = 0;
 		chrdev_config[i].ringbuf_size = 188 * px4_device_params.tsdev_max_packets;
 		chrdev_config[i].priv = &px4->chrdev4[i];
 	}
