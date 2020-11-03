@@ -46,6 +46,9 @@ struct ptx_chrdev_operations {
 };
 
 #define PTX_CHRDEV_SAT_SET_STREAM_ID_BEFORE_TUNE	0x00000010
+#define PTX_CHRDEV_SAT_SET_STREAM_ID_AFTER_TUNE		0x00000020
+#define PTX_CHRDEV_WAIT_AFTER_LOCK			0x00000040
+#define PTX_CHRDEV_WAIT_AFTER_LOCK_TC_T			0x00000080
 
 struct ptx_chrdev_config {
 	enum ptx_system_type system_cap;

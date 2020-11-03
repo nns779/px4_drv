@@ -342,6 +342,11 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 
 			if (ret)
 				break;
+
+			if (chrdev->current_system == PTX_ISDB_T_SYSTEM &&
+			    (chrdev->options & PTX_CHRDEV_WAIT_AFTER_LOCK_TC_T) &&
+			    i > 265)
+				msleep((i - 265) * 10);
 		}
 
 		if (chrdev->current_system == PTX_ISDB_S_SYSTEM &&
@@ -349,6 +354,9 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 		    chrdev->ops->set_stream_id)
 			ret = chrdev->ops->set_stream_id(chrdev,
 							 chrdev->params.stream_id);
+
+		if (chrdev->options & PTX_CHRDEV_WAIT_AFTER_LOCK)
+			msleep(200);
 
 		break;
 	}
