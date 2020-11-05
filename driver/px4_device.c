@@ -852,7 +852,7 @@ static int px4_chrdev_set_lnb_voltage_s(struct ptx_chrdev *chrdev, int voltage)
 
 	if (!px4->lnb_power_count) {
 		ret = it930x_write_gpio(&px4->it930x, 11, !!voltage);
-		if (!ret)
+		if (ret)
 			goto exit;
 	}
 
