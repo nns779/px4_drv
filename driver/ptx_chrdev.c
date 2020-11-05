@@ -79,6 +79,8 @@ static int ptx_chrdev_open(struct inode *inode, struct file *file)
 	mutex_lock(&chrdev->lock);
 	mutex_unlock(&group->lock);
 
+	chrdev->current_system = PTX_UNSPECIFIED_SYSTEM;
+
 	if (chrdev->ops && chrdev->ops->open)
 		ret = chrdev->ops->open(chrdev);
 
