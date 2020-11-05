@@ -152,10 +152,14 @@ PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4を使用する場合は、recpt1に限らず[BonDr
 
 ## LNB電源の出力
 
-### PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE
+### PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4
 
 出力なしと15Vの出力のみに対応しています。デフォルトではLNB電源の出力を行いません。  
 LNB電源の出力を行うには、recpt1を実行する際のパラメータに `--lnb 15` を追加してください。
+
+### PLEX PX-MLT5PE/MLT8PE
+
+基板上にはLNB電源出力のための回路が存在していますが、これを操作する方法が不明なため、現時点では対応出来ておりません。
 
 ### e-Better DTV02-1T1S-U
 
