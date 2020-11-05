@@ -33,6 +33,8 @@ static int ptx_chrdev_open(struct inode *inode, struct file *file)
 	struct ptx_chrdev_context *ctx;
 	struct ptx_chrdev_group *group;
 	struct ptx_chrdev *chrdev = NULL;
+	struct kref *owner_kref = NULL;
+	void (*owner_kref_release)(struct kref *) = NULL;
 
 	major = imajor(inode);
 	minor = iminor(inode);
@@ -55,8 +57,11 @@ static int ptx_chrdev_open(struct inode *inode, struct file *file)
 		goto fail_ctx;
 	}
 
-	if (group->owner_kref)
-		kref_get(group->owner_kref);
+	owner_kref = group->owner_kref;
+	owner_kref_release = group->owner_kref_release;
+
+	if (owner_kref)
+		kref_get(owner_kref);
 
 	kref_get(&group->kref);
 	mutex_lock(&group->lock);
@@ -100,8 +105,8 @@ fail_chrdev:
 fail_group:
 	kref_put(&group->kref, ptx_chrdev_group_release);
 
-	if (group->owner_kref)
-		kref_put(group->owner_kref, group->owner_kref_release);
+	if (owner_kref)
+		kref_put(owner_kref, owner_kref_release);
 
 fail_ctx:
 	kref_put(&ctx->kref, ptx_chrdev_context_release);
@@ -153,6 +158,10 @@ static int ptx_chrdev_release(struct inode *inode, struct file *file)
 {
 	int ret = 0;
 	struct ptx_chrdev *chrdev = file->private_data;
+	struct ptx_chrdev_group *group = chrdev->parent;
+	struct ptx_chrdev_context *ctx = group->parent;
+	struct kref *owner_kref = group->owner_kref;
+	void (*owner_kref_release)(struct kref *) = group->owner_kref_release;
 
 	mutex_lock(&chrdev->lock);
 
@@ -171,13 +180,12 @@ static int ptx_chrdev_release(struct inode *inode, struct file *file)
 	mutex_unlock(&chrdev->lock);
 
 	atomic_dec_return(&chrdev->open);
-	kref_put(&chrdev->parent->kref, ptx_chrdev_group_release);
-	kref_put(&chrdev->parent->parent->kref, ptx_chrdev_context_release);
+	kref_put(&group->kref, ptx_chrdev_group_release);
 
-	if (chrdev->parent->owner_kref)
-		kref_put(chrdev->parent->owner_kref,
-			 chrdev->parent->owner_kref_release);
+	if (owner_kref)
+		kref_put(owner_kref, owner_kref_release);
 
+	kref_put(&ctx->kref, ptx_chrdev_context_release);
 	return ret;
 }
 
@@ -752,11 +760,11 @@ int ptx_chrdev_context_add_group(struct ptx_chrdev_context *chrdev_ctx,
 
 	num = config->chrdev_num;
 
-	if (config->owner_kref)
-		kref_get(config->owner_kref);
-
 	kref_get(&chrdev_ctx->kref);
 	mutex_lock(&chrdev_ctx->lock);
+
+	if (config->owner_kref)
+		kref_get(config->owner_kref);
 
 	if (config->reserved) {
 		bool res;
@@ -916,11 +924,11 @@ fail_group:
 					      (config->reserved) ? PTX_CHRDEV_MINOR_RESERVED : PTX_CHRDEV_MINOR_FREE);
 
 fail:
-	mutex_unlock(&chrdev_ctx->lock);
-	kref_put(&chrdev_ctx->kref, ptx_chrdev_context_release);
-
 	if (config->owner_kref)
 		kref_put(config->owner_kref, config->owner_kref_release);
+
+	mutex_unlock(&chrdev_ctx->lock);
+	kref_put(&chrdev_ctx->kref, ptx_chrdev_context_release);
 
 	return ret;
 }
@@ -984,6 +992,8 @@ static void ptx_chrdev_group_release(struct kref *kref)
 void ptx_chrdev_group_destroy(struct ptx_chrdev_group *chrdev_group)
 {
 	struct ptx_chrdev_context *ctx = chrdev_group->parent;
+	struct kref *owner_kref = chrdev_group->owner_kref;
+	void (*owner_kref_release)(struct kref *) = chrdev_group->owner_kref_release;
 	unsigned int i;
 
 	dev_dbg(chrdev_group->dev,
@@ -1010,9 +1020,8 @@ void ptx_chrdev_group_destroy(struct ptx_chrdev_group *chrdev_group)
 	mutex_unlock(&chrdev_group->lock);
 	kref_put(&chrdev_group->kref, ptx_chrdev_group_release);
 
-	if (chrdev_group->owner_kref)
-		kref_put(chrdev_group->owner_kref,
-			 chrdev_group->owner_kref_release);
+	if (owner_kref)
+		kref_put(owner_kref, owner_kref_release);
 
 	return;
 }
