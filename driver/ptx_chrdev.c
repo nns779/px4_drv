@@ -422,10 +422,34 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 	}
 
 	case PTX_ENABLE_LNB_POWER:
-		if (chrdev->ops && chrdev->ops->set_lnb_voltage)
-			ret = chrdev->ops->set_lnb_voltage(chrdev, (int)arg);
-		else if (arg)
+		if (chrdev->ops && chrdev->ops->set_lnb_voltage) {
+			int voltage;
+
+			switch (arg) {
+			case 0:
+				voltage = 0;
+				break;
+
+			case 1:
+				voltage = 11;
+				break;
+
+			case 2:
+				voltage = 15;
+				break;
+
+			default:
+				ret = -EINVAL;
+				break;
+			}
+
+			if (ret)
+				break;
+
+			ret = chrdev->ops->set_lnb_voltage(chrdev, voltage);
+		} else if (arg) {
 			ret = -ENOSYS;
+		}
 
 		break;
 
