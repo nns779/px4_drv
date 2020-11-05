@@ -858,7 +858,7 @@ static const struct {
 	/* PX-MLT8PE3 */
 	{ { 0x65, 3, 0 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 }, { 0x00, 0, 0 }, { 0x00, 0, 0 } },
 	/* PX-MLT8PE5 */
-	{ { 0x65, 3, 0 }, { 0x64, 1, 1 }, { 0x6c, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } }
+	{ { 0x65, 1, 0 }, { 0x64, 1, 1 }, { 0x6c, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } }
 };
 
 static int pxmlt_device_load_config(struct pxmlt_device *pxmlt,
@@ -950,30 +950,13 @@ int pxmlt_device_init(struct pxmlt_device *pxmlt, struct device *dev,
 
 	for (i = 0; i < pxmlt->chrdevm_num; i++) {
 		struct pxmlt_chrdev *chrdevm = &pxmlt->chrdevm[i];
+		int tuner_lock_idx = (pxmlt_device_params[model][i].i2c_bus == 3) ? 0
+									       : 1;
 
 		chrdevm->chrdev = NULL;
 		chrdevm->parent = pxmlt;
 		chrdevm->lnb_power = false;
-
-		if (pxmlt->chrdevm_num == 5) {
-			switch (i) {
-			case 0:
-			case 3:
-			case 4:
-				chrdevm->tuner_lock = &pxmlt->tuner_lock[0];
-				break;
-
-			case 1:
-			case 2:
-				chrdevm->tuner_lock = &pxmlt->tuner_lock[1];
-				break;
-
-			default:
-				break;
-			}
-		} else {
-			chrdevm->tuner_lock = &pxmlt->tuner_lock[0];
-		}
+		chrdevm->tuner_lock = &pxmlt->tuner_lock[tuner_lock_idx];
 	}
 
 	stream_ctx = kzalloc(sizeof(*stream_ctx), GFP_KERNEL);
