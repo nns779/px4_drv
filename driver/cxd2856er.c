@@ -1037,8 +1037,8 @@ int cxd2856er_set_tsid_isdbs(struct cxd2856er_demod *demod, u16 tsid)
 	if (ret)
 		return ret;
 
-	data[0] = (tsid & 0xf0) >> 8;
-	data[1] = tsid & 0x0f;
+	data[0] = (tsid >> 8) & 0xff;
+	data[1] = tsid & 0xff;
 	data[2] = 0;
 
 	return cxd2856er_write_slvt_regs(demod, 0xe9, data, 3);
