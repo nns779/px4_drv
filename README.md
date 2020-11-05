@@ -85,12 +85,20 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 インストールに成功し、カーネルモジュールがロードされた状態でデバイスが接続されると、`/dev/` 以下にデバイスファイルが作成されます。
 下記のようなコマンドで確認できます。
 
-##### PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4を接続した場合
+##### PLEX PX-W3U4/W3PE4を接続した場合
 
 	$ ls /dev/px4video*
 	/dev/px4video0  /dev/px4video1  /dev/px4video2  /dev/px4video3
 
 チューナーは、`px4video0`から ISDB-S, ISDB-S, ISDB-T, ISDB-T というように、SとTが2つずつ交互に割り当てられます。
+
+##### PLEX PX-Q3U4/Q3PE4を接続した場合
+
+	$ ls /dev/px4video*
+	/dev/px4video0  /dev/px4video2  /dev/px4video4  /dev/px4video6
+	/dev/px4video1  /dev/px4video3  /dev/px4video5  /dev/px4video7
+
+チューナーは、`px4video0`から ISDB-S, ISDB-S, ISDB-T, ISDB-T, ISDB-S, ISDB-S, ISDB-T, ISDB-T というように、SとTが2つずつ交互に割り当てられます。
 
 ##### PLEX PX-MLT5PEを接続した場合
 
