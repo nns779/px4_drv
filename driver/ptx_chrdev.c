@@ -242,8 +242,8 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 
 				if (freq.freq_no == 12)
 					chrdev->params.freq += 2000;
-			} else if (freq.freq_no >= 63 && freq.freq_no <= 102) {
-				/* UHF 13-52ch */
+			} else if (freq.freq_no >= 63 && freq.freq_no <= 112) {
+				/* UHF 13-62ch */
 				chrdev->params.freq = 95143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 			} else {
 				ret = -EINVAL;
@@ -287,8 +287,8 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 					chrdev->params.stream_id = 0;
 					chrdev->params.system = PTX_ISDB_T_SYSTEM;
 					break;
-				} else if (freq.freq_no >= 63 && freq.freq_no <= 102) {
-					/* UHF 13-52ch */
+				} else if (freq.freq_no >= 63 && freq.freq_no <= 112) {
+					/* UHF 13-62ch */
 					chrdev->params.freq = 95143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 					chrdev->params.bandwidth = 6;
 					chrdev->params.stream_id = 0;
