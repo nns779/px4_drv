@@ -117,6 +117,7 @@ int px4_mldev_add(struct px4_mldev *mldev, struct px4_device *px4)
 
 	kref_get(&mldev->kref);
 	mldev->dev[dev_id] = px4;
+	mldev->power_state[dev_id] = false;
 
 exit:
 	mutex_unlock(&mldev->lock);
@@ -141,12 +142,11 @@ int px4_mldev_remove(struct px4_mldev *mldev, struct px4_device *px4)
 		return -EINVAL;
 	}
 
-	if (__px4_mldev_get_power_count(mldev) && mldev->power_state[dev_id]) {
+	if (__px4_mldev_get_power_count(mldev))
 		mldev->backend_set_power(px4, false);
-		mldev->power_state[dev_id] = false;
-	}
 
 	mldev->dev[dev_id] = NULL;
+	mldev->power_state[dev_id] = false;
 
 	if (kref_put(&mldev->kref, px4_mldev_release))
 		return 0;
