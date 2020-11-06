@@ -951,7 +951,7 @@ int pxmlt_device_init(struct pxmlt_device *pxmlt, struct device *dev,
 	for (i = 0; i < pxmlt->chrdevm_num; i++) {
 		struct pxmlt_chrdev *chrdevm = &pxmlt->chrdevm[i];
 		int tuner_lock_idx = (pxmlt_device_params[model][i].i2c_bus == 3) ? 0
-									       : 1;
+										  : 1;
 
 		chrdevm->chrdev = NULL;
 		chrdevm->parent = pxmlt;
