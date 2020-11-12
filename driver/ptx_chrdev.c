@@ -245,7 +245,7 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 		case PTX_ISDB_T_SYSTEM:
 			if ((freq.freq_no >= 3 && freq.freq_no <= 12) ||
 			    (freq.freq_no >= 22 && freq.freq_no <= 62)) {
-				/* CATV C13-C22ch, C23-63ch */
+				/* CATV C13-C22ch, C23-C63ch */
 				chrdev->params.freq = 93143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 
 				if (freq.freq_no == 12)
@@ -289,7 +289,7 @@ static long ptx_chrdev_unlocked_ioctl(struct file *file,
 
 			if (chrdev->system_cap & PTX_ISDB_T_SYSTEM) {
 				if (freq.freq_no >= 24 && freq.freq_no <= 62) {
-					/* CATV C25-63ch */
+					/* CATV C25-C63ch */
 					chrdev->params.freq = 93143 + freq.freq_no * 6000 + freq.slot/* addfreq */;
 					chrdev->params.bandwidth = 6;
 					chrdev->params.stream_id = 0;
