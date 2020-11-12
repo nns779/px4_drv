@@ -127,8 +127,8 @@ static int px4_usb_probe(struct usb_interface *intf,
 
 			ctx->type = PXMLT5_USB_DEVICE;
 			ret = pxmlt_device_init(&ctx->ctx.pxmlt, dev, PXMLT_5PE_MODEL,
-					      px4_usb_chrdev_ctx[PXMLT5_USB_DEVICE],
-					      &ctx->quit_completion);
+						px4_usb_chrdev_ctx[PXMLT5_USB_DEVICE],
+						&ctx->quit_completion);
 			break;
 
 		case USB_PID_PX_MLT8PE3:
@@ -142,8 +142,8 @@ static int px4_usb_probe(struct usb_interface *intf,
 
 			ctx->type = PXMLT8_USB_DEVICE;
 			ret = pxmlt_device_init(&ctx->ctx.pxmlt, dev, pxmlt8_model,
-					      px4_usb_chrdev_ctx[PXMLT8_USB_DEVICE],
-					      &ctx->quit_completion);
+						px4_usb_chrdev_ctx[PXMLT8_USB_DEVICE],
+						&ctx->quit_completion);
 			break;
 
 		case USB_PID_DIGIBEST_ISDB2056:
