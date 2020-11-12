@@ -46,7 +46,7 @@ struct px4_usb_context {
 	} ctx;
 };
 
-static struct ptx_chrdev_context *px4_usb_chrdev_ctx[7];
+static struct ptx_chrdev_context *px4_usb_chrdev_ctx[5];
 
 static int px4_usb_init_bridge(struct device *dev, struct usb_device *usb_dev,
 			       struct it930x_bridge *it930x)

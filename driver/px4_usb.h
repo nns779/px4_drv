@@ -17,20 +17,12 @@
 #define USB_PID_PX_MLT8PE5		0x0253
 #define USB_PID_DIGIBEST_ISDB2056	0x004b
 
-// Not supported devices
-#define USB_PID_DIGIBEST_ISDBT2053	0x0046
-#define USB_PID_DIGIBEST_ISDBT2057	0x004c
-#define USB_PID_DIGIBEST_ISDBT6013	0x024d
-
 enum px4_usb_device_type {
 	UNKNOWN_USB_DEVICE = 0,
 	PX4_USB_DEVICE,
 	PXMLT5_USB_DEVICE,
 	PXMLT8_USB_DEVICE,
-	ISDBT2053_USB_DEVICE,	// not supported
-	ISDB2056_USB_DEVICE,
-	ISDBT2057_USB_DEVICE,	// not supported
-	ISDBT6013_USB_DEVICE	// not supported
+	ISDB2056_USB_DEVICE
 };
 
 int px4_usb_register(void);
