@@ -109,12 +109,24 @@ static int itedtv_usb_stream_rx(struct itedtv_bus *bus,
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
 static void itedtv_usb_workqueue_handler(struct work_struct *work)
 {
+	int ret = 0;
 	struct itedtv_usb_work *w = container_of(work,
 						 struct itedtv_usb_work, work);
 	struct itedtv_usb_context *ctx = w->ctx;
-	int ret = 0;
+	struct urb *urb = w->urb;
 
-	ret = usb_submit_urb(w->urb, GFP_KERNEL);
+	if (urb->actual_length)
+		ret = ctx->stream_handler(ctx->ctx,
+					  urb->transfer_buffer,
+					  urb->actual_length);
+	else
+		dev_dbg(ctx->bus->dev,
+			"itedtv_usb_workqueue_handler: !urb->actual_length\n");
+
+	if (ret || (atomic_read_acquire(&ctx->streaming) < 1))
+		return;
+
+	ret = usb_submit_urb(urb, GFP_KERNEL);
 	if (ret)
 		dev_err(ctx->bus->dev,
 			"itedtv_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n",
@@ -126,7 +138,9 @@ static void itedtv_usb_workqueue_handler(struct work_struct *work)
 
 static void itedtv_usb_complete(struct urb *urb)
 {
+#ifndef ITEDTV_BUS_USE_WORKQUEUE
 	int ret = 0;
+#endif
 	struct itedtv_usb_work *w = urb->context;
 	struct itedtv_usb_context *ctx = w->ctx;
 
@@ -137,6 +151,11 @@ static void itedtv_usb_complete(struct urb *urb)
 		return;
 	}
 
+#ifdef ITEDTV_BUS_USE_WORKQUEUE
+	if (!queue_work(ctx->wq, &w->work))
+		dev_err(ctx->bus->dev,
+			"itedtv_usb_complete: queue_work() failed.\n");
+#else
 	if (urb->actual_length)
 		ret = ctx->stream_handler(ctx->ctx,
 					  urb->transfer_buffer,
@@ -145,21 +164,15 @@ static void itedtv_usb_complete(struct urb *urb)
 		dev_dbg(ctx->bus->dev,
 			"itedtv_usb_complete: !urb->actual_length\n");
 
-	if (!ret && (atomic_read_acquire(&ctx->streaming) >= 1)) {
-#ifdef ITEDTV_BUS_USE_WORKQUEUE
-		ret = queue_work(ctx->wq, &w->work);
-		if (ret)
-			dev_err(ctx->bus->dev,
-				"itedtv_usb_complete: queue_work() failed. (ret: %d)\n",
-				ret);
-#else
-		ret = usb_submit_urb(urb, GFP_ATOMIC);
-		if (ret)
-			dev_err(ctx->bus->dev,
-				"itedtv_usb_complete: usb_submit_urb() failed. (ret: %d)\n",
-				ret);
+	if (ret || (atomic_read_acquire(&ctx->streaming) < 1))
+		return;
+
+	ret = usb_submit_urb(urb, GFP_ATOMIC);
+	if (ret)
+		dev_err(ctx->bus->dev,
+			"itedtv_usb_complete: usb_submit_urb() failed. (ret: %d)\n",
+			ret);
 #endif
-	}
 
 	return;
 }
