@@ -500,13 +500,13 @@ static int pxmlt_chrdev_set_stream_id(struct ptx_chrdev *chrdev, u16 stream_id)
 		ret = cxd2856er_set_slot_isdbs(&chrdevm->cxd2856er, stream_id);
 		if (ret)
 			dev_err(pxmlt->dev,
-				"pxmlt_chrdev_set_stream_id %u:%u: cxd2856er_set_slot(%u) failed. (ret: %d)\n",
+				"pxmlt_chrdev_set_stream_id %u:%u: cxd2856er_set_slot_isdbs(%u) failed. (ret: %d)\n",
 				chrdev_group->id, chrdev->id, stream_id, ret);
 	} else {
 		ret = cxd2856er_set_tsid_isdbs(&chrdevm->cxd2856er, stream_id);
 		if (ret)
 			dev_err(pxmlt->dev,
-				"pxmlt_chrdev_set_stream_id %u:%u: cxd2856er_set_tsid(%u) failed. (ret: %d)\n",
+				"pxmlt_chrdev_set_stream_id %u:%u: cxd2856er_set_tsid_isdbs(%u) failed. (ret: %d)\n",
 				chrdev_group->id, chrdev->id, stream_id, ret);
 	}
 
