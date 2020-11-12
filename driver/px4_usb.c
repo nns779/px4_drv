@@ -37,7 +37,6 @@
 #define ISDB2056_USB_MAX_CHRDEV		(ISDB2056_USB_MAX_DEVICE * ISDB2056_CHRDEV_NUM)
 
 struct px4_usb_context {
-	struct list_head list;
 	enum px4_usb_device_type type;
 	struct completion quit_completion;
 	union {
@@ -47,8 +46,6 @@ struct px4_usb_context {
 	} ctx;
 };
 
-static DEFINE_MUTEX(px4_usb_glock);
-static LIST_HEAD(px4_usb_ctx_list);
 static struct ptx_chrdev_context *px4_usb_chrdev_ctx[7];
 
 static int px4_usb_init_bridge(struct device *dev, struct usb_device *usb_dev,
@@ -174,10 +171,6 @@ static int px4_usb_probe(struct usb_interface *intf,
 	if (ret)
 		goto fail;
 
-	mutex_lock(&px4_usb_glock);
-	list_add_tail(&ctx->list, &px4_usb_ctx_list);
-	mutex_unlock(&px4_usb_glock);
-
 	get_device(dev);
 	usb_set_intfdata(intf, ctx);
 
@@ -201,10 +194,6 @@ static void px4_usb_disconnect(struct usb_interface *intf)
 	}
 
 	usb_set_intfdata(intf, NULL);
-
-	mutex_lock(&px4_usb_glock);
-	list_del(&ctx->list);
-	mutex_unlock(&px4_usb_glock);
 
 	switch (ctx->type) {
 	case PX4_USB_DEVICE:
