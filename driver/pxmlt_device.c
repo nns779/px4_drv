@@ -990,6 +990,7 @@ int pxmlt_device_init(struct pxmlt_device *pxmlt, struct device *dev,
 		chrdev_config[i].ops = &pxmlt_chrdev_ops;
 		chrdev_config[i].options = PTX_CHRDEV_SAT_SET_STREAM_ID_BEFORE_TUNE;
 		chrdev_config[i].ringbuf_size = 188 * px4_device_params.tsdev_max_packets;
+		chrdev_config[i].ringbuf_threshold_size = chrdev_config[i].ringbuf_size / 10;
 		chrdev_config[i].priv = &pxmlt->chrdevm[i];
 	}
 

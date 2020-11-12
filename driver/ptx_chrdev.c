@@ -827,7 +827,7 @@ int ptx_chrdev_context_add_group(struct ptx_chrdev_context *chrdev_ctx,
 		chrdev->options = chrdev_config->options;
 		chrdev->streaming = false;
 		init_waitqueue_head(&chrdev->ringbuf_wait);
-		chrdev->ringbuf_threshold_size = chrdev_config->ringbuf_size / 8;
+		chrdev->ringbuf_threshold_size = chrdev_config->ringbuf_threshold_size;
 		chrdev->ringbuf_write_size = 0;
 		chrdev->priv = chrdev_config->priv;
 

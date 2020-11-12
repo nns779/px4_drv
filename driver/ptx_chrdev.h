@@ -55,6 +55,7 @@ struct ptx_chrdev_config {
 	const struct ptx_chrdev_operations *ops;
 	u32 options;
 	size_t ringbuf_size;
+	size_t ringbuf_threshold_size;
 	void *priv;
 };
 
