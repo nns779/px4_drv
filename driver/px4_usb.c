@@ -270,6 +270,11 @@ int px4_usb_register()
 {
 	int ret = 0;
 
+	pr_debug("px4_usb_register: PX4_USB_MAX_DEVICE: %d\n", PX4_USB_MAX_DEVICE);
+	pr_debug("px4_usb_register: PXMLT5_USB_MAX_DEVICE: %d\n", PXMLT5_USB_MAX_DEVICE);
+	pr_debug("px4_usb_register: PXMLT8_USB_MAX_DEVICE: %d\n", PXMLT8_USB_MAX_DEVICE);
+	pr_debug("px4_usb_register: ISDB2056_USB_MAX_DEVICE: %d\n", ISDB2056_USB_MAX_DEVICE);
+
 	memset(&px4_usb_chrdev_ctx, 0, sizeof(px4_usb_chrdev_ctx));
 
 	ret = ptx_chrdev_context_create("px4", "px4video",
