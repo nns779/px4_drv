@@ -19,9 +19,9 @@ struct ringbuffer {
 	wait_queue_head_t wait;
 	u8 *buf;
 	size_t size;
-	atomic_long_t actual_size;
-	atomic_long_t head;	// read
-	atomic_long_t tail;	// write
+	atomic_t actual_size;
+	atomic_t head;	// read
+	atomic_t tail;	// write
 };
 
 int ringbuffer_create(struct ringbuffer **ringbuf);

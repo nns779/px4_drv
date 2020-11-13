@@ -28,9 +28,9 @@ int ringbuffer_create(struct ringbuffer **ringbuf)
 	init_waitqueue_head(&p->wait);
 	p->buf = NULL;
 	p->size = 0;
-	atomic_long_set(&p->actual_size, 0);
-	atomic_long_set(&p->head, 0);
-	atomic_long_set(&p->tail, 0);
+	atomic_set(&p->actual_size, 0);
+	atomic_set(&p->head, 0);
+	atomic_set(&p->tail, 0);
 
 	*ringbuf = p;
 
@@ -62,9 +62,9 @@ static void __ringbuffer_free(struct ringbuffer *ringbuf)
 
 static void __ringbuffer_reset(struct ringbuffer *ringbuf)
 {
-	atomic_long_set(&ringbuf->actual_size, 0);
-	atomic_long_set(&ringbuf->head, 0);
-	atomic_long_set(&ringbuf->tail, 0);
+	atomic_set(&ringbuf->actual_size, 0);
+	atomic_set(&ringbuf->head, 0);
+	atomic_set(&ringbuf->tail, 0);
 
 	return;
 }
@@ -88,6 +88,9 @@ static void ringbuffer_unlock(struct ringbuffer *ringbuf)
 int ringbuffer_alloc(struct ringbuffer *ringbuf, size_t size)
 {
 	int ret = 0;
+
+	if (size > INT_MAX)
+		return -EINVAL;
 
 	if (atomic_read_acquire(&ringbuf->state))
 		return -EBUSY;
@@ -173,8 +176,8 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 
 	p = ringbuf->buf;
 	buf_size = ringbuf->size;
-	actual_size = atomic_long_read_acquire(&ringbuf->actual_size);
-	head = atomic_long_read(&ringbuf->head);
+	actual_size = atomic_read_acquire(&ringbuf->actual_size);
+	head = atomic_read(&ringbuf->head);
 
 	read_size = (*len <= actual_size) ? *len : actual_size;
 	if (read_size) {
@@ -193,8 +196,8 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 							      : (head + read_size);
 		}
 
-		atomic_long_xchg(&ringbuf->head, head);
-		atomic_long_sub_return_release(read_size,
+		atomic_xchg(&ringbuf->head, head);
+		atomic_sub_return_release(read_size,
 					       &ringbuf->actual_size);
 	}
 
@@ -221,8 +224,8 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 
 	p = ringbuf->buf;
 	buf_size = ringbuf->size;
-	actual_size = atomic_long_read_acquire(&ringbuf->actual_size);
-	tail = atomic_long_read(&ringbuf->tail);
+	actual_size = atomic_read_acquire(&ringbuf->actual_size);
+	tail = atomic_read(&ringbuf->tail);
 
 	write_size = (actual_size + *len <= buf_size) ? *len
 						      : (buf_size - actual_size);
@@ -240,8 +243,8 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 							       : (tail + write_size);
 		}
 
-		atomic_long_xchg(&ringbuf->tail, tail);
-		atomic_long_add_return_release(write_size,
+		atomic_xchg(&ringbuf->tail, tail);
+		atomic_add_return_release(write_size,
 					       &ringbuf->actual_size);
 	}
 
@@ -264,5 +267,5 @@ bool ringbuffer_is_running(struct ringbuffer *ringbuf)
 
 bool ringbuffer_is_readable(struct ringbuffer *ringbuf)
 {
-	return !!atomic_long_read_acquire(&ringbuf->actual_size);
+	return !!atomic_read_acquire(&ringbuf->actual_size);
 }
