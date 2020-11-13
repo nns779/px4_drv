@@ -1028,7 +1028,7 @@ static int _r850_imr_check_iq_cross(struct r850_tuner *t,
 	struct {
 		u8 gain;
 		u8 phase;
-	} cross[9] = { 0 };
+	} cross[9] = { { 0 } };
 
 	cross[1].phase = 1;
 	cross[2].phase = (0x20 | 1);
