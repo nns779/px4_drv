@@ -1041,5 +1041,5 @@ int ptx_chrdev_put_stream(struct ptx_chrdev *chrdev, void *buf, size_t len)
 		chrdev->ringbuf_write_size -= chrdev->ringbuf_threshold_size;
 	}
 
-	return 0;
+	return ret;
 }
