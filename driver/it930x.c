@@ -813,7 +813,7 @@ int it930x_init_warm(struct it930x_bridge *it930x)
 	ret = it930x_config_i2c(it930x);
 	if (ret) {
 		dev_err(it930x->dev,
-			"it930x_init_warm: _it930x_config_i2c() failed. (ret: %d)\n",
+			"it930x_init_warm: it930x_config_i2c() failed. (ret: %d)\n",
 			ret);
 		return ret;
 	}
@@ -821,7 +821,7 @@ int it930x_init_warm(struct it930x_bridge *it930x)
 	ret = it930x_config_stream_input(it930x);
 	if (ret) {
 		dev_err(it930x->dev,
-			"it930x_init_warm: _it930x_config_stream_input() failed. (ret: %d)\n",
+			"it930x_init_warm: it930x_config_stream_input() failed. (ret: %d)\n",
 			ret);
 		return ret;
 	}
