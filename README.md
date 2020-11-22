@@ -1,6 +1,6 @@
 # px4_drv - Unofficial Linux driver for PLEX PX4/PX-MLT series ISDB-T/S receivers
 
-PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE用の非公式版Linuxドライバです。  
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE,e-Better DTV02A-1T1S-U用の非公式版Linuxドライバです。  
 PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式Linuxドライバとは**別物**です。
 
 現在開発中につき、環境によっては動作が安定しない可能性があります。  
@@ -20,6 +20,7 @@ PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式
 - e-Better
 
 	- DTV02-1T1S-U (実験的)
+	- DTV02A-1T1S-U
 
 ## 対応予定のデバイス
 
@@ -117,7 +118,7 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
 
-##### e-Better DTV02-1T1S-Uを接続した場合
+##### e-Better DTV02-1T1S-U/DTV02A-1T1S-Uを接続した場合
 
 	$ ls /dev/isdb2056video*
 	/dev/isdb2056video0
@@ -161,7 +162,7 @@ LNB電源の出力を行うには、recpt1を実行する際のパラメータ�
 
 基板上にはLNB電源出力のための回路が存在していますが、これを操作する方法が不明なため、現時点では対応出来ておりません。
 
-### e-Better DTV02-1T1S-U
+### e-Better DTV02-1T1S-U/DTV02A-1T1S-U
 
 対応しておりません。
 
@@ -174,8 +175,12 @@ LNB電源の出力を行うには、recpt1を実行する際のパラメータ�
 
 ### e-Better DTV02-1T1S-Uについて
 
-e-Better DTV02-1T1S-Uは、個体により正常に動作しないことのある不具合が各所にて多数報告されています。そのため、このドライバでは「実験的な対応」とさせていただいております。  
+e-Better DTV02-1T1S-Uは、個体によりデバイスからの応答が無くなることのある不具合が各所にて多数報告されています。そのため、このドライバでは「実験的な対応」とさせていただいております。  
 上記の不具合はこの非公式ドライバでも完全には解消できないと思われますので、その点は予めご了承ください。
+
+### e-Better DTV02A-1T1S-Uについて
+
+e-better DTV02A-1T1S-Uは、DTV02-1T1S-Uに存在した上記の不具合がハードウェアレベルで修正されています。そのため、このドライバでは「正式な対応」とさせていただいております。
 
 ## 技術情報
 
@@ -212,9 +217,9 @@ PX-MLT8PEは、同一基板上にPX-MLT5PE相当のデバイスと、3チャン�
 	- ISDB-T/S Demodulator: Sony CXD2856ER (x3)
 	- Terrestrial/Satellite Tuner: Sony CXD2858ER (x3)
 
-DTV02-1T1S-Uは、ISDB-T側のTSシリアル出力をISDB-S側と共有しています。そのため、同時に受信できるチャンネル数は1チャンネルのみです。
+DTV02-1T1S-U/DTV02A-1T1S-Uは、ISDB-T側のTSシリアル出力をISDB-S側と共有しています。そのため、同時に受信できるチャンネル数は1チャンネルのみです。
 
-- DTV02-1T1S-U
+- DTV02-1T1S-U/DTV02A-1T1S-U
 
 	- USB Bridge: ITE IT9303FN
 	- ISDB-T/S Demodulator: Toshiba TC90532XBG
