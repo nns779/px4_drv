@@ -1,6 +1,6 @@
-# px4_drv - Unofficial Linux driver for PLEX PX4/PX-MLT series ISDB-T/S receivers
+# px4_drv - Unofficial Linux driver for PLEX PX4/PX5/PX-MLT series ISDB-T/S receivers
 
-PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/MLT5PE/MLT8PE,e-Better DTV02A-1T1S-U用の非公式版Linuxドライバです。  
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/W3PE5/Q3PE5/MLT5PE/MLT8PE,e-Better DTV02A-1T1S-U用の非公式版Linuxドライバです。  
 PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式Linuxドライバとは**別物**です。
 
 現在開発中につき、環境によっては動作が安定しない可能性があります。  
@@ -14,6 +14,8 @@ PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式
 	- PX-Q3U4
 	- PX-W3PE4
 	- PX-Q3PE4
+	- PX-W3PE5
+	- PX-Q3PE5
 	- PX-MLT5PE
 	- PX-MLT8PE
 
@@ -21,12 +23,6 @@ PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式
 
 	- DTV02-1T1S-U (実験的)
 	- DTV02A-1T1S-U
-
-## 対応予定のデバイス
-
-- PLEX
-
-	- PX-W3PE5
 
 ## インストール
 
@@ -158,6 +154,10 @@ PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/W3PE5/Q3PE5を使用する場合は、recpt1に限
 出力なしと15Vの出力のみに対応しています。デフォルトではLNB電源の出力を行いません。  
 LNB電源の出力を行うには、recpt1を実行する際のパラメータに `--lnb 15` を追加してください。
 
+### PLEX PX-W3PE5/Q3PE5
+
+不明です。
+
 ### PLEX PX-MLT5PE/MLT8PE
 
 基板上にはLNB電源出力のための回路が存在していますが、これを操作する方法が不明なため、現時点では対応出来ておりません。
@@ -187,6 +187,7 @@ e-better DTV02A-1T1S-Uは、DTV02-1T1S-Uに存在した上記の不具合がハ�
 ### デバイスの構成
 
 PX-W3PE4/Q3PE4/MLT5PE/MLT8PEは、電源の供給をPCIeスロットから受け、データのやり取りをUSBを介して行います。  
+PX-W3PE5/Q3PE5は、PX-W3PE4/Q3PE4相当の基板にPCIe→USBブリッジチップを追加し、USBケーブルを不要とした構造となっています。  
 PX-Q3U4/Q3PE4は、PX-W3U4/W3PE4相当のデバイスがUSBハブを介して2つぶら下がる構造となっています。
 
 - PX-W3U4/W3PE4
@@ -198,6 +199,22 @@ PX-Q3U4/Q3PE4は、PX-W3U4/W3PE4相当のデバイスがUSBハブを介して2�
 
 - PX-Q3U4/Q3PE4
 
+	- USB Bridge: ITE IT9305E (x2)
+	- ISDB-T/S Demodulator: Toshiba TC90522XBG (x2)
+	- Terrestrial Tuner: RafaelMicro R850 (x4)
+	- Satellite Tuner: RafaelMicro RT710 (x4)
+
+- PX-W3PE5
+
+	- PCIe to USB Bridge: ASIX MCS9990CV-AA
+	- USB Bridge: ITE IT9305E
+	- ISDB-T/S Demodulator: Toshiba TC90522XBG
+	- Terrestrial Tuner: RafaelMicro R850 (x2)
+	- Satellite Tuner: RafaelMicro RT710 (x2)
+
+- PX-Q3PE5
+
+	- PCIe to USB Bridge: ASIX MCS9990CV-AA
 	- USB Bridge: ITE IT9305E (x2)
 	- ISDB-T/S Demodulator: Toshiba TC90522XBG (x2)
 	- Terrestrial Tuner: RafaelMicro R850 (x4)
