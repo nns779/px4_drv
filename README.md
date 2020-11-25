@@ -86,14 +86,14 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 インストールに成功し、カーネルモジュールがロードされた状態でデバイスが接続されると、`/dev/` 以下にデバイスファイルが作成されます。
 下記のようなコマンドで確認できます。
 
-##### PLEX PX-W3U4/W3PE4を接続した場合
+##### PLEX PX-W3U4/W3PE4/W3PE5を接続した場合
 
 	$ ls /dev/px4video*
 	/dev/px4video0  /dev/px4video1  /dev/px4video2  /dev/px4video3
 
 チューナーは、`px4video0`から ISDB-S, ISDB-S, ISDB-T, ISDB-T というように、SとTが2つずつ交互に割り当てられます。
 
-##### PLEX PX-Q3U4/Q3PE4を接続した場合
+##### PLEX PX-Q3U4/Q3PE4/Q3PE5を接続した場合
 
 	$ ls /dev/px4video*
 	/dev/px4video0  /dev/px4video2  /dev/px4video4  /dev/px4video6
@@ -149,7 +149,7 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 recpt1を使用することで、TSデータの受信を行うことが出来ます。  
 recpt1は、PLEX社より配布されているものを使用する必要はありません。
 
-PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4を使用する場合は、recpt1に限らず[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等のPTシリーズ用chardevドライバに対応したソフトウェアが使用できます。
+PLEX PX-W3U4/Q3U4/W3PE4/Q3PE4/W3PE5/Q3PE5を使用する場合は、recpt1に限らず[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等のPTシリーズ用chardevドライバに対応したソフトウェアが使用できます。
 
 ## LNB電源の出力
 
