@@ -107,6 +107,7 @@ static int px4_usb_probe(struct usb_interface *intf,
 		switch (id->idProduct) {
 		case USB_PID_PX_Q3U4:
 		case USB_PID_PX_Q3PE4:
+		case USB_PID_PX_Q3PE5:
 			if (!px4_device_params.disable_multi_device_power_control)
 				px4_use_mldev = true;
 			/* fall through */
@@ -250,6 +251,7 @@ static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, USB_PID_PX_W3PE4) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_Q3PE4) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_W3PE5) },
+	{ USB_DEVICE(0x0511, USB_PID_PX_Q3PE5) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_MLT5PE) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_MLT8PE3) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_MLT8PE5) },
