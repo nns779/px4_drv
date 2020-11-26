@@ -54,7 +54,7 @@ void cleanup_module(void)
 
 MODULE_VERSION(PX4_DRV_VERSION);
 MODULE_AUTHOR("nns779");
-MODULE_DESCRIPTION("Unofficial Linux driver for PLEX PX4/PX-MLT series ISDB-T/S receivers");
+MODULE_DESCRIPTION("Unofficial Linux driver for PLEX PX4/PX5/PX-MLT series ISDB-T/S receivers");
 MODULE_LICENSE("GPL v2");
 
 MODULE_FIRMWARE(IT930X_FIRMWARE_FILENAME);
