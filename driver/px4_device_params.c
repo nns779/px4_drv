@@ -14,7 +14,8 @@ struct px4_device_param_set px4_device_params = {
 	.tsdev_max_packets = 2048,
 	.psb_purge_timeout = 2000,
 	.disable_multi_device_power_control = false,
-	.s_tuner_no_sleep = false
+	.s_tuner_no_sleep = false,
+	.discard_null_packets = false
 };
 
 module_param_named(tsdev_max_packets, px4_device_params.tsdev_max_packets,
@@ -30,4 +31,7 @@ module_param_named(disable_multi_device_power_control,
 		   bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 module_param_named(s_tuner_no_sleep, px4_device_params.s_tuner_no_sleep,
+		   bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+module_param_named(discard_null_packets, px4_device_params.discard_null_packets,
 		   bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);

@@ -1008,6 +1008,18 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 		goto fail_device;
 #endif
 
+	if (px4_device_params.discard_null_packets) {
+		struct it930x_pid_filter filter;
+
+		filter.block = true;
+		filter.num = 1;
+		filter.pid[0] = 0x1fff;
+
+		ret = it930x_set_pid_filter(it930x, 0, &filter);
+		if (ret)
+			goto fail_device;
+	}
+
 	chrdev_group_config.owner_kref = &isdb2056->kref;
 	chrdev_group_config.owner_kref_release = isdb2056_device_release;
 	chrdev_group_config.reserved = false;

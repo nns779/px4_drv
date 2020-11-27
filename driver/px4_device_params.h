@@ -10,6 +10,7 @@ struct px4_device_param_set {
 	int psb_purge_timeout;
 	bool disable_multi_device_power_control;
 	bool s_tuner_no_sleep;
+	bool discard_null_packets;
 };
 
 extern struct px4_device_param_set px4_device_params;

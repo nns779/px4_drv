@@ -1317,6 +1317,20 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 	if (ret)
 		goto fail_device;
 
+	if (px4_device_params.discard_null_packets) {
+		struct it930x_pid_filter filter;
+
+		filter.block = true;
+		filter.num = 1;
+		filter.pid[0] = 0x1fff;
+
+		for (i = 0; i < PX4_CHRDEV_NUM; i++) {
+			ret = it930x_set_pid_filter(it930x, i, &filter);
+			if (ret)
+				goto fail_device;
+		}
+	}
+
 	chrdev_group_config.owner_kref = &px4->kref;
 	chrdev_group_config.owner_kref_release = px4_device_release;
 	chrdev_group_config.reserved = false;
