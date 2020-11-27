@@ -1031,6 +1031,88 @@ int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high)
 	return ret;
 }
 
+int it930x_set_pid_filter(struct it930x_bridge *it930x, int input_idx,
+			  struct it930x_pid_filter *filter)
+{
+	u32 remap_mode_regs[5] = {
+		0xda13,
+		0xda25,
+		0xda29,
+		0xda2d,
+		0xda7f
+	};
+	u32 pid_index_regs[5] = {
+		0xda15,
+		0xda26,
+		0xda2a,
+		0xda2e,
+		0xda80
+	};
+	int ret = 0, i;
+	u8 port, data[2];
+
+	if (input_idx < 0 || input_idx > 4)
+		return -EINVAL;
+
+	port = it930x->config.input[input_idx].port_number;
+
+	if (!filter || !filter->num) {
+		/* disable pid filter */
+
+		ret = it930x_write_reg(it930x, remap_mode_regs[port], 0);
+		if (ret)
+			return ret;
+
+		/* sync_byte only */
+		ret = it930x_write_reg(it930x, 0xda73 + port, 1);
+		if (ret)
+			return ret;
+
+		return 0;
+	}
+
+	for (i = 0; i < filter->num; i++) {
+		data[0] = filter->pid[i] & 0xff;
+		data[1] = (filter->pid[i] >> 8) & 0xff;
+
+		/* target pid */
+		ret = it930x_write_regs(it930x, 0xda16, data, 2);
+		if (ret)
+			return ret;
+
+		/* enable */
+		ret = it930x_write_reg(it930x, 0xda14, 1);
+		if (ret)
+			return ret;
+
+		/* index */
+		ret = it930x_write_reg(it930x, pid_index_regs[port], i);
+		if (ret)
+			return ret;
+	}
+
+	/* block or pass */
+	ret = it930x_write_reg(it930x, remap_mode_regs[port],
+			       (filter->block) ? 0 : 2);
+	if (ret)
+		return ret;
+
+	/* sync_byte and remap */
+	ret = it930x_write_reg(it930x, 0xda73 + port, 3);
+	if (ret)
+		return ret;
+
+	data[0] = 0;
+	data[1] = 0;
+
+	/* pid offset */
+	ret = it930x_write_regs(it930x, 0xda81 + (port * 2), data, 2);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 int it930x_purge_psb(struct it930x_bridge *it930x, int timeout)
 {
 	int ret = 0;

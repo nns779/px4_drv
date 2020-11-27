@@ -32,6 +32,12 @@ enum it930x_gpio_mode {
 	IT930X_GPIO_OUT,
 };
 
+struct it930x_pid_filter {
+	bool block;
+	int num;
+	u16 pid[64];
+};
+
 struct it930x_stream_input {
 	bool enable;
 	bool is_parallel;
@@ -84,6 +90,8 @@ int it930x_set_gpio_mode(struct it930x_bridge *it930x,
 int it930x_enable_gpio(struct it930x_bridge *it930x, int gpio, bool enable);
 int it930x_read_gpio(struct it930x_bridge *it930x, int gpio, bool *high);
 int it930x_write_gpio(struct it930x_bridge *it930x, int gpio, bool high);
+int it930x_set_pid_filter(struct it930x_bridge *it930x, int input_idx,
+			  struct it930x_pid_filter *filter);
 int it930x_purge_psb(struct it930x_bridge *it930x, int timeout);
 #ifdef __cplusplus
 }
