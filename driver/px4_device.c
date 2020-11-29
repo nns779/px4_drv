@@ -8,7 +8,6 @@
 #include "print_format.h"
 #include "px4_device.h"
 
-#include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
@@ -1070,11 +1069,7 @@ static int px4_parse_serial_number(struct px4_serial_number *serial,
 	if (strlen(dev_serial) != 15)
 		return -EINVAL;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,39)
 	ret = kstrtoull(dev_serial, 10, &serial->serial_number);
-#else
-	ret = strict_strtoull(dev_serial, 10, &serial->serial_number);
-#endif
 	if (ret)
 		return ret;
 
