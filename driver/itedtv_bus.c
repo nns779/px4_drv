@@ -204,17 +204,10 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx,
 #ifdef __linux__
 				if ((urb->transfer_flags & URB_NO_TRANSFER_DMA_MAP) &&
 				    (no_dma || urb->transfer_buffer_length != buf_size)) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 					usb_free_coherent(dev,
 							  urb->transfer_buffer_length,
 							  urb->transfer_buffer,
 							  urb->transfer_dma);
-#else
-					usb_buffer_free(dev,
-							urb->transfer_buffer_length,
-							urb->transfer_buffer,
-							urb->transfer_dma);
-#endif
 					urb->transfer_flags &= ~URB_NO_TRANSFER_DMA_MAP;
 					urb->transfer_dma = 0;
 
@@ -254,13 +247,8 @@ static int itedtv_usb_alloc_urb_buffers(struct itedtv_usb_context *ctx,
 		if (!urb->transfer_buffer) {
 #ifdef __linux__
 			if (!no_dma)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 				p = usb_alloc_coherent(dev, buf_size,
 						       GFP_KERNEL, &dma);
-#else
-				p = usb_buffer_alloc(dev, buf_size,
-						     GFP_KERNEL, &dma);
-#endif
 			else
 				p = kmalloc(buf_size, GFP_KERNEL);
 #else
@@ -346,17 +334,10 @@ static void itedtv_usb_free_urb_buffers(struct itedtv_usb_context *ctx,
 		if (urb->transfer_buffer) {
 #ifdef __linux__
 			if (!no_dma) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,34)
 				usb_free_coherent(dev,
 						  urb->transfer_buffer_length,
 						  urb->transfer_buffer,
 						  urb->transfer_dma);
-#else
-				usb_buffer_free(dev,
-						urb->transfer_buffer_length,
-						urb->transfer_buffer,
-						urb->transfer_dma);
-#endif
 				urb->transfer_flags &= ~URB_NO_TRANSFER_DMA_MAP;
 				urb->transfer_dma = 0;
 			} else {
