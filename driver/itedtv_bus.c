@@ -9,7 +9,6 @@
 #include "itedtv_bus.h"
 
 #ifdef __linux__
-#include <linux/version.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/atomic.h>
