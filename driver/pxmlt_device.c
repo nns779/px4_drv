@@ -859,7 +859,7 @@ static const struct {
 	/* PX-MLT5PE */
 	{ { 0x65, 3, 0 }, { 0x6c, 1, 1 }, { 0x64, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } },
 	/* PX-MLT8PE3 */
-	{ { 0x65, 3, 0 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 }, { 0x00, 0, 0 }, { 0x00, 0, 0 } },
+	{ { 0x65, 3, 0 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 }, { 0x00, 0, 1 }, { 0x00, 0, 2 } },
 	/* PX-MLT8PE5 */
 	{ { 0x65, 1, 0 }, { 0x64, 1, 1 }, { 0x6c, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } }
 };
@@ -914,7 +914,7 @@ static int pxmlt_device_load_config(struct pxmlt_device *pxmlt,
 
 	for (i = pxmlt->chrdevm_num; i < PXMLT_CHRDEV_MAX_NUM; i++) {
 		it930x->config.input[i].enable = false;
-		it930x->config.input[i].port_number = 0;
+		it930x->config.input[i].port_number = pxmlt_device_params[model][i].port_number;
 	}
 
 	return 0;
