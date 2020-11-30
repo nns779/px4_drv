@@ -102,7 +102,7 @@ static int px4_usb_probe(struct usb_interface *intf,
 	case 0x0511:
 	{
 		bool px4_use_mldev = false;
-		enum pxmlt_model pxmlt8_model = PXMLT_8PE5_MODEL;
+		enum pxmlt_model pxmlt8_model = PXMLT8PE5_MODEL;
 
 		switch (id->idProduct) {
 		case USB_PID_PX_Q3U4:
@@ -133,13 +133,13 @@ static int px4_usb_probe(struct usb_interface *intf,
 				break;
 
 			ctx->type = PXMLT5_USB_DEVICE;
-			ret = pxmlt_device_init(&ctx->ctx.pxmlt, dev, PXMLT_5PE_MODEL,
+			ret = pxmlt_device_init(&ctx->ctx.pxmlt, dev, PXMLT5PE_MODEL,
 						px4_usb_chrdev_ctx[PXMLT5_USB_DEVICE],
 						&ctx->quit_completion);
 			break;
 
 		case USB_PID_PX_MLT8PE3:
-			pxmlt8_model = PXMLT_8PE3_MODEL;
+			pxmlt8_model = PXMLT8PE3_MODEL;
 			/* fall through */
 		case USB_PID_PX_MLT8PE5:
 			ret = px4_usb_init_bridge(dev, usb_dev,

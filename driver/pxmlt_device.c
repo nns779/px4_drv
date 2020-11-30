@@ -949,7 +949,7 @@ int pxmlt_device_init(struct pxmlt_device *pxmlt, struct device *dev,
 	pxmlt->streaming_count = 0;
 	mutex_init(&pxmlt->tuner_lock[0]);
 	mutex_init(&pxmlt->tuner_lock[1]);
-	pxmlt->chrdevm_num = (model == PXMLT_8PE3_MODEL) ? 3 : 5;
+	pxmlt->chrdevm_num = (model == PXMLT8PE3_MODEL) ? 3 : 5;
 
 	for (i = 0; i < pxmlt->chrdevm_num; i++) {
 		struct pxmlt_chrdev *chrdevm = &pxmlt->chrdevm[i];

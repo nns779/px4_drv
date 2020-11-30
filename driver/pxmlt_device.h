@@ -26,9 +26,9 @@
 #define PXMLT8_CHRDEV_NUM	8
 
 enum pxmlt_model {
-	PXMLT_5PE_MODEL = 0,
-	PXMLT_8PE3_MODEL,
-	PXMLT_8PE5_MODEL
+	PXMLT5PE_MODEL = 0,
+	PXMLT8PE3_MODEL,
+	PXMLT8PE5_MODEL
 };
 
 struct pxmlt_device;
