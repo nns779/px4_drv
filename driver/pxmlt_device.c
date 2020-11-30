@@ -861,7 +861,9 @@ static const struct {
 	/* PX-MLT8PE3 */
 	{ { 0x65, 3, 0 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 }, { 0x00, 0, 1 }, { 0x00, 0, 2 } },
 	/* PX-MLT8PE5 */
-	{ { 0x65, 1, 0 }, { 0x64, 1, 1 }, { 0x6c, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } }
+	{ { 0x65, 1, 0 }, { 0x64, 1, 1 }, { 0x6c, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } },
+	/* ISDB6014 */
+	{ { 0x65, 3, 0 }, { 0x6c, 1, 1 }, { 0x64, 1, 2 }, { 0x64, 3, 4 }, { 0x00, 0, 3 } }
 };
 
 static int pxmlt_device_load_config(struct pxmlt_device *pxmlt,
@@ -949,7 +951,19 @@ int pxmlt_device_init(struct pxmlt_device *pxmlt, struct device *dev,
 	pxmlt->streaming_count = 0;
 	mutex_init(&pxmlt->tuner_lock[0]);
 	mutex_init(&pxmlt->tuner_lock[1]);
-	pxmlt->chrdevm_num = (model == PXMLT8PE3_MODEL) ? 3 : 5;
+	switch (model) {
+	case PXMLT8PE3_MODEL:
+		pxmlt->chrdevm_num = 3;
+		break;
+
+	case ISDB6014_MODEL:
+		pxmlt->chrdevm_num = 4;
+		break;
+
+	default:
+		pxmlt->chrdevm_num = 5;
+		break;
+	}
 
 	for (i = 0; i < pxmlt->chrdevm_num; i++) {
 		struct pxmlt_chrdev *chrdevm = &pxmlt->chrdevm[i];

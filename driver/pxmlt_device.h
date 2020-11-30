@@ -24,11 +24,13 @@
 
 #define PXMLT5_CHRDEV_NUM	5
 #define PXMLT8_CHRDEV_NUM	8
+#define ISDB6014_CHRDEV_NUM	4
 
 enum pxmlt_model {
 	PXMLT5PE_MODEL = 0,
 	PXMLT8PE3_MODEL,
-	PXMLT8PE5_MODEL
+	PXMLT8PE5_MODEL,
+	ISDB6014_MODEL
 };
 
 struct pxmlt_device;
