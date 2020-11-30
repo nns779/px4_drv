@@ -20,6 +20,7 @@ PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式
 
 	- DTV02-1T1S-U (実験的)
 	- DTV02A-1T1S-U
+	- DTV02A-4TS-P (ベータ版)
 
 ## インストール
 
@@ -118,6 +119,14 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
 
+##### e-Better DTV02A-4TS-Pを接続した場合
+
+	$ ls /dev/isdb6014video*
+	/dev/isdb6014video0  /dev/isdb6014video2
+	/dev/isdb6014video1  /dev/isdb6014video3
+
+すべてのチューナーにおいて、ISDB-TとISDB-Sのどちらも受信可能です。
+
 ## アンインストール
 
 ### 1. ドライバのアンインストール
@@ -162,6 +171,10 @@ LNB電源の出力を行うには、recpt1を実行する際のパラメータ�
 ### e-Better DTV02-1T1S-U/DTV02A-1T1S-U
 
 対応しておりません。
+
+### e-Better DTV02A-4TS-P
+
+不明です。
 
 ## 備考
 
