@@ -862,7 +862,7 @@ static const struct {
 	{ { 0x65, 3, 0 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 }, { 0x00, 0, 1 }, { 0x00, 0, 2 } },
 	/* PX-MLT8PE5 */
 	{ { 0x65, 1, 0 }, { 0x64, 1, 1 }, { 0x6c, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } },
-	/* ISDB6014 */
+	/* ISDB6014 V2.0 (4TS) */
 	{ { 0x65, 3, 0 }, { 0x6c, 1, 1 }, { 0x64, 1, 2 }, { 0x64, 3, 4 }, { 0x00, 0, 3 } }
 };
 
@@ -956,7 +956,7 @@ int pxmlt_device_init(struct pxmlt_device *pxmlt, struct device *dev,
 		pxmlt->chrdevm_num = 3;
 		break;
 
-	case ISDB6014_MODEL:
+	case ISDB6014_4TS_MODEL:
 		pxmlt->chrdevm_num = 4;
 		break;
 
