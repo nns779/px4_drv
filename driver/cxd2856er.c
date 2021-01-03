@@ -112,7 +112,7 @@ int cxd2856er_init(struct cxd2856er_demod *demod)
 	if (!demod->i2c_addr.slvx || !demod->i2c_addr.slvt)
 		return -EINVAL;
 
-	if (demod->xtal != 24000)
+	if (demod->config.xtal != 24000)
 		return -EINVAL;
 
 	demod->i2c_master.gate_ctrl = cxd2856er_i2c_master_gate_ctrl;
@@ -176,7 +176,7 @@ int cxd2856er_init(struct cxd2856er_demod *demod)
 		return ret;
 
 	ret = cxd2856er_write_slvx_reg(demod,
-				       0x1a, (demod->tuner_i2c) ? 0x01 : 0x00);
+				       0x1a, (demod->config.tuner_i2c) ? 0x01 : 0x00);
 	if (ret)
 		return ret;
 

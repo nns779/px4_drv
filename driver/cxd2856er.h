@@ -14,6 +14,11 @@
 
 #include "i2c_comm.h"
 
+struct cxd2856er_config {
+	u32 xtal;
+	bool tuner_i2c;
+};
+
 enum cxd2856er_state {
 	CXD2856ER_UNKNOWN_STATE = 0,
 	CXD2856ER_SLEEP_STATE,
@@ -43,8 +48,7 @@ struct cxd2856er_demod {
 		u8 slvx;	// system
 		u8 slvt;	// demod
 	} i2c_addr;
-	u32 xtal;
-	bool tuner_i2c;
+	struct cxd2856er_config config;
 	enum cxd2856er_state state;
 	enum cxd2856er_system system;
 };
