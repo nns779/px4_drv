@@ -129,7 +129,7 @@ static int __cxd2858er_power_on(struct cxd2858er_tuner *tuner)
 	if (ret)
 		return ret;
 
-	switch (tuner->xtal) {
+	switch (tuner->config.xtal) {
 	case 16000:
 		data[0] = 0x10;
 		break;
@@ -229,7 +229,7 @@ int cxd2858er_init(struct cxd2858er_tuner *tuner)
 	if (!tuner->dev || !tuner->i2c || !tuner->i2c_addr)
 		return -EINVAL;
 
-	if (tuner->xtal != 16000 && tuner->xtal != 24000)
+	if (tuner->config.xtal != 16000 && tuner->config.xtal != 24000)
 		return -EINVAL;
 
 	tuner->system = CXD2858ER_UNSPECIFIED_SYSTEM;
@@ -336,7 +336,7 @@ int cxd2858er_set_params_t(struct cxd2858er_tuner *tuner,
 	data[2] = 0x1e;
 	data[3] = 0x67;
 
-	switch (tuner->xtal) {
+	switch (tuner->config.xtal) {
 	case 16000:
 		data[4] = 0x02;
 		break;
@@ -465,7 +465,7 @@ int cxd2858er_set_params_s(struct cxd2858er_tuner *tuner,
 	data[0] = 0xc4;
 	data[1] = 0x40;
 
-	switch (tuner->xtal) {
+	switch (tuner->config.xtal) {
 	case 16000:
 		data[2] = 0x02;
 		break;

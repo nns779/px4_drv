@@ -911,7 +911,7 @@ static int pxmlt_device_load_config(struct pxmlt_device *pxmlt,
 		chrdevm->cxd2858er.dev = dev;
 		chrdevm->cxd2858er.i2c = &chrdevm->cxd2856er.i2c_master;
 		chrdevm->cxd2858er.i2c_addr = 0x60;
-		chrdevm->cxd2858er.xtal = 16000;
+		chrdevm->cxd2858er.config.xtal = 16000;
 	}
 
 	for (i = pxmlt->chrdevm_num; i < PXMLT_CHRDEV_MAX_NUM; i++) {

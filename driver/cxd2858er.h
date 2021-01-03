@@ -13,6 +13,10 @@
 
 #include "i2c_comm.h"
 
+struct cxd2858er_config {
+	u32 xtal;
+};
+
 enum cxd2858er_system {
 	CXD2858ER_UNSPECIFIED_SYSTEM = 0,
 	CXD2858ER_ISDB_T_SYSTEM,
@@ -23,7 +27,7 @@ struct cxd2858er_tuner {
 	const struct device *dev;
 	const struct i2c_comm_master *i2c;
 	u8 i2c_addr;
-	u32 xtal;
+	struct cxd2858er_config config;
 	enum cxd2858er_system system;
 };
 
