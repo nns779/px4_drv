@@ -115,6 +115,9 @@ static int px4_usb_probe(struct usb_interface *intf,
 		case USB_PID_PX_Q3PE5:
 			if (!px4_device_params.disable_multi_device_power_control)
 				px4_use_mldev = true;
+
+			dev_info(dev, "Multi-device power control: %s\n",
+				 (px4_use_mldev) ? "enabled" : "disabled");
 			/* fall through */
 		case USB_PID_PX_W3U4:
 		case USB_PID_PX_W3PE4:
