@@ -44,7 +44,7 @@ int px4_mldev_alloc(struct px4_mldev **mldev, struct px4_device *px4,
 
 	dev_dbg(px4->dev,
 		"px4_mldev_alloc: serial_number: %014llu, dev_id: %u\n",
-		px4->serial.serial_number, px4->serial.dev_id);
+		px4->serial.serial_number, dev_id + 1);
 
 	if (dev_id > 1)
 		return -EINVAL;
@@ -56,7 +56,7 @@ int px4_mldev_alloc(struct px4_mldev **mldev, struct px4_device *px4,
 	kref_init(&m->kref);
 	mutex_init(&m->lock);
 	m->serial_number = px4->serial.serial_number;
-	m->dev[px4->serial.dev_id - 1] = px4;
+	m->dev[dev_id] = px4;
 	m->backend_set_power = backend_set_power;
 
 	mutex_lock(&px4_mldev_glock);
