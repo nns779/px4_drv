@@ -39,6 +39,7 @@ bool px4_mldev_search(unsigned long long serial_number,
 int px4_mldev_alloc(struct px4_mldev **mldev, struct px4_device *px4,
 		    int (*backend_set_power)(struct px4_device *, bool))
 {
+	int i;
 	unsigned int dev_id = px4->serial.dev_id - 1;
 	struct px4_mldev *m;
 
@@ -56,7 +57,10 @@ int px4_mldev_alloc(struct px4_mldev **mldev, struct px4_device *px4,
 	kref_init(&m->kref);
 	mutex_init(&m->lock);
 	m->serial_number = px4->serial.serial_number;
-	m->dev[dev_id] = px4;
+	for (i = 0; i < 2; i++) {
+		m->dev[i] = (i == dev_id) ? px4 : NULL;
+		m->power_state[i] = false;
+	}
 	m->backend_set_power = backend_set_power;
 
 	mutex_lock(&px4_mldev_glock);
