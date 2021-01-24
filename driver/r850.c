@@ -544,7 +544,7 @@ static u8 reverse_bit(u8 val)
 	return t;
 }
 
-static int _r850_read_regs(struct r850_tuner *t, u8 reg, u8 *buf, int len)
+static int r850_read_regs(struct r850_tuner *t, u8 reg, u8 *buf, int len)
 {
 	int ret = 0, i;
 	u8 b[1 + R850_NUM_REGS];
@@ -571,7 +571,7 @@ static int _r850_read_regs(struct r850_tuner *t, u8 reg, u8 *buf, int len)
 	ret = i2c_comm_master_request(t->i2c, req, 2);
 	if (ret) {
 		dev_err(t->dev,
-			"_r850_read_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n",
+			"r850_read_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n",
 			reg, len, ret);
 	} else {
 		for (i = reg; i < (reg + len); i++)
@@ -581,7 +581,7 @@ static int _r850_read_regs(struct r850_tuner *t, u8 reg, u8 *buf, int len)
 	return ret;
 }
 
-static int _r850_write_regs(struct r850_tuner *t,
+static int r850_write_regs(struct r850_tuner *t,
 			    u8 reg,
 			    const u8 *buf, int len)
 {
@@ -606,13 +606,13 @@ static int _r850_write_regs(struct r850_tuner *t,
 	ret = i2c_comm_master_request(t->i2c, req, 1);
 	if (ret)
 		dev_err(t->dev,
-			"_r850_write_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n",
+			"r850_write_regs: i2c_comm_master_request() failed. (reg: 0x%02x, len: %d, ret: %d)\n",
 			reg, len, ret);
 
 	return ret;
 }
 
-static int _r850_init_regs(struct r850_tuner *t)
+static int r850_init_regs(struct r850_tuner *t)
 {
 	memcpy(t->priv.regs, init_regs, sizeof(t->priv.regs));
 
@@ -635,7 +635,7 @@ static int _r850_init_regs(struct r850_tuner *t)
 	return 0;
 }
 
-static int _r850_set_xtal_cap(struct r850_tuner *t, u8 cap)
+static int r850_set_xtal_cap(struct r850_tuner *t, u8 cap)
 {
 	u8 c = cap;
 	bool g = false;
@@ -652,7 +652,7 @@ static int _r850_set_xtal_cap(struct r850_tuner *t, u8 cap)
 	return 0;
 }
 
-static int _r850_set_pll(struct r850_tuner *t,
+static int r850_set_pll(struct r850_tuner *t,
 			 u32 lo_freq, u32 if_freq,
 			 enum r850_system sys)
 {
@@ -698,7 +698,7 @@ static int _r850_set_pll(struct r850_tuner *t,
 		b = 0;
 	}
 
-	ret = _r850_set_xtal_cap(t, 0x27);
+	ret = r850_set_xtal_cap(t, 0x27);
 	if (ret)
 		return ret;
 
@@ -827,7 +827,7 @@ static int _r850_set_pll(struct r850_tuner *t,
 	t->priv.regs[0x1c] = (sdm & 0xff);
 	t->priv.regs[0x1d] = ((sdm >> 8) & 0xff);
 
-	ret = _r850_write_regs(t, 0x08, &t->priv.regs[0x08], 0x28);
+	ret = r850_write_regs(t, 0x08, &t->priv.regs[0x08], 0x28);
 	if (ret)
 		return ret;
 
@@ -849,10 +849,10 @@ static int _r850_set_pll(struct r850_tuner *t,
 
 	t->priv.regs[0x2f] |= 0x02;
 
-	return _r850_write_regs(t, 0x2f, &t->priv.regs[0x2f], 0x01);
+	return r850_write_regs(t, 0x2f, &t->priv.regs[0x2f], 0x01);
 }
 
-static int _r850_set_mux(struct r850_tuner *t,
+static int r850_set_mux(struct r850_tuner *t,
 			 u32 rf_freq, u32 lo_freq,
 			 enum r850_system sys)
 {
@@ -1005,21 +1005,21 @@ static int _r850_set_mux(struct r850_tuner *t,
 	return 0;
 }
 
-static int _r850_read_adc_value(struct r850_tuner *t, u8 *value)
+static int r850_read_adc_value(struct r850_tuner *t, u8 *value)
 {
 	int ret = 0;
 	u8 tmp;
 
 	mdelay(2);
 
-	ret = _r850_read_regs(t, 0x01, &tmp, 1);
+	ret = r850_read_regs(t, 0x01, &tmp, 1);
 	if (!ret)
 		*value = (tmp & 0x3f);
 
 	return ret;
 }
 
-static int _r850_imr_check_iq_cross(struct r850_tuner *t,
+static int r850_imr_check_iq_cross(struct r850_tuner *t,
 				    struct r850_imr *imr,
 				    enum r850_imr_direction *direction)
 {
@@ -1050,11 +1050,11 @@ static int _r850_imr_check_iq_cross(struct r850_tuner *t,
 		t->priv.regs[0x15] &= 0xd0;
 		t->priv.regs[0x15] |= (cross[i].phase & 0x2f);
 
-		ret = _r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
+		ret = r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
 		if (ret)
 			break;
 
-		ret = _r850_read_adc_value(t, &tmp);
+		ret = r850_read_adc_value(t, &tmp);
 		if (ret)
 			break;
 
@@ -1074,7 +1074,7 @@ static int _r850_imr_check_iq_cross(struct r850_tuner *t,
 	return ret;
 }
 
-static int _r850_imr_check_iq_tree(struct r850_tuner *t,
+static int r850_imr_check_iq_tree(struct r850_tuner *t,
 				   struct r850_imr *imr,
 				   enum r850_imr_direction direction, int num)
 {
@@ -1142,11 +1142,11 @@ static int _r850_imr_check_iq_tree(struct r850_tuner *t,
 		t->priv.regs[reg] &= 0xd0;
 		t->priv.regs[reg] |= (val[i] & 0x2f);
 
-		ret = _r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
+		ret = r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
 		if (ret)
 			break;
 
-		ret = _r850_read_adc_value(t, &tmp);
+		ret = r850_read_adc_value(t, &tmp);
 		if (ret)
 			break;
 
@@ -1166,7 +1166,7 @@ static int _r850_imr_check_iq_tree(struct r850_tuner *t,
 	return ret;
 }
 
-static int _r850_imr_check_iq_step(struct r850_tuner *t,
+static int r850_imr_check_iq_step(struct r850_tuner *t,
 				   struct r850_imr *imr,
 				   enum r850_imr_direction direction)
 {
@@ -1207,11 +1207,11 @@ static int _r850_imr_check_iq_step(struct r850_tuner *t,
 		t->priv.regs[reg] &= 0xd0;
 		t->priv.regs[reg] |= (val & 0x2f);
 
-		ret = _r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
+		ret = r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
 		if (ret)
 			break;
 
-		ret = _r850_read_adc_value(t, &tmp);
+		ret = r850_read_adc_value(t, &tmp);
 		if (ret)
 			break;
 
@@ -1233,7 +1233,7 @@ static int _r850_imr_check_iq_step(struct r850_tuner *t,
 	return ret;
 }
 
-static int _r850_imr_check_section(struct r850_tuner *t, struct r850_imr *imr)
+static int r850_imr_check_section(struct r850_tuner *t, struct r850_imr *imr)
 {
 	int ret = 0, i, n = 0;
 	struct r850_imr imr_points[3];
@@ -1254,7 +1254,7 @@ static int _r850_imr_check_section(struct r850_tuner *t, struct r850_imr *imr)
 	imr_points[2].phase = imr->phase;
 
 	for (i = 0; i < 3; i++) {
-		ret = _r850_imr_check_iq_tree(t,
+		ret = r850_imr_check_iq_tree(t,
 					      &imr_points[i],
 					      R850_IMR_DIRECTION_PHASE, 3);
 		if (ret)
@@ -1272,14 +1272,14 @@ static int _r850_imr_check_section(struct r850_tuner *t, struct r850_imr *imr)
 	return ret;
 }
 
-static int _r850_imr_check_iqcap(struct r850_tuner *t, struct r850_imr *imr)
+static int r850_imr_check_iqcap(struct r850_tuner *t, struct r850_imr *imr)
 {
 	int ret = 0, i;
 
 	t->priv.regs[0x14] &= 0xd0;
 	t->priv.regs[0x14] |= (imr->gain & 0x2f);
 
-	ret = _r850_write_regs(t, 0x14, &t->priv.regs[0x14], 1);
+	ret = r850_write_regs(t, 0x14, &t->priv.regs[0x14], 1);
 	if (ret)
 		return ret;
 
@@ -1295,11 +1295,11 @@ static int _r850_imr_check_iqcap(struct r850_tuner *t, struct r850_imr *imr)
 		t->priv.regs[0x15] &= 0x3f;
 		t->priv.regs[0x15] |= ((i << 6) & 0xc0);
 
-		ret = _r850_write_regs(t, 0x15, &t->priv.regs[0x15], 1);
+		ret = r850_write_regs(t, 0x15, &t->priv.regs[0x15], 1);
 		if (ret)
 			break;
 
-		ret = _r850_read_adc_value(t, &tmp);
+		ret = r850_read_adc_value(t, &tmp);
 		if (ret)
 			break;
 
@@ -1312,7 +1312,7 @@ static int _r850_imr_check_iqcap(struct r850_tuner *t, struct r850_imr *imr)
 	return ret;
 }
 
-static int _r850_prepare_calibration(struct r850_tuner *t,
+static int r850_prepare_calibration(struct r850_tuner *t,
 				     enum r850_calibration cal)
 {
 	switch (cal) {
@@ -1329,14 +1329,14 @@ static int _r850_prepare_calibration(struct r850_tuner *t,
 	}
 
 #if 0
-	return _r850_write_regs(t, 0x08,
+	return r850_write_regs(t, 0x08,
 				&t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 #else
 	return 0;
 #endif
 }
 
-static int _r850_calibrate_imr(struct r850_tuner *t)
+static int r850_calibrate_imr(struct r850_tuner *t)
 {
 	int ret = 0, i, j;
 	int n[5] = { 2, 1, 0, 3, 4 };
@@ -1398,13 +1398,13 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 		t->priv.regs[0x23] |= 0x11;
 
 		if (!mixer_mode) {
-			ret = _r850_set_mux(t,
+			ret = r850_set_mux(t,
 					    ring_freq - 5300, ring_freq,
 					    R850_SYSTEM_UNDEFINED);
 			if (ret)
 				return ret;
 
-			ret = _r850_set_pll(t,
+			ret = r850_set_pll(t,
 					    ring_freq - 5300, 5300,
 					    R850_SYSTEM_UNDEFINED);
 			if (ret)
@@ -1413,7 +1413,7 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 			t->priv.regs[0x13] &= 0xe8;
 			t->priv.regs[0x13] |= (mixer_amp_lpf & 0x07);
 
-			ret = _r850_write_regs(t, 0x13, &t->priv.regs[0x13], 1);
+			ret = r850_write_regs(t, 0x13, &t->priv.regs[0x13], 1);
 			if (ret)
 				return ret;
 
@@ -1424,24 +1424,24 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 				t->priv.regs[0x24] |= 0x30;
 			}
 
-			ret = _r850_write_regs(t, 0x24, &t->priv.regs[0x24], 1);
+			ret = r850_write_regs(t, 0x24, &t->priv.regs[0x24], 1);
 			if (ret)
 				return ret;
 
 			t->priv.regs[0x29] &= 0xf0;
 			t->priv.regs[0x29] |= 0x08;
 
-			ret = _r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
+			ret = r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
 			if (ret)
 				return ret;
 		} else {
-			ret = _r850_set_mux(t,
+			ret = r850_set_mux(t,
 					    ring_freq + 5300, ring_freq,
 					    R850_SYSTEM_UNDEFINED);
 			if (ret)
 				return ret;
 
-			ret = _r850_set_pll(t,
+			ret = r850_set_pll(t,
 					    ring_freq + 5300, 5300,
 					    R850_SYSTEM_UNDEFINED);
 			if (ret)
@@ -1451,7 +1451,7 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 			t->priv.regs[0x13] &= 0xf8;
 			t->priv.regs[0x13] |= (mixer_amp_lpf & 0x07);
 
-			ret = _r850_write_regs(t, 0x13, &t->priv.regs[0x13], 1);
+			ret = r850_write_regs(t, 0x13, &t->priv.regs[0x13], 1);
 			if (ret)
 				return ret;
 
@@ -1468,18 +1468,18 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 				t->priv.regs[0x24] |= 0x30;
 			}
 
-			ret = _r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
+			ret = r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
 			if (ret)
 				return ret;
 
-			ret = _r850_write_regs(t, 0x24, &t->priv.regs[0x24], 1);
+			ret = r850_write_regs(t, 0x24, &t->priv.regs[0x24], 1);
 			if (ret)
 				return ret;
 		}
 
 		t->priv.regs[0x29] |= 0xf0;
 
-		ret = _r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
+		ret = r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
 		if (ret)
 			return ret;
 
@@ -1488,15 +1488,15 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 
 			memset(imr, 0 ,sizeof(*imr));
 
-			ret = _r850_imr_check_iq_cross(t, imr, &d);
+			ret = r850_imr_check_iq_cross(t, imr, &d);
 			if (ret)
 				return ret;
 
-			ret = _r850_imr_check_iq_step(t, imr, d);
+			ret = r850_imr_check_iq_step(t, imr, d);
 			if (ret)
 				return ret;
 
-			ret = _r850_imr_check_iq_tree(t, imr,
+			ret = r850_imr_check_iq_tree(t, imr,
 						      (d == R850_IMR_DIRECTION_GAIN)
 							  ? R850_IMR_DIRECTION_PHASE
 							  : R850_IMR_DIRECTION_GAIN,
@@ -1504,18 +1504,18 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 			if (ret)
 				return ret;
 
-			ret = _r850_imr_check_iq_tree(t, imr, d, 3);
+			ret = r850_imr_check_iq_tree(t, imr, d, 3);
 			if (ret)
 				return ret;
 		} else {
 			*imr = t->priv.imr_cal[mixer_mode].imr[pre];
 		}
 
-		ret = _r850_imr_check_section(t, imr);
+		ret = r850_imr_check_section(t, imr);
 		if (ret)
 			return ret;
 
-		ret = _r850_imr_check_iqcap(t, imr);
+		ret = r850_imr_check_iqcap(t, imr);
 		if (ret)
 			return ret;
 
@@ -1530,7 +1530,7 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 			t->priv.regs[0x14] &= 0xd0;
 			t->priv.regs[0x15] &= 0x10;
 
-			ret = _r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
+			ret = r850_write_regs(t, 0x14, &t->priv.regs[0x14], 2);
 			if (ret)
 				return ret;
 		}
@@ -1542,7 +1542,7 @@ static int _r850_calibrate_imr(struct r850_tuner *t)
 	return 0;
 }
 
-static int _r850_calibrate_lpf(struct r850_tuner *t,
+static int r850_calibrate_lpf(struct r850_tuner *t,
 			       u32 if_freq, u8 bw,
 			       u8 gap, struct r850_lpf_params *lpf)
 {
@@ -1550,7 +1550,7 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 	u8 val, val2, val3;
 	u8 bandwidth;
 
-	ret = _r850_set_pll(t,
+	ret = r850_set_pll(t,
 			    72000 - if_freq, if_freq,
 			    R850_SYSTEM_UNDEFINED);
 	if (ret)
@@ -1559,13 +1559,13 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 	for (i = 5; i < 16; i++) {
 		t->priv.regs[0x29] &= 0x0f;
 		t->priv.regs[0x29] |= ((i << 4) & 0xf0);
-		ret = _r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
+		ret = r850_write_regs(t, 0x29, &t->priv.regs[0x29], 1);
 		if (ret)
 			return ret;
 
 		mdelay(5);
 
-		ret = _r850_read_adc_value(t, &val);
+		ret = r850_read_adc_value(t, &val);
 		if (ret)
 			return ret;
 
@@ -1574,18 +1574,18 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 	}
 
 	if (if_freq > 9999) {
-		ret = _r850_set_pll(t, 63500, 8500, R850_SYSTEM_UNDEFINED);
+		ret = r850_set_pll(t, 63500, 8500, R850_SYSTEM_UNDEFINED);
 		if (ret)
 			return ret;
 
 		mdelay(5);
 
-		ret = _r850_read_adc_value(t, &val3);
+		ret = r850_read_adc_value(t, &val3);
 		if (ret)
 			return ret;
 
 		if (val3 <= (val + 8)) {
-			ret = _r850_set_pll(t,
+			ret = r850_set_pll(t,
 					    72000 - if_freq, if_freq,
 					    R850_SYSTEM_UNDEFINED);
 			if (ret)
@@ -1602,25 +1602,25 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 		t->priv.regs[0x17] &= 0x9f;
 		t->priv.regs[0x17] &= 0xe1;
 		t->priv.regs[0x17] |= ((bandwidth << 5) & 0x60);
-		ret = _r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
+		ret = r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
 		if (ret)
 			return ret;
 
 		mdelay(5);
 
-		ret = _r850_read_adc_value(t, &val);
+		ret = r850_read_adc_value(t, &val);
 		if (ret)
 			return ret;
 
 		t->priv.regs[0x17] &= 0xe1;
 		t->priv.regs[0x17] |= 0x1a;
-		ret = _r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
+		ret = r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
 		if (ret)
 			return ret;
 
 		mdelay(5);
 
-		ret = _r850_read_adc_value(t, &val2);
+		ret = r850_read_adc_value(t, &val2);
 		if (ret)
 			return ret;
 
@@ -1634,13 +1634,13 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 	for (i = 0; i < 16; i++) {
 		t->priv.regs[0x17] &= 0xe1;
 		t->priv.regs[0x17] |= ((i << 1) & 0x1e);
-		ret = _r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
+		ret = r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
 		if (ret)
 			return ret;
 
 		mdelay(5);
 
-		ret = _r850_read_adc_value(t, &val2);
+		ret = r850_read_adc_value(t, &val2);
 		if (ret)
 			return ret;
 
@@ -1657,13 +1657,13 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 
 			t->priv.regs[0x17] &= 0xe0;
 			t->priv.regs[0x17] |= 1 | (((i - 1) << 1) & 0x1e);
-			ret = _r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
+			ret = r850_write_regs(t, 0x17, &t->priv.regs[0x17], 1);
 			if (ret)
 				return ret;
 
 			mdelay(5);
 
-			ret = _r850_read_adc_value(t, &val2);
+			ret = r850_read_adc_value(t, &val2);
 			if (ret)
 				return ret;
 
@@ -1681,7 +1681,7 @@ static int _r850_calibrate_lpf(struct r850_tuner *t,
 	return 0;
 }
 
-static int _r850_set_system_params(struct r850_tuner *t)
+static int r850_set_system_params(struct r850_tuner *t)
 {
 	int ret = 0;
 
@@ -1691,11 +1691,11 @@ static int _r850_set_system_params(struct r850_tuner *t)
 	if (!t->config.no_imr_calibration &&
 	    (!t->priv.imr_cal[t->priv.mixer_mode].done ||
 	     t->priv.imr_cal[t->priv.mixer_mode].mixer_amp_lpf != t->priv.mixer_amp_lpf_imr_cal)) {
-		ret = _r850_prepare_calibration(t, R850_CALIBRATION_IMR);
+		ret = r850_prepare_calibration(t, R850_CALIBRATION_IMR);
 		if (ret)
 			return ret;
 
-		ret = _r850_calibrate_imr(t);
+		ret = r850_calibrate_imr(t);
 		if (ret)
 			return ret;
 	}
@@ -1721,12 +1721,12 @@ static int _r850_set_system_params(struct r850_tuner *t)
 			return -EINVAL;
 
 		if (!t->config.no_lpf_calibration) {
-			ret = _r850_prepare_calibration(t,
+			ret = r850_prepare_calibration(t,
 							R850_CALIBRATION_LPF);
 			if (ret)
 				return ret;
 
-			ret = _r850_calibrate_lpf(t,
+			ret = r850_calibrate_lpf(t,
 						  prm->filt_cal_if, prm->bw,
 						  2, &lpf);
 			if (ret)
@@ -1735,7 +1735,7 @@ static int _r850_set_system_params(struct r850_tuner *t)
 			lpf = prm->lpf;
 		}
 
-		_r850_init_regs(t);
+		r850_init_regs(t);
 
 		t->priv.regs[0x17] = 0x00;
 		t->priv.regs[0x17] |= (lpf.lsb & 0x01);
@@ -1764,7 +1764,7 @@ static int _r850_set_system_params(struct r850_tuner *t)
 		t->priv.regs[0x2e] |= ((prm->img_gain << 4) & 0x10);
 
 #if 0
-		ret = _r850_write_regs(t, 0x08,
+		ret = r850_write_regs(t, 0x08,
 				       &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 		if (ret)
 			return ret;
@@ -1776,7 +1776,7 @@ static int _r850_set_system_params(struct r850_tuner *t)
 	return 0;
 }
 
-static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
+static int r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 {
 	int ret = 0, i;
 	const struct r850_system_frequency_params *prm_p = NULL;
@@ -1978,21 +1978,21 @@ static int _r850_set_system_frequency(struct r850_tuner *t, u32 rf_freq)
 	else
 		t->priv.regs[0x22] |= 0x04;
 
-	ret = _r850_set_mux(t, rf_freq, lo_freq, t->priv.sys_curr.system);
+	ret = r850_set_mux(t, rf_freq, lo_freq, t->priv.sys_curr.system);
 	if (ret)
 		return ret;
 
-	return _r850_set_pll(t,
+	return r850_set_pll(t,
 			     lo_freq, t->priv.sys_curr.if_freq,
 			     t->priv.sys_curr.system);
 }
 
-static int _r850_check_xtal_power(struct r850_tuner *t)
+static int r850_check_xtal_power(struct r850_tuner *t)
 {
 	int ret = 0, i;
 	u8 bank = 55, pwr = 3;		/* xtal: 24MHz */
 
-	_r850_init_regs(t);
+	r850_init_regs(t);
 
 	t->priv.regs[0x2f] &= (t->priv.chip) ? 0xfd : 0xfc;
 
@@ -2016,7 +2016,7 @@ static int _r850_check_xtal_power(struct r850_tuner *t)
 
 	t->priv.regs[0x1f] &= 0xbf;
 
-	ret = _r850_write_regs(t, 0x08,
+	ret = r850_write_regs(t, 0x08,
 			       &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 	if (ret)
 		return ret;
@@ -2027,11 +2027,11 @@ static int _r850_check_xtal_power(struct r850_tuner *t)
 		t->priv.regs[0x22] &= 0xcf;
 		t->priv.regs[0x22] |= (i << 4);
 
-		ret = _r850_write_regs(t, 0x22, &t->priv.regs[0x22], 1);
+		ret = r850_write_regs(t, 0x22, &t->priv.regs[0x22], 1);
 		if (ret)
 			break;
 
-		ret = _r850_read_regs(t, 0x02, &tmp, 1);
+		ret = r850_read_regs(t, 0x02, &tmp, 1);
 		if (ret)
 			break;
 
@@ -2073,10 +2073,10 @@ int r850_init(struct r850_tuner *t)
 	for (i = 0; i < 4; i++) {
 		u8 tmp;
 
-		ret = _r850_read_regs(t, 0x00, &tmp, 1);
+		ret = r850_read_regs(t, 0x00, &tmp, 1);
 		if (ret) {
 			dev_err(t->dev,
-				"r850_init: _r850_read_regs(0x00) failed. (ret: %d)\n",
+				"r850_init: r850_read_regs(0x00) failed. (ret: %d)\n",
 				ret);
 			continue;
 		}
@@ -2090,23 +2090,23 @@ int r850_init(struct r850_tuner *t)
 	if (ret)
 		return ret;
 
-	ret = _r850_read_regs(t, 0x08, &regs[0x08], R850_NUM_REGS - 0x08);
+	ret = r850_read_regs(t, 0x08, &regs[0x08], R850_NUM_REGS - 0x08);
 	if (ret) {
 		dev_err(t->dev,
-			"r850_init: _r850_read_regs(0x08-0x2f) failed. (ret: %d)\n",
+			"r850_init: r850_read_regs(0x08-0x2f) failed. (ret: %d)\n",
 			ret);
 		return ret;
 	}
 
-	ret = _r850_check_xtal_power(t);
+	ret = r850_check_xtal_power(t);
 	if (ret)
 		return ret;
 
-	ret = _r850_write_regs(t, 0x08, &regs[0x08], R850_NUM_REGS - 0x08);
+	ret = r850_write_regs(t, 0x08, &regs[0x08], R850_NUM_REGS - 0x08);
 	if (ret)
 		return ret;
 
-	_r850_init_regs(t);
+	r850_init_regs(t);
 
 	t->priv.init = true;
 
@@ -2189,7 +2189,7 @@ int r850_sleep(struct r850_tuner *t)
 		t->priv.regs[0x08] |= 0x40;
 #endif
 
-	ret = _r850_write_regs(t, 0x08,
+	ret = r850_write_regs(t, 0x08,
 			       &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 	if (!ret)
 		t->priv.sleep = true;
@@ -2225,14 +2225,14 @@ int r850_wakeup(struct r850_tuner *t)
 	memcpy(t->priv.regs, wakeup_regs, sizeof(t->priv.regs));
 #endif
 
-	ret = _r850_write_regs(t, 0x08,
+	ret = r850_write_regs(t, 0x08,
 			       &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 	if (ret)
 		goto exit;
 
-	_r850_init_regs(t);
+	r850_init_regs(t);
 
-	ret = _r850_write_regs(t, 0x08,
+	ret = r850_write_regs(t, 0x08,
 			       &t->priv.regs[0x08], R850_NUM_REGS - 0x08);
 	if (!ret)
 		t->priv.sleep = false;
@@ -2302,11 +2302,11 @@ int r850_set_frequency(struct r850_tuner *t, u32 freq)
 
 	mutex_lock(&t->priv.lock);
 
-	ret = _r850_set_system_params(t);
+	ret = r850_set_system_params(t);
 	if (ret)
 		goto exit;
 
-	ret = _r850_set_system_frequency(t, freq);
+	ret = r850_set_system_frequency(t, freq);
 
 exit:
 	mutex_unlock(&t->priv.lock);
@@ -2324,7 +2324,7 @@ int r850_is_pll_locked(struct r850_tuner *t, bool *locked)
 
 	mutex_lock(&t->priv.lock);
 
-	ret = _r850_read_regs(t, 0x02, &tmp, 1);
+	ret = r850_read_regs(t, 0x02, &tmp, 1);
 
 	mutex_unlock(&t->priv.lock);
 

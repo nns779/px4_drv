@@ -194,7 +194,7 @@ int cxd2856er_term(struct cxd2856er_demod *demod)
 	return 0;
 }
 
-static int __cxd2856er_set_ts_clock(struct cxd2856er_demod *demod,
+static int cxd2856er_set_ts_clock(struct cxd2856er_demod *demod,
 				  enum cxd2856er_system system)
 {
 	int ret = 0;
@@ -275,7 +275,7 @@ static int __cxd2856er_set_ts_clock(struct cxd2856er_demod *demod,
 	return 0;
 }
 
-static int __cxd2856er_set_ts_pin_state(struct cxd2856er_demod *demod,
+static int cxd2856er_set_ts_pin_state(struct cxd2856er_demod *demod,
 					bool state)
 {
 	int ret = 0;
@@ -308,7 +308,7 @@ static int __cxd2856er_set_ts_pin_state(struct cxd2856er_demod *demod,
 	return 0;
 }
 
-static int __cxd2856er_sleep_isdbt(struct cxd2856er_demod *demod)
+static int cxd2856er_sleep_isdbt(struct cxd2856er_demod *demod)
 {
 	int ret = 0;
 	u8 data[2];
@@ -325,7 +325,7 @@ static int __cxd2856er_sleep_isdbt(struct cxd2856er_demod *demod)
 	if (ret)
 		return ret;
 
-	ret = __cxd2856er_set_ts_pin_state(demod, false);
+	ret = cxd2856er_set_ts_pin_state(demod, false);
 	if (ret)
 		return ret;
 
@@ -439,7 +439,7 @@ static int __cxd2856er_sleep_isdbt(struct cxd2856er_demod *demod)
 	return 0;
 }
 
-static int __cxd2856er_sleep_isdbs(struct cxd2856er_demod *demod)
+static int cxd2856er_sleep_isdbs(struct cxd2856er_demod *demod)
 {
 	int ret = 0;
 
@@ -455,7 +455,7 @@ static int __cxd2856er_sleep_isdbs(struct cxd2856er_demod *demod)
 	if (ret)
 		return ret;
 
-	ret = __cxd2856er_set_ts_pin_state(demod, false);
+	ret = cxd2856er_set_ts_pin_state(demod, false);
 	if (ret)
 		return ret;
 
@@ -521,11 +521,11 @@ int cxd2856er_sleep(struct cxd2856er_demod *demod)
 
 	switch (demod->system) {
 	case CXD2856ER_ISDB_T_SYSTEM:
-		__cxd2856er_sleep_isdbt(demod);
+		cxd2856er_sleep_isdbt(demod);
 		break;
 
 	case CXD2856ER_ISDB_S_SYSTEM:
-		__cxd2856er_sleep_isdbs(demod);
+		cxd2856er_sleep_isdbs(demod);
 		break;
 
 	default:
@@ -538,7 +538,7 @@ int cxd2856er_sleep(struct cxd2856er_demod *demod)
 	return 0;
 }
 
-static int __cxd2856er_set_bandwidth_isdbt(struct cxd2856er_demod *demod,
+static int cxd2856er_set_bandwidth_isdbt(struct cxd2856er_demod *demod,
 					 u32 bandwidth)
 {
 	int ret = 0;
@@ -624,13 +624,13 @@ static int __cxd2856er_set_bandwidth_isdbt(struct cxd2856er_demod *demod,
 	return ret;
 }
 
-static int __cxd2856er_wakeup_isdbt(struct cxd2856er_demod *demod,
+static int cxd2856er_wakeup_isdbt(struct cxd2856er_demod *demod,
 				  union cxd2856er_system_params *params)
 {
 	int ret = 0;
 	u8 data[3];
 
-	ret = __cxd2856er_set_ts_clock(demod, CXD2856ER_ISDB_T_SYSTEM);
+	ret = cxd2856er_set_ts_clock(demod, CXD2856ER_ISDB_T_SYSTEM);
 	if (ret)
 		return ret;
 
@@ -787,7 +787,7 @@ static int __cxd2856er_wakeup_isdbt(struct cxd2856er_demod *demod,
 	if (ret)
 		return ret;
 
-	ret = __cxd2856er_set_bandwidth_isdbt(demod, params->bandwidth);
+	ret = cxd2856er_set_bandwidth_isdbt(demod, params->bandwidth);
 	if (ret)
 		return ret;
 
@@ -799,19 +799,19 @@ static int __cxd2856er_wakeup_isdbt(struct cxd2856er_demod *demod,
 	if (ret)
 		return ret;
 
-	ret = __cxd2856er_set_ts_pin_state(demod, true);
+	ret = cxd2856er_set_ts_pin_state(demod, true);
 	if (ret)
 		return ret;
 
 	return 0;
 }
 
-static int __cxd2856er_wakeup_isdbs(struct cxd2856er_demod *demod)
+static int cxd2856er_wakeup_isdbs(struct cxd2856er_demod *demod)
 {
 	int ret = 0;
 	u8 data[3];
 
-	ret = __cxd2856er_set_ts_clock(demod, CXD2856ER_ISDB_S_SYSTEM);
+	ret = cxd2856er_set_ts_clock(demod, CXD2856ER_ISDB_S_SYSTEM);
 	if (ret)
 		return ret;
 
@@ -898,14 +898,14 @@ static int __cxd2856er_wakeup_isdbs(struct cxd2856er_demod *demod)
 	if (ret)
 		return ret;
 
-	ret = __cxd2856er_set_ts_pin_state(demod, true);
+	ret = cxd2856er_set_ts_pin_state(demod, true);
 	if (ret)
 		return ret;
 
 	return 0;
 }
 
-static int __cxd2856er_reset_isdbt(struct cxd2856er_demod *demod,
+static int cxd2856er_reset_isdbt(struct cxd2856er_demod *demod,
 				 union cxd2856er_system_params *params)
 {
 	int ret = 0;
@@ -918,14 +918,14 @@ static int __cxd2856er_reset_isdbt(struct cxd2856er_demod *demod,
 	if (ret)
 		return ret;
 
-	ret = __cxd2856er_set_bandwidth_isdbt(demod, params->bandwidth);
+	ret = cxd2856er_set_bandwidth_isdbt(demod, params->bandwidth);
 	if (ret)
 		return ret;
 
 	return 0;
 }
 
-static int __cxd2856er_reset_isdbs(struct cxd2856er_demod *demod)
+static int cxd2856er_reset_isdbs(struct cxd2856er_demod *demod)
 {
 	int ret = 0;
 
@@ -950,11 +950,11 @@ int cxd2856er_wakeup(struct cxd2856er_demod *demod,
 		if (demod->system == system) {
 			switch (system) {
 			case CXD2856ER_ISDB_T_SYSTEM:
-				ret = __cxd2856er_reset_isdbt(demod, params);
+				ret = cxd2856er_reset_isdbt(demod, params);
 				break;
 
 			case CXD2856ER_ISDB_S_SYSTEM:
-				ret = __cxd2856er_reset_isdbs(demod);
+				ret = cxd2856er_reset_isdbs(demod);
 				break;
 
 			default:
@@ -970,11 +970,11 @@ int cxd2856er_wakeup(struct cxd2856er_demod *demod,
 
 	switch (system) {
 	case CXD2856ER_ISDB_T_SYSTEM:
-		ret = __cxd2856er_wakeup_isdbt(demod, params);
+		ret = cxd2856er_wakeup_isdbt(demod, params);
 		break;
 
 	case CXD2856ER_ISDB_S_SYSTEM:
-		ret = __cxd2856er_wakeup_isdbs(demod);
+		ret = cxd2856er_wakeup_isdbs(demod);
 		break;
 
 	default:

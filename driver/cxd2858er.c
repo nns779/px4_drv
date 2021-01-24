@@ -10,10 +10,10 @@
 
 #include <linux/delay.h>
 
-static int __cxd2858er_stop_t(struct cxd2858er_tuner *tuner);
-static int __cxd2858er_stop_s(struct cxd2858er_tuner *tuner);
+static int cxd2858er_stop_t(struct cxd2858er_tuner *tuner);
+static int cxd2858er_stop_s(struct cxd2858er_tuner *tuner);
 
-static int __cxd2858er_read_regs(struct cxd2858er_tuner *tuner,
+static int cxd2858er_read_regs(struct cxd2858er_tuner *tuner,
 			u8 reg, u8 *buf, int len)
 {
 	u8 b;
@@ -37,13 +37,13 @@ static int __cxd2858er_read_regs(struct cxd2858er_tuner *tuner,
 	return i2c_comm_master_request(tuner->i2c, req, 2);
 }
 
-static int __cxd2858er_read_reg(struct cxd2858er_tuner *tuner,
+static int cxd2858er_read_reg(struct cxd2858er_tuner *tuner,
 				     u8 reg, u8 *val)
 {
-	return __cxd2858er_read_regs(tuner, reg, val, 1);
+	return cxd2858er_read_regs(tuner, reg, val, 1);
 }
 
-static int __cxd2858er_write_regs(struct cxd2858er_tuner *tuner,
+static int cxd2858er_write_regs(struct cxd2858er_tuner *tuner,
 			 u8 reg, u8 *buf, int len)
 {
 	u8 b[255];
@@ -63,13 +63,13 @@ static int __cxd2858er_write_regs(struct cxd2858er_tuner *tuner,
 	return i2c_comm_master_request(tuner->i2c, req, 1);
 }
 
-static int __cxd2858er_write_reg(struct cxd2858er_tuner *tuner,
+static int cxd2858er_write_reg(struct cxd2858er_tuner *tuner,
 				      u8 reg, u8 val)
 {
-	return __cxd2858er_write_regs(tuner, reg, &val, 1);
+	return cxd2858er_write_regs(tuner, reg, &val, 1);
 }
 
-static int __cxd2858er_write_reg_mask(struct cxd2858er_tuner *tuner,
+static int cxd2858er_write_reg_mask(struct cxd2858er_tuner *tuner,
 			     u8 reg, u8 val, u8 mask)
 {
 	int ret = 0;
@@ -79,7 +79,7 @@ static int __cxd2858er_write_reg_mask(struct cxd2858er_tuner *tuner,
 		return -EINVAL;
 
 	if (mask != 0xff) {
-		ret = __cxd2858er_read_regs(tuner, reg, &tmp, 1);
+		ret = cxd2858er_read_regs(tuner, reg, &tmp, 1);
 		if (ret)
 			return ret;
 
@@ -89,24 +89,24 @@ static int __cxd2858er_write_reg_mask(struct cxd2858er_tuner *tuner,
 		tmp = val;
 	}
 
-	return __cxd2858er_write_regs(tuner, reg, &tmp, 1);
+	return cxd2858er_write_regs(tuner, reg, &tmp, 1);
 }
 
-static int __cxd2858er_power_on(struct cxd2858er_tuner *tuner)
+static int cxd2858er_power_on(struct cxd2858er_tuner *tuner)
 {
 	int ret = 0;
 	u8 data[20], tmp;
 
 	/* T mode */
-	ret = __cxd2858er_write_reg(tuner, 0x01, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x01, 0x00);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x67, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x67, 0x00);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x43, 0x07);
+	ret = cxd2858er_write_reg(tuner, 0x43, 0x07);
 	if (ret)
 		return ret;
 
@@ -114,18 +114,18 @@ static int __cxd2858er_power_on(struct cxd2858er_tuner *tuner)
 	data[1] = 0x00;
 	data[2] = 0x00;
 
-	ret = __cxd2858er_write_regs(tuner, 0x5e, data, 3);
+	ret = cxd2858er_write_regs(tuner, 0x5e, data, 3);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x0c, 0x14);
+	ret = cxd2858er_write_reg(tuner, 0x0c, 0x14);
 	if (ret)
 		return ret;
 
 	data[0] = 0x7a;
 	data[1] = 0x01;
 
-	ret = __cxd2858er_write_regs(tuner, 0x99, data, 2);
+	ret = cxd2858er_write_regs(tuner, 0x99, data, 2);
 	if (ret)
 		return ret;
 
@@ -162,17 +162,17 @@ static int __cxd2858er_power_on(struct cxd2858er_tuner *tuner)
 	data[18] = 0x0a;
 	data[19] = 0x00;
 
-	ret = __cxd2858er_write_regs(tuner, 0x81, data, 20);
+	ret = cxd2858er_write_regs(tuner, 0x81, data, 20);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x9b, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x9b, 0x00);
 	if (ret)
 		return ret;
 
 	msleep(10);
 
-	ret = __cxd2858er_read_reg(tuner, 0x1a, &tmp);
+	ret = cxd2858er_read_reg(tuner, 0x1a, &tmp);
 	if (ret)
 		return ret;
 
@@ -182,40 +182,40 @@ static int __cxd2858er_power_on(struct cxd2858er_tuner *tuner)
 	data[0] = 0x90;
 	data[1] = 0x06;
 
-	ret = __cxd2858er_write_regs(tuner, 0x17, data, 2);
+	ret = cxd2858er_write_regs(tuner, 0x17, data, 2);
 	if (ret)
 		return ret;
 
 	msleep(1);
 
-	ret = __cxd2858er_read_reg(tuner, 0x19, &tmp);
+	ret = cxd2858er_read_reg(tuner, 0x19, &tmp);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x95, (tmp & 0xf0) >> 4);
+	ret = cxd2858er_write_reg(tuner, 0x95, (tmp & 0xf0) >> 4);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x74, 0x02);
+	ret = cxd2858er_write_reg(tuner, 0x74, 0x02);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x88, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x88, 0x00);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x87, 0xc0);
+	ret = cxd2858er_write_reg(tuner, 0x87, 0xc0);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x80, 0x01);
+	ret = cxd2858er_write_reg(tuner, 0x80, 0x01);
 	if (ret)
 		return ret;
 
 	data[0] = 0x07;
 	data[1] = 0x00;
 
-	ret = __cxd2858er_write_regs(tuner, 0x41, data, 2);
+	ret = cxd2858er_write_regs(tuner, 0x41, data, 2);
 	if (ret)
 		return ret;
 
@@ -238,7 +238,7 @@ int cxd2858er_init(struct cxd2858er_tuner *tuner)
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_power_on(tuner);
+	ret = cxd2858er_power_on(tuner);
 
 	i2c_comm_master_gate_ctrl(tuner->i2c, false);
 
@@ -256,11 +256,11 @@ int cxd2858er_term(struct cxd2858er_tuner *tuner)
 	if (!ret) {
 		switch (tuner->system) {
 		case CXD2858ER_ISDB_T_SYSTEM:
-			__cxd2858er_stop_t(tuner);
+			cxd2858er_stop_t(tuner);
 			break;
 
 		case CXD2858ER_ISDB_S_SYSTEM:
-			__cxd2858er_stop_s(tuner);
+			cxd2858er_stop_s(tuner);
 			break;
 
 		default:
@@ -291,7 +291,7 @@ int cxd2858er_set_params_t(struct cxd2858er_tuner *tuner,
 
 	switch (tuner->system) {
 	case CXD2858ER_ISDB_S_SYSTEM:
-		ret = __cxd2858er_stop_s(tuner);
+		ret = cxd2858er_stop_s(tuner);
 		break;
 
 	default:
@@ -302,32 +302,32 @@ int cxd2858er_set_params_t(struct cxd2858er_tuner *tuner,
 		goto exit;
 
 	/* T mode */
-	ret = __cxd2858er_write_reg(tuner, 0x01, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x01, 0x00);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x74, 0x02);
+	ret = cxd2858er_write_reg(tuner, 0x74, 0x02);
 	if (ret)
 		goto exit;
 
 	data[0] = 0xc4;
 	data[1] = 0x40;
 
-	ret = __cxd2858er_write_regs(tuner, 0x87, data, 2);
+	ret = cxd2858er_write_regs(tuner, 0x87, data, 2);
 	if (ret)
 		goto exit;
 
 	data[0] = 0x10;
 	data[1] = 0x20;
 
-	ret = __cxd2858er_write_regs(tuner, 0x91, data, 2);
+	ret = cxd2858er_write_regs(tuner, 0x91, data, 2);
 	if (ret)
 		goto exit;
 
 	data[0] = 0x00;
 	data[1] = 0x00;
 
-	ret = __cxd2858er_write_regs(tuner, 0x9c, data, 2);
+	ret = cxd2858er_write_regs(tuner, 0x9c, data, 2);
 	if (ret)
 		goto exit;
 
@@ -355,11 +355,11 @@ int cxd2858er_set_params_t(struct cxd2858er_tuner *tuner,
 	data[7] = 0x08;
 	data[8] = 0x30;
 
-	ret = __cxd2858er_write_regs(tuner, 0x5e, data, 9);
+	ret = cxd2858er_write_regs(tuner, 0x5e, data, 9);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg_mask(tuner, 0x67, 0x00, 0x02);
+	ret = cxd2858er_write_reg_mask(tuner, 0x67, 0x00, 0x02);
 	if (ret)
 		goto exit;
 
@@ -383,17 +383,17 @@ int cxd2858er_set_params_t(struct cxd2858er_tuner *tuner,
 	data[15] = 0x24;
 	data[16] = 0x87;
 
-	ret = __cxd2858er_write_regs(tuner, 0x68, data, 17);
+	ret = cxd2858er_write_regs(tuner, 0x68, data, 17);
 	if (ret)
 		goto exit;
 
 	msleep(50);
 
-	ret = __cxd2858er_write_reg(tuner, 0x88, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x88, 0x00);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x87, 0xc0);
+	ret = cxd2858er_write_reg(tuner, 0x87, 0xc0);
 	if (ret)
 		goto exit;
 
@@ -420,7 +420,7 @@ int cxd2858er_set_params_s(struct cxd2858er_tuner *tuner,
 
 	switch (tuner->system) {
 	case CXD2858ER_ISDB_T_SYSTEM:
-		ret = __cxd2858er_stop_t(tuner);
+		ret = cxd2858er_stop_t(tuner);
 		break;
 
 	default:
@@ -430,35 +430,35 @@ int cxd2858er_set_params_s(struct cxd2858er_tuner *tuner,
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x15, 0x02);
+	ret = cxd2858er_write_reg(tuner, 0x15, 0x02);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x43, 0x06);
+	ret = cxd2858er_write_reg(tuner, 0x43, 0x06);
 	if (ret)
 		goto exit;
 
 	data[0] = 0x00;
 	data[1] = 0x00;
 
-	ret = __cxd2858er_write_regs(tuner, 0x6a, data, 2);
+	ret = cxd2858er_write_regs(tuner, 0x6a, data, 2);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x75, 0x99);
+	ret = cxd2858er_write_reg(tuner, 0x75, 0x99);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x9d, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x9d, 0x00);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x61, 0x07);
+	ret = cxd2858er_write_reg(tuner, 0x61, 0x07);
 	if (ret)
 		goto exit;
 
 	/* S mode */
-	ret = __cxd2858er_write_reg(tuner, 0x01, 0x01);
+	ret = cxd2858er_write_reg(tuner, 0x01, 0x01);
 	if (ret)
 		goto exit;
 
@@ -508,17 +508,17 @@ int cxd2858er_set_params_s(struct cxd2858er_tuner *tuner,
 	data[16] = 0x00;
 	data[17] = 0x01;
 
-	ret = __cxd2858er_write_regs(tuner, 0x04, data, 18);
+	ret = cxd2858er_write_regs(tuner, 0x04, data, 18);
 	if (ret)
 		goto exit;
 
 	msleep(10);
 
-	ret = __cxd2858er_write_reg(tuner, 0x05, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x05, 0x00);
 	if (ret)
 		goto exit;
 
-	ret = __cxd2858er_write_reg(tuner, 0x04, 0xc0);
+	ret = cxd2858er_write_reg(tuner, 0x04, 0xc0);
 	if (ret)
 		goto exit;
 
@@ -529,7 +529,7 @@ exit:
 	return ret;
 }
 
-static int __cxd2858er_stop_t(struct cxd2858er_tuner *tuner)
+static int cxd2858er_stop_t(struct cxd2858er_tuner *tuner)
 {
 	int ret = 0;
 	u8 data[3];
@@ -537,11 +537,11 @@ static int __cxd2858er_stop_t(struct cxd2858er_tuner *tuner)
 	if (tuner->system != CXD2858ER_ISDB_T_SYSTEM)
 		return -EINVAL;
 
-	ret = __cxd2858er_write_reg(tuner, 0x74, 0x02);
+	ret = cxd2858er_write_reg(tuner, 0x74, 0x02);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg_mask(tuner, 0x67, 0x00, 0xfe);
+	ret = cxd2858er_write_reg_mask(tuner, 0x67, 0x00, 0xfe);
 	if (ret)
 		return ret;
 
@@ -549,15 +549,15 @@ static int __cxd2858er_stop_t(struct cxd2858er_tuner *tuner)
 	data[1] = 0x00;
 	data[2] = 0x00;
 
-	ret = __cxd2858er_write_regs(tuner, 0x5e, data, 3);
+	ret = cxd2858er_write_regs(tuner, 0x5e, data, 3);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x88, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x88, 0x00);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x87, 0xc0);
+	ret = cxd2858er_write_reg(tuner, 0x87, 0xc0);
 	if (ret)
 		return ret;
 
@@ -565,7 +565,7 @@ static int __cxd2858er_stop_t(struct cxd2858er_tuner *tuner)
 	return 0;
 }
 
-static int __cxd2858er_stop_s(struct cxd2858er_tuner *tuner)
+static int cxd2858er_stop_s(struct cxd2858er_tuner *tuner)
 {
 	int ret = 0;
 	u8 data[3];
@@ -573,11 +573,11 @@ static int __cxd2858er_stop_s(struct cxd2858er_tuner *tuner)
 	if (tuner->system != CXD2858ER_ISDB_S_SYSTEM)
 		return -EINVAL;
 
-	ret = __cxd2858er_write_reg(tuner, 0x15, 0x02);
+	ret = cxd2858er_write_reg(tuner, 0x15, 0x02);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x43, 0x07);
+	ret = cxd2858er_write_reg(tuner, 0x43, 0x07);
 	if (ret)
 		return ret;
 
@@ -585,19 +585,19 @@ static int __cxd2858er_stop_s(struct cxd2858er_tuner *tuner)
 	data[1] = 0x00;
 	data[2] = 0x00;
 
-	ret = __cxd2858er_write_regs(tuner, 0x0c, data, 3);
+	ret = cxd2858er_write_regs(tuner, 0x0c, data, 3);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x01, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x01, 0x00);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x05, 0x00);
+	ret = cxd2858er_write_reg(tuner, 0x05, 0x00);
 	if (ret)
 		return ret;
 
-	ret = __cxd2858er_write_reg(tuner, 0x04, 0xc0);
+	ret = cxd2858er_write_reg(tuner, 0x04, 0xc0);
 	if (ret)
 		return ret;
 
@@ -618,11 +618,11 @@ int cxd2858er_stop(struct cxd2858er_tuner *tuner)
 
 	switch (tuner->system) {
 	case CXD2858ER_ISDB_T_SYSTEM:
-		__cxd2858er_stop_t(tuner);
+		cxd2858er_stop_t(tuner);
 		break;
 
 	case CXD2858ER_ISDB_S_SYSTEM:
-		__cxd2858er_stop_s(tuner);
+		cxd2858er_stop_s(tuner);
 		break;
 
 	default:

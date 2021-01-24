@@ -15,7 +15,7 @@
 #include <linux/slab.h>
 #endif
 
-static int _tc90522_read_regs(struct tc90522_demod *demod,
+static int tc90522_read_regs_nolock(struct tc90522_demod *demod,
 			      u8 reg,
 			      u8 *buf, u8 len)
 {
@@ -41,15 +41,15 @@ static int _tc90522_read_regs(struct tc90522_demod *demod,
 	ret = i2c_comm_master_request(demod->i2c, req, 2);
 	if (ret)
 		dev_err(demod->dev,
-			"_tc90522_read_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u)\n",
+			"tc90522_read_regs_nolock: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u)\n",
 			demod->i2c_addr, reg, len);
 
 	return ret;
 }
 
-static int _tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val)
+static int tc90522_read_reg_nolock(struct tc90522_demod *demod, u8 reg, u8 *val)
 {
-	return _tc90522_read_regs(demod, reg, val, 1);
+	return tc90522_read_regs_nolock(demod, reg, val, 1);
 }
 
 int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
@@ -58,7 +58,7 @@ int tc90522_read_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
 
 	mutex_lock(&demod->priv.lock);
 
-	ret = _tc90522_read_regs(demod, reg, buf, len);
+	ret = tc90522_read_regs_nolock(demod, reg, buf, len);
 
 	mutex_unlock(&demod->priv.lock);
 
@@ -71,7 +71,7 @@ int tc90522_read_reg(struct tc90522_demod *demod, u8 reg, u8 *val)
 
 	mutex_lock(&demod->priv.lock);
 
-	ret = _tc90522_read_regs(demod, reg, val, 1);
+	ret = tc90522_read_regs_nolock(demod, reg, val, 1);
 
 	mutex_unlock(&demod->priv.lock);
 
@@ -89,7 +89,7 @@ int tc90522_read_multiple_regs(struct tc90522_demod *demod,
 	mutex_lock(&demod->priv.lock);
 
 	for (i = 0; i < num; i++) {
-		ret = _tc90522_read_regs(demod,
+		ret = tc90522_read_regs_nolock(demod,
 					 regbuf[i].reg,
 					 regbuf[i].buf, regbuf[i].u.len);
 		if (ret)
@@ -101,7 +101,7 @@ int tc90522_read_multiple_regs(struct tc90522_demod *demod,
 	return ret;
 }
 
-static int _tc90522_write_regs(struct tc90522_demod *demod,
+static int tc90522_write_regs_nolock(struct tc90522_demod *demod,
 			       u8 reg,
 			       u8 *buf, u8 len)
 {
@@ -113,7 +113,7 @@ static int _tc90522_write_regs(struct tc90522_demod *demod,
 		return -EINVAL;
 	} else if (len > 254) {
 		dev_dbg(demod->dev,
-			"_tc90522_write_regs: Buffer too large. (addr: 0x%x, reg: %u, len: 0x%x)\n",
+			"tc90522_write_regs_nolock: Buffer too large. (addr: 0x%x, reg: %u, len: 0x%x)\n",
 			demod->i2c_addr, reg, len);
 		return -EINVAL;
 	}
@@ -129,16 +129,16 @@ static int _tc90522_write_regs(struct tc90522_demod *demod,
 	ret = i2c_comm_master_request(demod->i2c, req, 1);
 	if (ret)
 		dev_err(demod->dev,
-			"_tc90522_write_regs: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u, ret: %d)\n",
+			"tc90522_write_regs_nolock: i2c_comm_master_request() failed. (addr: 0x%x, reg: 0x%x, len: %u, ret: %d)\n",
 			demod->i2c_addr, reg, len, ret);
 
 	return ret;
 }
 
 #if 0
-static int _tc90522_write_reg(struct tc90522_demod *demod, u8 reg, u8 val)
+static int tc90522_write_reg_nolock(struct tc90522_demod *demod, u8 reg, u8 val)
 {
-	return _tc90522_write_regs(demod, reg, &val, 1);
+	return tc90522_write_regs_nolock(demod, reg, &val, 1);
 }
 #endif
 
@@ -148,7 +148,7 @@ int tc90522_write_regs(struct tc90522_demod *demod, u8 reg, u8 *buf, u8 len)
 
 	mutex_lock(&demod->priv.lock);
 
-	ret = _tc90522_write_regs(demod, reg, buf, len);
+	ret = tc90522_write_regs_nolock(demod, reg, buf, len);
 
 	mutex_unlock(&demod->priv.lock);
 
@@ -161,7 +161,7 @@ int tc90522_write_reg(struct tc90522_demod *demod, u8 reg, u8 val)
 
 	mutex_lock(&demod->priv.lock);
 
-	ret = _tc90522_write_regs(demod, reg, &val, 1);
+	ret = tc90522_write_regs_nolock(demod, reg, &val, 1);
 
 	mutex_unlock(&demod->priv.lock);
 
@@ -180,12 +180,12 @@ int tc90522_write_multiple_regs(struct tc90522_demod *demod,
 
 	for (i = 0; i < num; i++) {
 		if (regbuf[i].buf)
-			ret = _tc90522_write_regs(demod,
+			ret = tc90522_write_regs_nolock(demod,
 						  regbuf[i].reg,
 						  regbuf[i].buf,
 						  regbuf[i].u.len);
 		else
-			ret = _tc90522_write_regs(demod,
+			ret = tc90522_write_regs_nolock(demod,
 						  regbuf[i].reg,
 						  &regbuf[i].u.val,
 						  1);
@@ -556,11 +556,11 @@ int tc90522_is_signal_locked_t(struct tc90522_demod *demod, bool *lock)
 
 	mutex_lock(&demod->priv.lock);
 
-	ret = _tc90522_read_reg(demod, 0x80, &b);
+	ret = tc90522_read_reg_nolock(demod, 0x80, &b);
 	if (ret || (b & 0x28))
 		goto exit;
 
-	ret = _tc90522_read_reg(demod, 0xb0, &b);
+	ret = tc90522_read_reg_nolock(demod, 0xb0, &b);
 	if (ret || (b & 0x0f) < 8)
 		goto exit;
 

@@ -15,7 +15,7 @@
 static LIST_HEAD(px4_mldev_list);
 static DEFINE_MUTEX(px4_mldev_glock);
 
-static unsigned int __px4_mldev_get_power_count(struct px4_mldev *mldev);
+static unsigned int px4_mldev_get_power_count(struct px4_mldev *mldev);
 
 bool px4_mldev_search(unsigned long long serial_number,
 		      struct px4_mldev **mldev)
@@ -113,7 +113,7 @@ int px4_mldev_add(struct px4_mldev *mldev, struct px4_device *px4)
 		goto exit;
 	}
 
-	if (__px4_mldev_get_power_count(mldev))
+	if (px4_mldev_get_power_count(mldev))
 		ret = mldev->backend_set_power(px4, true);
 
 	if (ret)
@@ -146,7 +146,7 @@ int px4_mldev_remove(struct px4_mldev *mldev, struct px4_device *px4)
 		return -EINVAL;
 	}
 
-	if (__px4_mldev_get_power_count(mldev))
+	if (px4_mldev_get_power_count(mldev))
 		mldev->backend_set_power(px4, false);
 
 	mldev->dev[dev_id] = NULL;
@@ -159,7 +159,7 @@ int px4_mldev_remove(struct px4_mldev *mldev, struct px4_device *px4)
 	return 0;
 }
 
-static unsigned int __px4_mldev_get_power_count(struct px4_mldev *mldev)
+static unsigned int px4_mldev_get_power_count(struct px4_mldev *mldev)
 {
 	return (!!mldev->power_state[0]) + (!!mldev->power_state[1]);
 }
@@ -194,7 +194,7 @@ int px4_mldev_set_power(struct px4_mldev *mldev, struct px4_device *px4,
 	if (!state)
 		mldev->power_state[dev_id] = false;
 
-	if (!__px4_mldev_get_power_count(mldev)) {
+	if (!px4_mldev_get_power_count(mldev)) {
 		for (i = 0; i < 2; i++) {
 			if (!mldev->dev[i])
 				continue;

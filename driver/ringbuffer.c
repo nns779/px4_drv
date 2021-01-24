@@ -11,7 +11,7 @@
 #include <linux/sched.h>
 #include <linux/uaccess.h>
 
-static void __ringbuffer_free(struct ringbuffer *ringbuf);
+static void ringbuffer_free_nolock(struct ringbuffer *ringbuf);
 static void ringbuffer_lock(struct ringbuffer *ringbuf);
 
 int ringbuffer_create(struct ringbuffer **ringbuf)
@@ -42,13 +42,13 @@ int ringbuffer_destroy(struct ringbuffer *ringbuf)
 	ringbuffer_stop(ringbuf);
 
 	ringbuffer_lock(ringbuf);
-	__ringbuffer_free(ringbuf);
+	ringbuffer_free_nolock(ringbuf);
 	kfree(ringbuf);
 
 	return 0;
 }
 
-static void __ringbuffer_free(struct ringbuffer *ringbuf)
+static void ringbuffer_free_nolock(struct ringbuffer *ringbuf)
 {
 	if (ringbuf->buf)
 		free_pages((unsigned long)ringbuf->buf,
@@ -60,7 +60,7 @@ static void __ringbuffer_free(struct ringbuffer *ringbuf)
 	return;
 }
 
-static void __ringbuffer_reset(struct ringbuffer *ringbuf)
+static void ringbuffer_reset_nolock(struct ringbuffer *ringbuf)
 {
 	atomic_set(&ringbuf->actual_size, 0);
 	atomic_set(&ringbuf->head, 0);
@@ -98,10 +98,10 @@ int ringbuffer_alloc(struct ringbuffer *ringbuf, size_t size)
 	ringbuffer_lock(ringbuf);
 
 	if (ringbuf->buf && ringbuf->size != size)
-		__ringbuffer_free(ringbuf);
+		ringbuffer_free_nolock(ringbuf);
 
 	ringbuf->size = 0;
-	__ringbuffer_reset(ringbuf);
+	ringbuffer_reset_nolock(ringbuf);
 
 	if (!ringbuf->buf) {
 		ringbuf->buf = (u8 *)__get_free_pages(GFP_KERNEL,
@@ -123,8 +123,8 @@ int ringbuffer_free(struct ringbuffer *ringbuf)
 		return -EBUSY;
 
 	ringbuffer_lock(ringbuf);
-	__ringbuffer_reset(ringbuf);
-	__ringbuffer_free(ringbuf);
+	ringbuffer_reset_nolock(ringbuf);
+	ringbuffer_free_nolock(ringbuf);
 	ringbuffer_unlock(ringbuf);
 
 	return 0;
@@ -136,7 +136,7 @@ int ringbuffer_reset(struct ringbuffer *ringbuf)
 		return -EBUSY;
 
 	ringbuffer_lock(ringbuf);
-	__ringbuffer_reset(ringbuf);
+	ringbuffer_reset_nolock(ringbuf);
 	ringbuffer_unlock(ringbuf);
 
 	return 0;
