@@ -196,7 +196,7 @@ e-better DTV02A-1T1S-Uは、DTV02-1T1S-Uに存在した上記の不具合がハ�
 
 ### デバイスの構成
 
-PX-W3PE4/Q3PE4/MLT5PE/MLT8PEは、電源の供給をPCIeスロットから受け、データのやり取りをUSBを介して行います。  
+PX-W3PE4/Q3PE4/MLT5PE/MLT8PE, e-Better DTV02A-4TS-Pは、電源の供給をPCIeスロットから受け、データのやり取りをUSBを介して行います。  
 PX-W3PE5/Q3PE5は、PX-W3PE4/Q3PE4相当の基板にPCIe→USBブリッジチップを追加し、USBケーブルを不要とした構造となっています。  
 PX-Q3U4/Q3PE4は、PX-W3U4/W3PE4相当のデバイスがUSBハブを介して2つぶら下がる構造となっています。
 
@@ -252,6 +252,14 @@ DTV02-1T1S-U/DTV02A-1T1S-Uは、ISDB-T側のTSシリアル出力をISDB-S側と�
 	- ISDB-T/S Demodulator: Toshiba TC90532XBG
 	- Terrestrial Tuner: RafaelMicro R850
 	- Satellite Tuner: RafaelMicro RT710
+
+DTV02A-4TS-Pは、PX-MLT5PEから1チャンネル分のチューナーを削減した構造となっています。
+
+- DTV02A-4TS-P
+
+	- USB Bridge: ITE IT9305E
+	- ISDB-T/S Demodulator: Sony CXD2856ER (x4)
+	- Terrestrial/Satellite Tuner: Sony CXD2858ER (x4)
 
 ### TS Aggregation の設定
 
