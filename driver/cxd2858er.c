@@ -106,7 +106,9 @@ static int cxd2858er_power_on(struct cxd2858er_tuner *tuner)
 	if (ret)
 		return ret;
 
-	ret = cxd2858er_write_reg(tuner, 0x43, 0x07);
+	ret = cxd2858er_write_reg(tuner, 0x43,
+				  0x05 | ((tuner->config.ter.lna) ? 0x02
+								  : 0x00));
 	if (ret)
 		return ret;
 
@@ -484,7 +486,7 @@ int cxd2858er_set_params_s(struct cxd2858er_tuner *tuner,
 	data[5] = 0x78;
 	data[6] = 0x08;
 	data[7] = 0x30;
-	data[8] = 0xff;
+	data[8] = 0xfe | ((tuner->config.sat.lna) ? 0x01 : 0x00);
 	data[9] = 0x02;
 	data[10] = 0x1e;
 
@@ -577,7 +579,9 @@ static int cxd2858er_stop_s(struct cxd2858er_tuner *tuner)
 	if (ret)
 		return ret;
 
-	ret = cxd2858er_write_reg(tuner, 0x43, 0x07);
+	ret = cxd2858er_write_reg(tuner, 0x43,
+				  0x05 | ((tuner->config.ter.lna) ? 0x02
+								  : 0x00));
 	if (ret)
 		return ret;
 

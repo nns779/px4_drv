@@ -15,6 +15,12 @@
 
 struct cxd2858er_config {
 	u32 xtal;
+	struct {
+		bool lna;
+	} ter;
+	struct {
+		bool lna;
+	} sat;
 };
 
 enum cxd2858er_system {
