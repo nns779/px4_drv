@@ -117,13 +117,13 @@ static void isdb2056_device_stream_process(struct ptx_chrdev *chrdev,
 	u8 *p = *buf;
 	u32 remain = *len;
 
-	while (remain) {
+	while (likely(remain)) {
 		u32 i = 0;
 		bool sync_remain = false;
 
 		while (true) {
-			if (((i + 1) * 188) <= remain) {
-				if (p[i * 188] != 0x47)
+			if (likely(((i + 1) * 188) <= remain)) {
+				if (unlikely(p[i * 188] != 0x47))
 					break;
 			} else {
 				sync_remain = true;
@@ -132,7 +132,7 @@ static void isdb2056_device_stream_process(struct ptx_chrdev *chrdev,
 			i++;
 		}
 
-		if (i < ISDB2056_DEVICE_TS_SYNC_COUNT) {
+		if (unlikely(i < ISDB2056_DEVICE_TS_SYNC_COUNT)) {
 			p++;
 			remain--;
 			continue;
@@ -143,7 +143,7 @@ static void isdb2056_device_stream_process(struct ptx_chrdev *chrdev,
 		p += 188 * i;
 		remain -= 188 * i;
 
-		if (sync_remain)
+		if (unlikely(sync_remain))
 			break;
 	}
 
@@ -161,8 +161,8 @@ static int isdb2056_device_stream_handler(void *context, void *buf, u32 len)
 	u8 *p = buf;
 	u32 remain = len;
 
-	if (ctx_remain_len) {
-		if ((ctx_remain_len + len) >= ISDB2056_DEVICE_TS_SYNC_SIZE) {
+	if (unlikely(ctx_remain_len)) {
+		if (likely((ctx_remain_len + len) >= ISDB2056_DEVICE_TS_SYNC_SIZE)) {
 			u32 t = ISDB2056_DEVICE_TS_SYNC_SIZE - ctx_remain_len;
 
 			memcpy(ctx_remain_buf + ctx_remain_len, p, t);
@@ -171,7 +171,7 @@ static int isdb2056_device_stream_handler(void *context, void *buf, u32 len)
 			isdb2056_device_stream_process(stream_ctx->chrdev,
 						  &ctx_remain_buf,
 						  &ctx_remain_len);
-			if (!ctx_remain_len) {
+			if (likely(!ctx_remain_len)) {
 				p += t;
 				remain -= t;
 			}
@@ -187,7 +187,7 @@ static int isdb2056_device_stream_handler(void *context, void *buf, u32 len)
 
 	isdb2056_device_stream_process(stream_ctx->chrdev, &p, &remain);
 
-	if (remain) {
+	if (unlikely(remain)) {
 		memcpy(stream_ctx->remain_buf, p, remain);
 		stream_ctx->remain_len = remain;
 	}

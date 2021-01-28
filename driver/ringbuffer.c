@@ -180,20 +180,20 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 	head = atomic_read(&ringbuf->head);
 
 	read_size = (*len <= actual_size) ? *len : actual_size;
-	if (read_size) {
+	if (likely(read_size)) {
 		size_t tmp = (head + read_size <= buf_size) ? read_size
 							    : (buf_size - head);
 		unsigned long res;
 
 		res = copy_to_user(buf, p + head, tmp);
 
-		if (tmp < read_size) {
+		if (tmp == read_size) {
+			head = (head + read_size == buf_size) ? 0
+							      : (head + read_size);
+		} else {
 			res = copy_to_user(((u8 *)buf) + tmp, p,
 					   read_size - tmp);
 			head = read_size - tmp;
-		} else {
-			head = (head + read_size == buf_size) ? 0
-							      : (head + read_size);
 		}
 
 		atomic_xchg(&ringbuf->head, head);
@@ -202,7 +202,7 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 	}
 
 	if (!atomic_sub_return(1, &ringbuf->rw_count) &&
-	    atomic_read(&ringbuf->wait_count))
+	    unlikely(atomic_read(&ringbuf->wait_count)))
 		wake_up(&ringbuf->wait);
 
 	*len = read_size;
@@ -217,7 +217,7 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 	u8 *p;
 	size_t buf_size, actual_size, tail, write_size;
 
-	if (atomic_read(&ringbuf->state) != 2)
+	if (unlikely(atomic_read(&ringbuf->state) != 2))
 		return -EINVAL;
 
 	atomic_add_return_acquire(1, &ringbuf->rw_count);
@@ -227,20 +227,20 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 	actual_size = atomic_read_acquire(&ringbuf->actual_size);
 	tail = atomic_read(&ringbuf->tail);
 
-	write_size = (actual_size + *len <= buf_size) ? *len
-						      : (buf_size - actual_size);
-	if (write_size) {
-		size_t tmp = (tail + write_size <= buf_size) ? write_size
-							     : (buf_size - tail);
+	write_size = likely(actual_size + *len <= buf_size) ? *len
+							    : (buf_size - actual_size);
+	if (likely(write_size)) {
+		size_t tmp = likely(tail + write_size <= buf_size) ? write_size
+								   : (buf_size - tail);
 
 		memcpy(p + tail, buf, tmp);
 
-		if (tmp < write_size) {
+		if (likely(tmp == write_size)) {
+			tail = unlikely(tail + write_size == buf_size) ? 0
+								       : (tail + write_size);
+		} else {
 			memcpy(p, ((u8 *)buf) + tmp, write_size - tmp);
 			tail = write_size - tmp;
-		} else {
-			tail = (tail + write_size == buf_size) ? 0
-							       : (tail + write_size);
 		}
 
 		atomic_xchg(&ringbuf->tail, tail);
@@ -249,10 +249,10 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 	}
 
 	if (!atomic_sub_return(1, &ringbuf->rw_count) &&
-	    atomic_read(&ringbuf->wait_count))
+	    unlikely(atomic_read(&ringbuf->wait_count)))
 		wake_up(&ringbuf->wait);
 
-	if (*len != write_size)
+	if (unlikely(*len != write_size))
 		ret = -EOVERFLOW;
 
 	*len = write_size;

@@ -113,13 +113,13 @@ static void pxmlt_device_stream_process(struct ptx_chrdev **chrdev,
 	u8 *p = *buf;
 	u32 remain = *len;
 
-	while (remain) {
+	while (likely(remain)) {
 		u32 i;
 		bool sync_remain = false;
 
 		for (i = 0; i < PXMLT_DEVICE_TS_SYNC_COUNT; i++) {
-			if (((i + 1) * 188) <= remain) {
-				if ((p[i * 188] & 0x8f) != 0x07)
+			if (likely(((i + 1) * 188) <= remain)) {
+				if (unlikely((p[i * 188] & 0x8f) != 0x07))
 					break;
 			} else {
 				sync_remain = true;
@@ -127,19 +127,19 @@ static void pxmlt_device_stream_process(struct ptx_chrdev **chrdev,
 			}
 		}
 
-		if (sync_remain)
+		if (unlikely(sync_remain))
 			break;
 
-		if (i < PXMLT_DEVICE_TS_SYNC_COUNT) {
+		if (unlikely(i < PXMLT_DEVICE_TS_SYNC_COUNT)) {
 			p++;
 			remain--;
 			continue;
 		}
 
-		while (remain >= 188 && ((p[0] & 0x8f) == 0x07)) {
+		while (likely(remain >= 188 && ((p[0] & 0x8f) == 0x07))) {
 			u8 id = (p[0] & 0x70) >> 4;
 
-			if (id && id < 6) {
+			if (likely(id && id < 6)) {
 				p[0] = 0x47;
 				ptx_chrdev_put_stream(chrdev[id - 1], p, 188);
 			}
@@ -163,8 +163,8 @@ static int pxmlt_device_stream_handler(void *context, void *buf, u32 len)
 	u8 *p = buf;
 	u32 remain = len;
 
-	if (ctx_remain_len) {
-		if ((ctx_remain_len + len) >= PXMLT_DEVICE_TS_SYNC_SIZE) {
+	if (unlikely(ctx_remain_len)) {
+		if (likely((ctx_remain_len + len) >= PXMLT_DEVICE_TS_SYNC_SIZE)) {
 			u32 t = PXMLT_DEVICE_TS_SYNC_SIZE - ctx_remain_len;
 
 			memcpy(ctx_remain_buf + ctx_remain_len, p, t);
@@ -173,7 +173,7 @@ static int pxmlt_device_stream_handler(void *context, void *buf, u32 len)
 			pxmlt_device_stream_process(stream_ctx->chrdev,
 						  &ctx_remain_buf,
 						  &ctx_remain_len);
-			if (!ctx_remain_len) {
+			if (likely(!ctx_remain_len)) {
 				p += t;
 				remain -= t;
 			}
@@ -189,7 +189,7 @@ static int pxmlt_device_stream_handler(void *context, void *buf, u32 len)
 
 	pxmlt_device_stream_process(stream_ctx->chrdev, &p, &remain);
 
-	if (remain) {
+	if (unlikely(remain)) {
 		memcpy(stream_ctx->remain_buf, p, remain);
 		stream_ctx->remain_len = remain;
 	}

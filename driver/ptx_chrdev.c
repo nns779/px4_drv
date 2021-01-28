@@ -124,19 +124,19 @@ static ssize_t ptx_chrdev_read(struct file *file,
 	u8 __user *p = buf;
 	size_t remain = count;
 
-	if (!atomic_read_acquire(&group->available))
+	if (unlikely(!atomic_read_acquire(&group->available)))
 		return -EIO;
 
 	ringbuffer_ready_read(chrdev->ringbuf);
 
-	while (remain) {
+	while (likely(remain)) {
 		size_t len;
 
 		if (wait_event_interruptible(chrdev->ringbuf_wait,
-					     ringbuffer_is_readable(chrdev->ringbuf) ||
-					     !ringbuffer_is_running(chrdev->ringbuf) ||
-					     !atomic_read(&group->available))) {
-			if (remain == count)
+					     likely(ringbuffer_is_readable(chrdev->ringbuf)) ||
+					     unlikely(!ringbuffer_is_running(chrdev->ringbuf)) ||
+					     unlikely(!atomic_read(&group->available)))) {
+			if (unlikely(remain == count))
 				ret = -EINTR;
 
 			break;
@@ -144,14 +144,14 @@ static ssize_t ptx_chrdev_read(struct file *file,
 
 		len = remain;
 		ret = ringbuffer_read_user(chrdev->ringbuf, p, &len);
-		if (ret || !len)
+		if (unlikely(ret || !len))
 			break;
 
 		p += len;
 		remain -= len;
 	}
 
-	return (ret < 0) ? ret : (count - remain);
+	return likely(!ret) ? (count - remain) : ret;
 }
 
 static int ptx_chrdev_release(struct inode *inode, struct file *file)
@@ -1031,12 +1031,12 @@ int ptx_chrdev_put_stream(struct ptx_chrdev *chrdev, void *buf, size_t len)
 	int ret = 0;
 
 	ret = ringbuffer_write_atomic(chrdev->ringbuf, buf, &len);
-	if (ret && ret != -EOVERFLOW)
+	if (unlikely(ret && ret != -EOVERFLOW))
 		return ret;
 
 	chrdev->ringbuf_write_size += len;
 
-	if (chrdev->ringbuf_write_size >= chrdev->ringbuf_threshold_size) {
+	if (unlikely(chrdev->ringbuf_write_size >= chrdev->ringbuf_threshold_size)) {
 		wake_up(&chrdev->ringbuf_wait);
 		chrdev->ringbuf_write_size -= chrdev->ringbuf_threshold_size;
 	}

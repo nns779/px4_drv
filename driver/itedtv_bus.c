@@ -49,7 +49,7 @@ static int itedtv_usb_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
 
-	if (!buf || !len)
+	if (unlikely(!buf || !len))
 		return -EINVAL;
 
 	/* Endpoint 0x02: Host->Device bulk endpoint for controlling the device */
@@ -68,7 +68,7 @@ static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
 
-	if (!buf || !len || !*len)
+	if (unlikely(!buf || !len || !*len))
 		return -EINVAL;
 
 	/* Endpoint 0x81: Device->Host bulk endpoint for controlling the device */
@@ -91,7 +91,7 @@ static int itedtv_usb_stream_rx(struct itedtv_bus *bus,
 	int ret = 0, rlen = 0;
 	struct usb_device *dev = bus->usb.dev;
 
-	if (!buf | !len || !*len)
+	if (unlikely(!buf | !len || !*len))
 		return -EINVAL;
 
 	/* Endpoint 0x84: Device->Host bulk endpoint for receiving TS from the device */
@@ -114,7 +114,7 @@ static void itedtv_usb_workqueue_handler(struct work_struct *work)
 	struct itedtv_usb_context *ctx = w->ctx;
 	struct urb *urb = w->urb;
 
-	if (urb->actual_length)
+	if (likely(urb->actual_length))
 		ret = ctx->stream_handler(ctx->ctx,
 					  urb->transfer_buffer,
 					  urb->actual_length);
@@ -122,11 +122,11 @@ static void itedtv_usb_workqueue_handler(struct work_struct *work)
 		dev_dbg(ctx->bus->dev,
 			"itedtv_usb_workqueue_handler: !urb->actual_length\n");
 
-	if (ret || (atomic_read_acquire(&ctx->streaming) < 1))
+	if (unlikely(ret || (atomic_read_acquire(&ctx->streaming) < 1)))
 		return;
 
 	ret = usb_submit_urb(urb, GFP_KERNEL);
-	if (ret)
+	if (unlikely(ret))
 		dev_err(ctx->bus->dev,
 			"itedtv_usb_workqueue_handler: usb_submit_urb() failed. (ret: %d)\n",
 			ret);
@@ -143,7 +143,7 @@ static void itedtv_usb_complete(struct urb *urb)
 	struct itedtv_usb_work *w = urb->context;
 	struct itedtv_usb_context *ctx = w->ctx;
 
-	if (urb->status) {
+	if (unlikely(urb->status)) {
 		dev_dbg(ctx->bus->dev,
 			"itedtv_usb_complete: status: %d\n",
 			urb->status);
@@ -151,11 +151,11 @@ static void itedtv_usb_complete(struct urb *urb)
 	}
 
 #ifdef ITEDTV_BUS_USE_WORKQUEUE
-	if (!queue_work(ctx->wq, &w->work))
+	if (unlikely(!queue_work(ctx->wq, &w->work)))
 		dev_err(ctx->bus->dev,
 			"itedtv_usb_complete: queue_work() failed.\n");
 #else
-	if (urb->actual_length)
+	if (likely(urb->actual_length))
 		ret = ctx->stream_handler(ctx->ctx,
 					  urb->transfer_buffer,
 					  urb->actual_length);
@@ -163,11 +163,11 @@ static void itedtv_usb_complete(struct urb *urb)
 		dev_dbg(ctx->bus->dev,
 			"itedtv_usb_complete: !urb->actual_length\n");
 
-	if (ret || (atomic_read_acquire(&ctx->streaming) < 1))
+	if (unlikely(ret || (atomic_read_acquire(&ctx->streaming) < 1)))
 		return;
 
 	ret = usb_submit_urb(urb, GFP_ATOMIC);
-	if (ret)
+	if (unlikely(ret))
 		dev_err(ctx->bus->dev,
 			"itedtv_usb_complete: usb_submit_urb() failed. (ret: %d)\n",
 			ret);
