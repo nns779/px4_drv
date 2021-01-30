@@ -201,8 +201,8 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 					  &ringbuf->actual_size);
 	}
 
-	if (!atomic_sub_return(1, &ringbuf->rw_count) &&
-	    unlikely(atomic_read(&ringbuf->wait_count)))
+	if (unlikely(!atomic_sub_return(1, &ringbuf->rw_count) &&
+	    atomic_read(&ringbuf->wait_count)))
 		wake_up(&ringbuf->wait);
 
 	*len = read_size;
@@ -248,8 +248,8 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 					  &ringbuf->actual_size);
 	}
 
-	if (!atomic_sub_return(1, &ringbuf->rw_count) &&
-	    unlikely(atomic_read(&ringbuf->wait_count)))
+	if (unlikely(!atomic_sub_return(1, &ringbuf->rw_count) &&
+	    atomic_read(&ringbuf->wait_count)))
 		wake_up(&ringbuf->wait);
 
 	if (unlikely(*len != write_size))
