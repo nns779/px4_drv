@@ -169,6 +169,7 @@ int ringbuffer_ready_read(struct ringbuffer *ringbuf)
 int ringbuffer_read_user(struct ringbuffer *ringbuf,
 			 void __user *buf, size_t *len)
 {
+	int ret = 0;
 	u8 *p;
 	size_t buf_size, actual_size, head, read_size;
 
@@ -181,18 +182,30 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 
 	read_size = (*len <= actual_size) ? *len : actual_size;
 	if (likely(read_size)) {
-		size_t tmp = (head + read_size <= buf_size) ? read_size
-							    : (buf_size - head);
 		unsigned long res;
 
-		res = copy_to_user(buf, p + head, tmp);
+		if (likely(head + read_size <= buf_size)) {
+			res = copy_to_user(buf, p + head, read_size);
+			if (unlikely(res)) {
+				read_size -= res;
+				ret = -EFAULT;
+			}
 
-		if (tmp == read_size) {
 			head = (head + read_size == buf_size) ? 0
 							      : (head + read_size);
 		} else {
-			res = copy_to_user(((u8 *)buf) + tmp, p,
-					   read_size - tmp);
+			size_t tmp = buf_size - head;
+
+			res = copy_to_user(buf, p + head, tmp);
+			if (likely(!res))
+				res = copy_to_user(((u8 *)buf) + tmp, p,
+						   read_size - tmp);
+
+			if (unlikely(res)) {
+				read_size -= res;
+				ret = -EFAULT;
+			}
+
 			head = read_size - tmp;
 		}
 
@@ -207,7 +220,7 @@ int ringbuffer_read_user(struct ringbuffer *ringbuf,
 
 	*len = read_size;
 
-	return 0;
+	return ret;
 }
 
 int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
@@ -230,15 +243,14 @@ int ringbuffer_write_atomic(struct ringbuffer *ringbuf,
 	write_size = likely(actual_size + *len <= buf_size) ? *len
 							    : (buf_size - actual_size);
 	if (likely(write_size)) {
-		size_t tmp = likely(tail + write_size <= buf_size) ? write_size
-								   : (buf_size - tail);
-
-		memcpy(p + tail, buf, tmp);
-
-		if (likely(tmp == write_size)) {
+		if (likely(tail + write_size <= buf_size)) {
+			memcpy(p + tail, buf, write_size);
 			tail = unlikely(tail + write_size == buf_size) ? 0
 								       : (tail + write_size);
 		} else {
+			size_t tmp = buf_size - tail;
+
+			memcpy(p + tail, buf, tmp);
 			memcpy(p, ((u8 *)buf) + tmp, write_size - tmp);
 			tail = write_size - tmp;
 		}
