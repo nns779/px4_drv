@@ -742,11 +742,11 @@ static int r850_set_pll(struct r850_tuner *t,
 
 	xtal_div = 0;
 
+	t->priv.regs[0x22] &= 0xfc;
 	if (sys != R850_SYSTEM_UNDEFINED) {
 		if (lo_freq < 380500) {
 			if (!(div_judge & 1)) {
 				xtal /= 2;
-				t->priv.regs[0x22] &= 0xfe;
 				t->priv.regs[0x22] |= 0x02;
 				xtal_div = 1;
 			}
@@ -759,8 +759,6 @@ static int r850_set_pll(struct r850_tuner *t,
 #endif
 		}
 	}
-	if (!xtal_div)
-		t->priv.regs[0x22] &= 0xfc;
 
 	t->priv.regs[0x0b] &= 0xfe;
 
