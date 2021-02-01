@@ -131,8 +131,8 @@ static int rt710_read_regs(struct rt710_tuner *t, u8 reg, u8 *buf, int len)
 }
 
 static int rt710_write_regs(struct rt710_tuner *t,
-			     u8 reg,
-			     const u8 *buf, int len)
+			    u8 reg,
+			    const u8 *buf, int len)
 {
 	int ret = 0;
 	u8 b[1 + NUM_REGS];

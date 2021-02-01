@@ -16,8 +16,8 @@
 #endif
 
 static int tc90522_read_regs_nolock(struct tc90522_demod *demod,
-			      u8 reg,
-			      u8 *buf, u8 len)
+				    u8 reg,
+				    u8 *buf, u8 len)
 {
 	int ret = 0;
 	u8 b;
@@ -90,8 +90,8 @@ int tc90522_read_multiple_regs(struct tc90522_demod *demod,
 
 	for (i = 0; i < num; i++) {
 		ret = tc90522_read_regs_nolock(demod,
-					 regbuf[i].reg,
-					 regbuf[i].buf, regbuf[i].u.len);
+					       regbuf[i].reg,
+					       regbuf[i].buf, regbuf[i].u.len);
 		if (ret)
 			break;
 	}
@@ -102,8 +102,8 @@ int tc90522_read_multiple_regs(struct tc90522_demod *demod,
 }
 
 static int tc90522_write_regs_nolock(struct tc90522_demod *demod,
-			       u8 reg,
-			       u8 *buf, u8 len)
+				     u8 reg,
+				     u8 *buf, u8 len)
 {
 	int ret = 0;
 	u8 b[255];
@@ -181,14 +181,14 @@ int tc90522_write_multiple_regs(struct tc90522_demod *demod,
 	for (i = 0; i < num; i++) {
 		if (regbuf[i].buf)
 			ret = tc90522_write_regs_nolock(demod,
-						  regbuf[i].reg,
-						  regbuf[i].buf,
-						  regbuf[i].u.len);
+							regbuf[i].reg,
+							regbuf[i].buf,
+							regbuf[i].u.len);
 		else
 			ret = tc90522_write_regs_nolock(demod,
-						  regbuf[i].reg,
-						  &regbuf[i].u.val,
-						  1);
+							regbuf[i].reg,
+							&regbuf[i].u.val,
+							1);
 
 		if (ret)
 			break;

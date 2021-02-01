@@ -14,7 +14,7 @@ static int cxd2858er_stop_t(struct cxd2858er_tuner *tuner);
 static int cxd2858er_stop_s(struct cxd2858er_tuner *tuner);
 
 static int cxd2858er_read_regs(struct cxd2858er_tuner *tuner,
-			u8 reg, u8 *buf, int len)
+			       u8 reg, u8 *buf, int len)
 {
 	u8 b;
 	struct i2c_comm_request req[2];
@@ -38,13 +38,13 @@ static int cxd2858er_read_regs(struct cxd2858er_tuner *tuner,
 }
 
 static int cxd2858er_read_reg(struct cxd2858er_tuner *tuner,
-				     u8 reg, u8 *val)
+			      u8 reg, u8 *val)
 {
 	return cxd2858er_read_regs(tuner, reg, val, 1);
 }
 
 static int cxd2858er_write_regs(struct cxd2858er_tuner *tuner,
-			 u8 reg, u8 *buf, int len)
+				u8 reg, u8 *buf, int len)
 {
 	u8 b[255];
 	struct i2c_comm_request req[1];
@@ -64,13 +64,13 @@ static int cxd2858er_write_regs(struct cxd2858er_tuner *tuner,
 }
 
 static int cxd2858er_write_reg(struct cxd2858er_tuner *tuner,
-				      u8 reg, u8 val)
+			       u8 reg, u8 val)
 {
 	return cxd2858er_write_regs(tuner, reg, &val, 1);
 }
 
 static int cxd2858er_write_reg_mask(struct cxd2858er_tuner *tuner,
-			     u8 reg, u8 val, u8 mask)
+				    u8 reg, u8 val, u8 mask)
 {
 	int ret = 0;
 	u8 tmp;

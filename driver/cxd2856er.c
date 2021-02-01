@@ -276,7 +276,7 @@ static int cxd2856er_set_ts_clock(struct cxd2856er_demod *demod,
 }
 
 static int cxd2856er_set_ts_pin_state(struct cxd2856er_demod *demod,
-					bool state)
+				      bool state)
 {
 	int ret = 0;
 	u8 tmp, mask;

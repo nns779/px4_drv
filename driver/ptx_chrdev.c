@@ -19,10 +19,10 @@ static LIST_HEAD(ctx_list);
 static DEFINE_MUTEX(ctx_list_lock);
 
 static bool ptx_chrdev_search_context(unsigned int major,
-					struct ptx_chrdev_context **chrdev_ctx);
+				      struct ptx_chrdev_context **chrdev_ctx);
 static bool ptx_chrdev_context_search_group(struct ptx_chrdev_context *chrdev_ctx,
-					      unsigned int minor,
-					      struct ptx_chrdev_group **chrdev_group);
+					    unsigned int minor,
+					    struct ptx_chrdev_group **chrdev_group);
 static void ptx_chrdev_group_release(struct kref *kref);
 static void ptx_chrdev_context_release(struct kref *kref);
 
@@ -533,7 +533,7 @@ static struct file_operations ptx_chrdev_fops = {
 };
 
 static bool ptx_chrdev_search_context(unsigned int major,
-					struct ptx_chrdev_context **chrdev_ctx)
+				      struct ptx_chrdev_context **chrdev_ctx)
 {
 	struct ptx_chrdev_context *ctx;
 
@@ -637,8 +637,8 @@ void ptx_chrdev_context_destroy(struct ptx_chrdev_context *chrdev_ctx)
 }
 
 static bool ptx_chrdev_context_search_group(struct ptx_chrdev_context *chrdev_ctx,
-					      unsigned int minor,
-					      struct ptx_chrdev_group **chrdev_group)
+					    unsigned int minor,
+					    struct ptx_chrdev_group **chrdev_group)
 {
 	struct ptx_chrdev_group *group;
 
@@ -657,8 +657,8 @@ static bool ptx_chrdev_context_search_group(struct ptx_chrdev_context *chrdev_ct
 }
 
 static int ptx_chrdev_context_search_minor(struct ptx_chrdev_context *chrdev_ctx,
-					     unsigned int num, u8 state,
-					     unsigned int *base)
+					   unsigned int num, u8 state,
+					   unsigned int *base)
 {
 	unsigned int i, j;
 
@@ -687,9 +687,9 @@ static int ptx_chrdev_context_search_minor(struct ptx_chrdev_context *chrdev_ctx
 }
 
 static int ptx_chrdev_context_check_minor_status(struct ptx_chrdev_context *chrdev_ctx,
-						   unsigned int base,
-						   unsigned int num,
-						   u8 state,bool *res)
+						 unsigned int base,
+						 unsigned int num,
+						 u8 state,bool *res)
 {
 	unsigned int i;
 
@@ -709,9 +709,9 @@ static int ptx_chrdev_context_check_minor_status(struct ptx_chrdev_context *chrd
 }
 
 static int ptx_chrdev_context_set_minor_status(struct ptx_chrdev_context *chrdev_ctx,
-						 unsigned int base,
-						 unsigned int num,
-						 u8 state)
+					       unsigned int base,
+					       unsigned int num,
+					       u8 state)
 {
 	unsigned int i;
 
@@ -733,12 +733,12 @@ int ptx_chrdev_context_reserve(struct ptx_chrdev_context *chrdev_ctx,
 	mutex_lock(&chrdev_ctx->lock);
 
 	ret = ptx_chrdev_context_search_minor(chrdev_ctx, num,
-						PTX_CHRDEV_MINOR_FREE, &base);
+					      PTX_CHRDEV_MINOR_FREE, &base);
 	if (ret)
 		goto exit;
 
 	ptx_chrdev_context_set_minor_status(chrdev_ctx, base, num,
-					      PTX_CHRDEV_MINOR_RESERVED);
+					    PTX_CHRDEV_MINOR_RESERVED);
 	*minor_base = MINOR(chrdev_ctx->dev_base) + base;
 
 exit:
@@ -771,31 +771,31 @@ int ptx_chrdev_context_add_group(struct ptx_chrdev_context *chrdev_ctx,
 
 		base = config->minor_base - MINOR(chrdev_ctx->dev_base);
 		ret = ptx_chrdev_context_check_minor_status(chrdev_ctx,
-							      base, num,
-							      PTX_CHRDEV_MINOR_RESERVED,
-							      &res);
+							    base, num,
+							    PTX_CHRDEV_MINOR_RESERVED,
+							    &res);
 		if (!ret && !res)
 			ret = -EINVAL;
 	} else {
 		ret = ptx_chrdev_context_search_minor(chrdev_ctx, num,
-							PTX_CHRDEV_MINOR_FREE,
-							&base);
+						      PTX_CHRDEV_MINOR_FREE,
+						      &base);
 		if (ret)
 			dev_err(dev,
 				"ptx_chrdev_context_add: no enough minor number%s.\n",
 				(num == 1) ? "" : "s");
 		else
 			ptx_chrdev_context_set_minor_status(chrdev_ctx,
-							      base, num,
-							      PTX_CHRDEV_MINOR_RESERVED);
+							    base, num,
+							    PTX_CHRDEV_MINOR_RESERVED);
 	}
 
 	if (ret)
 		goto fail;
 
 	ptx_chrdev_context_set_minor_status(chrdev_ctx,
-					      base, num,
-					      PTX_CHRDEV_MINOR_IN_USE);
+					    base, num,
+					    PTX_CHRDEV_MINOR_IN_USE);
 
 	group = kzalloc(sizeof(*group) + (sizeof(group->chrdev[0]) * (num - 1)),
 			GFP_KERNEL);
@@ -920,8 +920,8 @@ fail_chrdev:
 
 fail_group:
 	ptx_chrdev_context_set_minor_status(chrdev_ctx,
-					      base, num,
-					      (config->reserved) ? PTX_CHRDEV_MINOR_RESERVED : PTX_CHRDEV_MINOR_FREE);
+					    base, num,
+					    (config->reserved) ? PTX_CHRDEV_MINOR_RESERVED : PTX_CHRDEV_MINOR_FREE);
 
 fail:
 	if (config->owner_kref)
@@ -940,7 +940,7 @@ int ptx_chrdev_context_remove_group(struct ptx_chrdev_context *chrdev_ctx,
 
 	mutex_lock(&chrdev_ctx->lock);
 	if (!ptx_chrdev_context_search_group(chrdev_ctx,
-					       minor_base, &group)) {
+					     minor_base, &group)) {
 		/* not found */
 		mutex_unlock(&chrdev_ctx->lock);
 		return -ENOENT;
@@ -979,9 +979,9 @@ static void ptx_chrdev_group_release(struct kref *kref)
 
 	mutex_lock(&ctx->lock);
 	ptx_chrdev_context_set_minor_status(ctx,
-					      minor_base - MINOR(ctx->dev_base),
-					      num,
-					      PTX_CHRDEV_MINOR_FREE);
+					    minor_base - MINOR(ctx->dev_base),
+					    num,
+					    PTX_CHRDEV_MINOR_FREE);
 	mutex_unlock(&ctx->lock);
 
 	kref_put(&ctx->kref, ptx_chrdev_context_release);
