@@ -20,7 +20,7 @@ PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式
 
 	- DTV02-1T1S-U (実験的)
 	- DTV02A-1T1S-U
-	- DTV02A-4TS-P (ベータ版)
+	- DTV02A-4TS-P
 
 ## インストール
 
