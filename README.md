@@ -148,7 +148,7 @@ gcc, make, カーネルソース/ヘッダ, dkmsがインストールされて�
 
 ## 受信方法
 
-recpt1や[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等のPTシリーズ用chardevドライバに対応したソフトウェアを使用することで、TSデータを受信することが可能です。
+recpt1や[BonDriverProxy_Linux](https://github.com/u-n-k-n-o-w-n/BonDriverProxy_Linux)等のPTシリーズ用chardevドライバに対応したソフトウェアを使用することで、TSデータを受信することが可能です。  
 recpt1は、PLEX社より配布されているものを使用する必要はありません。
 
 BonDriverProxy_Linuxと、PLEX PX-MLT5PEやe-Better DTV02A-1T1S-Uなどのデバイスファイル1つでISDB-TとISDB-Sのどちらも受信可能なチューナーを組み合わせて使用する場合は、BonDriverとしてBonDriverProxy_Linuxに同梱されているBonDriver_LinuxPTの代わりに、[BonDriver_LinuxPTX](https://github.com/nns779/BonDriver_LinuxPTX)を使用してください。
