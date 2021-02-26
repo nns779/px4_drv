@@ -1,4 +1,4 @@
-// module.h
+// driver_module.h
 
 #ifndef __DRIVER_MODULE_H__
 #define __DRIVER_MODULE_H__
