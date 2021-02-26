@@ -2,7 +2,7 @@
 /*
  * RafaelMicro RT710 driver definitions (rt710.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __RT710_H__

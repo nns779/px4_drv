@@ -2,7 +2,7 @@
 /*
  * Character device operator definitions for PTX devices (ptx_chrdev.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __PTX_CHRDEV__

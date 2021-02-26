@@ -2,7 +2,7 @@
 /*
  * Module parameter definitions (px4_usb_params.c)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #include "px4_usb_params.h"

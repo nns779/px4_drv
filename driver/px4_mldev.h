@@ -2,7 +2,7 @@
 /*
  * PX4 multi-device power manager definitions (px4_mldev.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __PX4_MLDEV_H__

@@ -2,7 +2,7 @@
 /*
  * Definitions for I2C communicators (i2c_comm.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __I2C_COMM_H__

@@ -2,7 +2,7 @@
 /*
  * RafaelMicro R850 driver (r850.c)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 /* Some features are not implemented. */

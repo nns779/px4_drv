@@ -2,7 +2,7 @@
 /*
  * ITE IT930x driver definitions (it930x.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __IT930X_H__

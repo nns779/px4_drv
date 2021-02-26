@@ -2,7 +2,7 @@
 /*
  * Toshiba TC90522 driver definitions (tc90522.c)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __TC90522_H__

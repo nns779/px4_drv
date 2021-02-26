@@ -2,7 +2,7 @@
 /*
  * Toshiba TC90522 driver (tc90522.c)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #include "print_format.h"

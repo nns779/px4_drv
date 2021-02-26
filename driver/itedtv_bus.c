@@ -2,7 +2,7 @@
 /*
  * ITE IT930x bus driver (itedtv_bus.c)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #include "print_format.h"

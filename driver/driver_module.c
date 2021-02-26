@@ -2,7 +2,7 @@
 /*
  * Module initiator of the driver (driver_module.c)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #include "print_format.h"

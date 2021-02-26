@@ -2,7 +2,7 @@
 /*
  * RafaelMicro R850 driver definitions (r850.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __R850_H__

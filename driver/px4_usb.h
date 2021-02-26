@@ -2,7 +2,7 @@
 /*
  * PTX driver definitions for USB devices (px4_usb.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __PX4_USB_H__

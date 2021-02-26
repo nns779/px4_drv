@@ -2,7 +2,7 @@
 /*
  * ITE IT930x bus driver definitions (itedtv_bus.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __ITEDTV_BUS_H__

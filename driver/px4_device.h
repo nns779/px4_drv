@@ -2,7 +2,7 @@
 /*
  * PTX driver definitions for PLEX PX4/PX5 series devices (px4_device.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __PX4_DEVICE_H__

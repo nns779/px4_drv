@@ -2,7 +2,7 @@
 /*
  * Sony CXD2858ER driver definitions (cxd2858er.h)
  *
- * Copyright (c) 2018-2020 nns779
+ * Copyright (c) 2018-2021 nns779
  */
 
 #ifndef __CXD2858ER_H__
