@@ -107,6 +107,7 @@ static int px4_usb_probe(struct usb_interface *intf,
 	case 0x0511:
 	{
 		bool px4_use_mldev = false;
+		enum pxmlt_model pxmlt5_model = PXMLT5PE_MODEL;
 		enum pxmlt_model pxmlt8_model = PXMLT8PE5_MODEL;
 
 		switch (id->idProduct) {
@@ -134,6 +135,9 @@ static int px4_usb_probe(struct usb_interface *intf,
 					      &ctx->quit_completion);
 			break;
 
+		case USB_PID_PX_MLT5U:
+			pxmlt5_model = PXMLT5U_MODEL;
+			/* fall through */
 		case USB_PID_PX_MLT5PE:
 			ret = px4_usb_init_bridge(dev, usb_dev,
 						  &ctx->ctx.pxmlt.it930x);
@@ -141,7 +145,7 @@ static int px4_usb_probe(struct usb_interface *intf,
 				break;
 
 			ctx->type = PXMLT5_USB_DEVICE;
-			ret = pxmlt_device_init(&ctx->ctx.pxmlt, dev, PXMLT5PE_MODEL,
+			ret = pxmlt_device_init(&ctx->ctx.pxmlt, dev, pxmlt5_model,
 						px4_usb_chrdev_ctx[PXMLT5_USB_DEVICE],
 						&ctx->quit_completion);
 			break;
@@ -273,6 +277,7 @@ static const struct usb_device_id px4_usb_ids[] = {
 	{ USB_DEVICE(0x0511, USB_PID_PX_Q3PE4) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_W3PE5) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_Q3PE5) },
+	{ USB_DEVICE(0x0511, USB_PID_PX_MLT5U) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_MLT5PE) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_MLT8PE3) },
 	{ USB_DEVICE(0x0511, USB_PID_PX_MLT8PE5) },

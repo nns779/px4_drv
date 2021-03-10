@@ -856,6 +856,8 @@ static const struct {
 	u8 i2c_bus;
 	u8 port_number;
 } pxmlt_device_params[][5] = {
+	/* PX-MLT5U */
+	{ { 0x65, 3, 4 }, { 0x6c, 1, 3 }, { 0x64, 1, 1 }, { 0x6c, 3, 2 }, { 0x64, 3, 0 } },
 	/* PX-MLT5PE */
 	{ { 0x65, 3, 0 }, { 0x6c, 1, 1 }, { 0x64, 1, 2 }, { 0x6c, 3, 3 }, { 0x64, 3, 4 } },
 	/* PX-MLT8PE3 */
