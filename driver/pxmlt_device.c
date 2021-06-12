@@ -238,7 +238,7 @@ static int pxmlt_chrdev_open(struct ptx_chrdev *chrdev)
 		dev_err(pxmlt->dev,
 			"pxmlt_chrdev_open %u:%u: cxd2856er_init() failed. (ret: %d)\n",
 			chrdev_group->id, chrdev->id, ret);
-		goto fail_backend_init;
+		goto fail_demod_init;
 	}
 
 	mutex_lock(chrdevm->tuner_lock);
@@ -249,8 +249,7 @@ static int pxmlt_chrdev_open(struct ptx_chrdev *chrdev)
 		dev_err(pxmlt->dev,
 			"pxmlt_chrdev_open %u:%u: cxd2858er_init() failed. (ret: %d)\n",
 			chrdev_group->id, chrdev->id, ret);
-		cxd2856er_term(&chrdevm->cxd2856er);
-		goto fail_backend_init;
+		goto fail_tuner_init;
 	}
 
 	ret = cxd2856er_write_slvt_reg(&chrdevm->cxd2856er, 0x00, 0x00);
@@ -315,9 +314,10 @@ fail_backend:
 	cxd2858er_term(&chrdevm->cxd2858er);
 	mutex_unlock(chrdevm->tuner_lock);
 
+fail_tuner_init:
 	cxd2856er_term(&chrdevm->cxd2856er);
 
-fail_backend_init:
+fail_demod_init:
 	if (!pxmlt->open_count)
 		pxmlt_backend_set_power(pxmlt, false);
 
@@ -599,7 +599,7 @@ static int pxmlt_chrdev_start_capture(struct ptx_chrdev *chrdev)
 
 exit:
 	mutex_unlock(&pxmlt->lock);
-	return 0;
+	return ret;
 }
 
 static int pxmlt_chrdev_stop_capture(struct ptx_chrdev *chrdev)
