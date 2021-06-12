@@ -132,7 +132,7 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x,
 	csum2 = ((buf[rlen - 2] << 8) | buf[rlen - 1]);
 	if (csum != csum2) {
 		dev_err(it930x->dev,
-			"it930x_ctrl_msg: checksum is incorrect. (0x%02x, 0x%02x)\n",
+			"it930x_ctrl_msg: checksum is incorrect. (0x%04x, 0x%04x)\n",
 			csum, csum2);
 		ret = -EBADMSG;
 		goto exit;
@@ -140,16 +140,16 @@ static int it930x_ctrl_msg(struct it930x_bridge *it930x,
 
 	if (buf[1] != seq) {
 		dev_err(it930x->dev,
-			"it930x_ctrl_msg: sequence number is incorrect. (tx: 0x%02x, rx: 0x%02x)\n",
-			seq, buf[1]);
+			"it930x_ctrl_msg: sequence number is incorrect. (tx: 0x%02x, rx: 0x%02x, csum: 0x%04x)\n",
+			seq, buf[1], csum);
 		ret = -EBADMSG;
 		goto exit;
 	}
 
 	if (buf[2]) {
 		dev_err(it930x->dev,
-			"it930x_ctrl_msg: error returned. (result: %u)\n",
-			buf[2]);
+			"it930x_ctrl_msg: error returned. (result: %u, csum: 0x%04x)\n",
+			buf[2], csum);
 		ret = -EIO;
 	} else if (rbuf) {
 		if (rbuf->buf) {
