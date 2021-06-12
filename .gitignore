@@ -6,6 +6,7 @@ modules.order
 *.ko
 *.o.cmd
 *.ko.cmd
+*.symvers.cmd
 *.mod.cmd
 *.mod
 *.mod.c
