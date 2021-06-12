@@ -8,9 +8,13 @@
 #ifndef __CXD2856ER_H__
 #define __CXD2856ER_H__
 
+#ifdef __linux__
 #include <linux/types.h>
 #include <linux/mutex.h>
 #include <linux/device.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#endif
 
 #include "i2c_comm.h"
 
@@ -53,6 +57,9 @@ struct cxd2856er_demod {
 	enum cxd2856er_system system;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int cxd2856er_read_regs(struct cxd2856er_demod *demod,
 			enum cxd2856er_i2c_target target,
 			u8 reg, u8 *buf, int len);
@@ -140,6 +147,8 @@ int cxd2856er_is_ts_locked_isdbt(struct cxd2856er_demod *demod,
 int cxd2856er_is_ts_locked_isdbs(struct cxd2856er_demod *demod, bool *locked);
 int cxd2856er_read_cnr_raw_isdbt(struct cxd2856er_demod *demod, u16 *value);
 int cxd2856er_read_cnr_raw_isdbs(struct cxd2856er_demod *demod, u16 *value);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif

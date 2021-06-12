@@ -8,8 +8,12 @@
 #ifndef __CXD2858ER_H__
 #define __CXD2858ER_H__
 
+#ifdef __linux__
 #include <linux/types.h>
 #include <linux/device.h>
+#elif defined(_WIN32) || defined(_WIN64)
+#include "misc_win.h"
+#endif
 
 #include "i2c_comm.h"
 
@@ -37,6 +41,9 @@ struct cxd2858er_tuner {
 	enum cxd2858er_system system;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int cxd2858er_init(struct cxd2858er_tuner *tuner);
 int cxd2858er_term(struct cxd2858er_tuner *tuner);
 
@@ -47,5 +54,8 @@ int cxd2858er_set_params_s(struct cxd2858er_tuner *tuner,
 			   enum cxd2858er_system system,
 			   u32 freq, u32 symbol_rate);
 int cxd2858er_stop(struct cxd2858er_tuner *tuner);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

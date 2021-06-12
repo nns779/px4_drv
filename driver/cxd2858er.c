@@ -8,7 +8,9 @@
 #include "print_format.h"
 #include "cxd2858er.h"
 
+#ifdef __linux__
 #include <linux/delay.h>
+#endif
 
 static int cxd2858er_stop_t(struct cxd2858er_tuner *tuner);
 static int cxd2858er_stop_s(struct cxd2858er_tuner *tuner);
