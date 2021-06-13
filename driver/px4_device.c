@@ -1295,7 +1295,8 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		if (px4_mldev_search(px4->serial.serial_number, &px4->mldev))
 			ret = px4_mldev_add(px4->mldev, px4);
 		else
-			ret = px4_mldev_alloc(&px4->mldev, PX4_MLDEV_ALL_MODE,
+			ret = px4_mldev_alloc(&px4->mldev,
+					      px4_device_params.multi_device_power_control_mode,
 					      px4, px4_backend_set_power);
 
 		if (ret)
