@@ -276,30 +276,36 @@ static int px4_chrdev_open(struct ptx_chrdev *chrdev)
 	struct ptx_chrdev_group *chrdev_group = chrdev->parent;
 	struct px4_chrdev *chrdev4 = chrdev->priv;
 	struct px4_device *px4 = chrdev4->parent;
+	bool need_init = false;
 
 	dev_dbg(px4->dev,
 		"px4_chrdev_open %u:%u\n", chrdev_group->id, chrdev->id);
 
 	mutex_lock(&px4->lock);
 
-	if (!px4->open_count) {
-		if (px4->mldev) {
-			ret = px4_mldev_set_power(px4->mldev, px4, true);
-			if (ret) {
-				dev_err(px4->dev,
-					"px4_chrdev_open %u:%u: px4_mldev_set_power(true) failed. (ret: %d)\n",
-					chrdev_group->id, chrdev->id, ret);
-				goto fail_backend_power;
-			}
-		} else {
-			ret = px4_backend_set_power(px4, true);
-			if (ret) {
-				dev_err(px4->dev,
-					"px4_chrdev_open %u:%u: px4_backend_set_power(true) failed. (ret: %d)\n",
-					chrdev_group->id, chrdev->id, ret);
-				goto fail_backend_power;
-			}
+	if (px4->mldev) {
+		ret = px4_mldev_set_power(px4->mldev, px4, chrdev->id, true, &need_init);
+		if (ret) {
+			dev_err(px4->dev,
+				"px4_chrdev_open %u:%u: px4_mldev_set_power(true) failed. (ret: %d)\n",
+				chrdev_group->id, chrdev->id, ret);
+			goto fail_backend_power;
 		}
+	} else if (!px4->open_count) {
+		ret = px4_backend_set_power(px4, true);
+		if (ret) {
+			dev_err(px4->dev,
+				"px4_chrdev_open %u:%u: px4_backend_set_power(true) failed. (ret: %d)\n",
+				chrdev_group->id, chrdev->id, ret);
+			goto fail_backend_power;
+		}
+		need_init = true;
+	}
+
+	if (need_init) {
+		dev_dbg(px4->dev,
+			"px4_chrdev_open %u:%u: init\n",
+			chrdev_group->id, chrdev->id);
 
 		ret = px4_backend_init(px4);
 		if (ret) {
@@ -507,7 +513,7 @@ fail_backend:
 fail_backend_init:
 	if (!px4->open_count) {
 		if (px4->mldev)
-			px4_mldev_set_power(px4->mldev, px4, false);
+			px4_mldev_set_power(px4->mldev, px4, chrdev->id, false, NULL);
 		else
 			px4_backend_set_power(px4, false);
 	}
@@ -542,9 +548,7 @@ static int px4_chrdev_release(struct ptx_chrdev *chrdev)
 	px4->open_count--;
 	if (!px4->open_count) {
 		px4_backend_term(px4);
-		if (px4->mldev)
-			px4_mldev_set_power(px4->mldev, px4, false);
-		else
+		if (!px4->mldev)
 			px4_backend_set_power(px4, false);
 	} else if (atomic_read(&px4->available)) {
 		/* sleep tuners */
@@ -565,6 +569,9 @@ static int px4_chrdev_release(struct ptx_chrdev *chrdev)
 			break;
 		}
 	}
+
+	if (px4->mldev)
+		px4_mldev_set_power(px4->mldev, px4, chrdev->id, false, NULL);
 
 	if (kref_put(&px4->kref, px4_device_release))
 		return 0;
@@ -1288,8 +1295,8 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 		if (px4_mldev_search(px4->serial.serial_number, &px4->mldev))
 			ret = px4_mldev_add(px4->mldev, px4);
 		else
-			ret = px4_mldev_alloc(&px4->mldev, px4,
-					      px4_backend_set_power);
+			ret = px4_mldev_alloc(&px4->mldev, PX4_MLDEV_ALL_MODE,
+					      px4, px4_backend_set_power);
 
 		if (ret)
 			goto fail_device;
