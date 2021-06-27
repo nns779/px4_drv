@@ -511,12 +511,10 @@ fail_backend:
 		px4_backend_term(px4);
 
 fail_backend_init:
-	if (!px4->open_count) {
-		if (px4->mldev)
-			px4_mldev_set_power(px4->mldev, px4, chrdev->id, false, NULL);
-		else
-			px4_backend_set_power(px4, false);
-	}
+	if (px4->mldev)
+		px4_mldev_set_power(px4->mldev, px4, chrdev->id, false, NULL);
+	else if (!px4->open_count)
+		px4_backend_set_power(px4, false);
 
 fail_backend_power:
 	mutex_unlock(&px4->lock);
