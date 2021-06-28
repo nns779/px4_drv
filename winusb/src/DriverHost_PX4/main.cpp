@@ -31,6 +31,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 	px4::util::path::Init(hInstance);
 
+	SetCurrentDirectoryW(px4::util::path::GetDir().c_str());
+
 	try {
 		px4::DriverHost host;
 
