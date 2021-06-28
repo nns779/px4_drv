@@ -179,7 +179,7 @@ int PxMltDevice::Init()
 	for (auto it = device_def_.receivers.cbegin(); it != device_def_.receivers.cend(); ++it) {
 		px4::command::ReceiverInfo ri;
 
-		if (it->index < 0 || it->index > 4)
+		if (it->index < 0 || it->index >= receiver_num_)
 			continue;
 
 		wcscpy_s(ri.device_name, device_def_.name.c_str());
@@ -366,7 +366,7 @@ int PxMltDevice::StopCapture()
 	return 0;
 }
 
-void PxMltDevice::StreamProcess(std::shared_ptr<px4::ReceiverBase::StreamBuffer> stream_buf[], std::uint8_t **buf, std::size_t &len)
+void PxMltDevice::StreamProcess(std::shared_ptr<px4::ReceiverBase::StreamBuffer> stream_buf[], int num, std::uint8_t **buf, std::size_t &len)
 {
 	std::uint8_t *p = *buf;
 	std::size_t remain = len;
@@ -397,7 +397,7 @@ void PxMltDevice::StreamProcess(std::shared_ptr<px4::ReceiverBase::StreamBuffer>
 		while (remain >= 188 && ((p[0] & 0x8f) == 0x07)) {
 			u8 id = (p[0] & 0x70) >> 4;
 
-			if (id && id < 6) {
+			if (id && id <= num) {
 				std::size_t pkt_len = 188;
 
 				p[0] = 0x47;
@@ -409,7 +409,7 @@ void PxMltDevice::StreamProcess(std::shared_ptr<px4::ReceiverBase::StreamBuffer>
 		}
 	}
 
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < num; i++)
 		stream_buf[i]->NotifyWrite();
 
 	*buf = p;
@@ -421,6 +421,7 @@ void PxMltDevice::StreamProcess(std::shared_ptr<px4::ReceiverBase::StreamBuffer>
 int PxMltDevice::StreamHandler(void *context, void *buf, std::uint32_t len)
 {
 	PxMltDevice &obj = *static_cast<PxMltDevice*>(context);
+	int receiver_num = obj.receiver_num_;
 	StreamContext &stream_ctx = obj.stream_ctx_;
 	std::uint8_t *p = static_cast<std::uint8_t*>(buf);
 	std::size_t remain = len;
@@ -433,7 +434,7 @@ int PxMltDevice::StreamHandler(void *context, void *buf, std::uint32_t len)
 			memcpy(remain_buf + stream_ctx.remain_len, p, t);
 			stream_ctx.remain_len = PXMLT_DEVICE_TS_SYNC_SIZE;
 
-			StreamProcess(stream_ctx.stream_buf, &remain_buf, stream_ctx.remain_len);
+			StreamProcess(stream_ctx.stream_buf, receiver_num, &remain_buf, stream_ctx.remain_len);
 			if (!stream_ctx.remain_len) {
 				p += t;
 				remain -= t;
@@ -448,7 +449,7 @@ int PxMltDevice::StreamHandler(void *context, void *buf, std::uint32_t len)
 		}
 	}
 
-	StreamProcess(stream_ctx.stream_buf, &p, remain);
+	StreamProcess(stream_ctx.stream_buf, receiver_num, &p, remain);
 
 	if (remain) {
 		dev_dbg(&obj.dev_, "px4::PxMltDevice::StreamHandler: remain: %lu\n", remain);

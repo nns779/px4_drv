@@ -130,7 +130,7 @@ private:
 	int StartCapture();
 	int StopCapture();
 
-	static void StreamProcess(std::shared_ptr<px4::ReceiverBase::StreamBuffer> stream_buf[], std::uint8_t **buf, std::size_t &len);
+	static void StreamProcess(std::shared_ptr<px4::ReceiverBase::StreamBuffer> stream_buf[], int num, std::uint8_t **buf, std::size_t &len);
 	static int StreamHandler(void *context, void *buf, std::uint32_t len);
 
 	static const struct PxMltDeviceParam final {
