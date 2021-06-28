@@ -77,14 +77,20 @@ bool BonDriver::Init()
 			bool result;
 
 			try {
-				result = chset_t.Load(configs_.Get(L"BonDriver.ISDB-T").Get(L"ChSetPath"), px4::SystemType::ISDB_T);
+				std::wstring chset_path = configs_.Get(L"BonDriver.ISDB-T").Get(L"ChSetPath");
+				WCHAR path[MAX_PATH];
+
+				if (PathIsRelativeW(chset_path.c_str()) && PathCanonicalizeW(path, (dir_path + chset_path).c_str()))
+					chset_path = path;
+
+				result = chset_t.Load(chset_path, px4::SystemType::ISDB_T);
 			} catch (const std::out_of_range&) {
 				result = false;
 			}
 
 			if (!result) {
 				chset_t.Clear();
-				result = chset_t.Load(L".\\BonDriver_PX4-T.ChSet.txt", px4::SystemType::ISDB_T);
+				result = chset_t.Load(dir_path + L"BonDriver_PX4-T.ChSet.txt", px4::SystemType::ISDB_T);
 			}
 
 			if (result)
@@ -96,14 +102,20 @@ bool BonDriver::Init()
 			bool result;
 
 			try {
-				result = chset_s.Load(configs_.Get(L"BonDriver.ISDB-S").Get(L"ChSetPath"), px4::SystemType::ISDB_S);
+				std::wstring chset_path = configs_.Get(L"BonDriver.ISDB-S").Get(L"ChSetPath");
+				WCHAR path[MAX_PATH];
+
+				if (PathIsRelativeW(chset_path.c_str()) && PathCanonicalizeW(path, (dir_path + chset_path).c_str()))
+					chset_path = path;
+
+				result = chset_s.Load(chset_path, px4::SystemType::ISDB_S);
 			} catch (const std::out_of_range&) {
 				result = false;
 			}
 
 			if (!result) {
 				chset_s.Clear();
-				result = chset_s.Load(L".\\BonDriver_PX4-S.ChSet.txt", px4::SystemType::ISDB_S);
+				result = chset_s.Load(dir_path + L"BonDriver_PX4-S.ChSet.txt", px4::SystemType::ISDB_S);
 			}
 
 			if (result)
