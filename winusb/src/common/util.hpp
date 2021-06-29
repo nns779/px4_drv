@@ -27,6 +27,47 @@ static std::uint32_t atoui32(const char *str)
 	return value;
 }
 
+static int wtoi(const std::wstring &str)
+{
+	const wchar_t *p = str.c_str();
+	wchar_t sign = L'\0';
+	int value = 0;
+
+	if (*p == '+' || *p == '-')
+		sign = *p++;
+
+	for (; *p; p++) {
+		if (*p < '0' || *p > '9')
+			break;
+
+		value *= 10;
+		value += *p - '0';
+	}
+
+	return (sign == '-') ? -value : value;
+}
+
+static unsigned int wtoui(const std::wstring &str)
+{
+	const wchar_t *p = str.c_str();
+	unsigned int value = 0;
+
+	for (; *p; p++) {
+		if (*p < '0' || *p > '9')
+			break;
+
+		value *= 10;
+		value += *p - '0';
+	}
+
+	return value;
+}
+
+static bool wtob(const std::wstring &str)
+{
+	return (str == L"true" || str == L"Y");
+}
+
 bool HexFromStr(const wchar_t c, std::uint8_t &v);
 bool HexStrToUInt8(const wchar_t *str, std::uint8_t &v);
 bool ShiftJisToUtf16(const char *sjis, std::wstring &utf16);

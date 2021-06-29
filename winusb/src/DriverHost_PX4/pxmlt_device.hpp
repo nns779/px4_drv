@@ -122,6 +122,8 @@ private:
 		bool streaming_;
 	};
 
+	void LoadConfig();
+
 	const i2c_comm_master& GetI2cMaster(int bus) const;
 
 	int SetBackendPower(bool state);

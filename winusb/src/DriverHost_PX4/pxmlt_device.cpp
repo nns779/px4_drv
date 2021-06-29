@@ -67,6 +67,8 @@ PxMltDevice::PxMltDevice(const std::wstring &path, const px4::DeviceDefinition &
 		throw DeviceError("px4::PxMltDevice::PxMltDevice: unsupported device. (unknown product id)");
 	}
 
+	LoadConfig();
+
 	memset(&it930x_, 0, sizeof(it930x_));
 	memset(&stream_ctx_, 0, sizeof(stream_ctx_));
 }
@@ -74,6 +76,42 @@ PxMltDevice::PxMltDevice(const std::wstring &path, const px4::DeviceDefinition &
 PxMltDevice::~PxMltDevice()
 {
 	Term();
+}
+
+void PxMltDevice::LoadConfig()
+{
+	auto &configs = device_def_.configs;
+
+	if (configs.Exists(L"XferPackets"))
+		config_.usb.xfer_packets = px4::util::wtoui(configs.Get(L"XferPackets"));
+
+	if (configs.Exists(L"UrbMaxPackets"))
+		config_.usb.urb_max_packets = px4::util::wtoui(configs.Get(L"UrbMaxPackets"));
+
+	if (configs.Exists(L"MaxUrbs"))
+		config_.usb.max_urbs = px4::util::wtoui(configs.Get(L"MaxUrbs"));
+
+	if (configs.Exists(L"NoRawIo"))
+		config_.usb.no_raw_io = px4::util::wtob(configs.Get(L"NoRawIo"));
+
+	if (configs.Exists(L"ReceiverMaxPackets"))
+		config_.device.receiver_max_packets = px4::util::wtoui(configs.Get(L"ReceiverMaxPackets"));
+
+	if (configs.Exists(L"PsbPurgeTimeout"))
+		config_.device.psb_purge_timeout = px4::util::wtoi(configs.Get(L"PsbPurgeTimeout"));
+
+	if (configs.Exists(L"DiscardNullPackets"))
+		config_.device.discard_null_packets = px4::util::wtob(configs.Get(L"DiscardNullPackets"));
+
+	dev_dbg(&dev_, "px4::PxMltDevice::LoadConfig: xfer_packets: %u\n", config_.usb.xfer_packets);
+	dev_dbg(&dev_, "px4::PxMltDevice::LoadConfig: urb_max_packets: %u\n", config_.usb.urb_max_packets);
+	dev_dbg(&dev_, "px4::PxMltDevice::LoadConfig: max_urbs: %u\n", config_.usb.max_urbs);
+	dev_dbg(&dev_, "px4::PxMltDevice::LoadConfig: no_raw_io: %s\n", (config_.usb.no_raw_io) ? "true" : "false");
+	dev_dbg(&dev_, "px4::PxMltDevice::LoadConfig: receiver_max_packets: %u\n", config_.device.receiver_max_packets);
+	dev_dbg(&dev_, "px4::PxMltDevice::LoadConfig: psb_purge_timeout: %i\n", config_.device.psb_purge_timeout);
+	dev_dbg(&dev_, "px4::PxMltDevice::LoadConfig: discard_null_packets: %s\n", (config_.device.discard_null_packets) ? "true" : "false");
+
+	return;
 }
 
 int PxMltDevice::Init()

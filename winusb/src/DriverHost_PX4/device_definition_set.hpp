@@ -28,6 +28,7 @@ struct DeviceDefinition final {
 	std::wstring name;
 	GUID guid;
 	GUID device_interface_guid;
+	Config configs;
 	std::vector<ReceiverDefinition> receivers;
 };
 

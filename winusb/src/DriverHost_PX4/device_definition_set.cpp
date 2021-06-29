@@ -7,14 +7,14 @@ namespace px4 {
 void DeviceDefinitionSet::Load(const px4::ConfigSet &configs) noexcept
 {
 	for (int i = 0; i < 512; i++) {
-		wchar_t dev_sct[32];
+		wchar_t sct[64];
 
-		swprintf_s(dev_sct, L"DeviceDefinition%d", i);
+		swprintf_s(sct, L"DeviceDefinition%d", i);
 
-		if (!configs.Exists(dev_sct))
+		if (!configs.Exists(sct))
 			break;
 
-		const px4::Config &cd = configs.Get(dev_sct);
+		const px4::Config &cd = configs.Get(sct);
 
 		const std::wstring &dev_name = cd.Get(L"Name", L"");
 		const std::wstring &dev_guid_str = cd.Get(L"GUID", L"");
@@ -27,15 +27,18 @@ void DeviceDefinitionSet::Load(const px4::ConfigSet &configs) noexcept
 		px4::util::ParseGuidStr(dev_guid_str, dev_def.guid);
 		px4::util::ParseGuidStr(dev_intf_guid_str, dev_def.device_interface_guid);
 
+		wcscat_s(sct, L".Config");
+
+		if (configs.Exists(sct))
+			dev_def.configs = configs.Get(sct);
+
 		for (int j = 0; j < 64; j++) {
-			wchar_t rcvr_sct[64];
+			swprintf_s(sct, L"DeviceDefinition%d.Receiver%d", i, j);
 
-			swprintf_s(rcvr_sct, L"DeviceDefinition%d.Receiver%d", i, j);
-
-			if (!configs.Exists(rcvr_sct))
+			if (!configs.Exists(sct))
 				break;
 
-			const px4::Config &cr = configs.Get(rcvr_sct);
+			const px4::Config &cr = configs.Get(sct);
 
 			const std::wstring &rcvr_name = cr.Get(L"Name", L"");
 			const std::wstring &rcvr_guid_str = cr.Get(L"GUID", L"");
