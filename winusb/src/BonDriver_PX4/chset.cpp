@@ -55,7 +55,7 @@ bool ChannelSet::Load(const std::wstring &path, px4::SystemType system) noexcept
 
 			// space
 			Split(&tmp_head, &tmp_tail, '\t');
-			space_id = px4::util::atoui(tmp_head);
+			space_id = px4::util::atoui32(tmp_head);
 
 			space_id_table.emplace(space_id, next_space_id_);
 
@@ -74,7 +74,7 @@ bool ChannelSet::Load(const std::wstring &path, px4::SystemType system) noexcept
 
 			// space
 			Split(&tmp_head, &tmp_tail, '\t');
-			space_id = px4::util::atoui(tmp_head);
+			space_id = px4::util::atoui32(tmp_head);
 
 			try {
 				space_id = space_id_table.at(space_id);
@@ -87,15 +87,15 @@ bool ChannelSet::Load(const std::wstring &path, px4::SystemType system) noexcept
 
 			// ch
 			Split(&tmp_head, &tmp_tail, '\t');
-			ch_id = px4::util::atoui(tmp_head);
+			ch_id = px4::util::atoui32(tmp_head);
 
 			// ptx_ch
 			Split(&tmp_head, &tmp_tail, '\t');
-			ch.ptx_ch = px4::util::atoui(tmp_head);
+			ch.ptx_ch = px4::util::atoui32(tmp_head);
 
 			// tsid
 			Split(&tmp_head, &tmp_tail, '\t');
-			ch.tsid = static_cast<std::uint16_t>(px4::util::atoui(tmp_head));
+			ch.tsid = static_cast<std::uint16_t>(px4::util::atoui32(tmp_head));
 
 			if (!AddChannel(space_id, ch_id, ch))
 				return false;

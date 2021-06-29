@@ -12,7 +12,7 @@ namespace px4 {
 
 namespace util {
 
-static std::uint32_t atoui(const char *str)
+static std::uint32_t atoui32(const char *str)
 {
 	std::uint32_t value = 0;
 
