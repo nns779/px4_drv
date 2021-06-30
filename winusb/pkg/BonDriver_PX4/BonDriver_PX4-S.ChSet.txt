@@ -1,12 +1,12 @@
 ;
-; BonDriver_PX4 ãƒãƒ£ãƒ³ãƒãƒ«å®šç¾©ãƒ•ã‚¡ã‚¤ãƒ« (ISDB-S) (æ—¥æœ¬ã«ãŠã‘ã‚‹è¡›æ˜Ÿæ³¢ãƒ‡ã‚¸ã‚¿ãƒ«æ”¾é€ç”¨)
-; (BonDriver_PT3-STã®ChSet.txtã¨äº’æ›æ€§ã‚ã‚Š)
+; BonDriver_PX4 ƒ`ƒƒƒ“ƒlƒ‹’è‹`ƒtƒ@ƒCƒ‹ (ISDB-S) (“ú–{‚É‚¨‚¯‚é‰q¯”gƒfƒWƒ^ƒ‹•ú‘——p)
+; (BonDriver_PT3-ST‚ÌChSet.txt‚ÆŒÝŠ·«‚ ‚è)
 ;
-; ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“å®šç¾© ($ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“å<TAB>ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“ID)
+; ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔ’è‹` ($ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔ–¼<TAB>ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔID)
 $BS	0
 $CS110	1
 ;
-; ãƒãƒ£ãƒ³ãƒãƒ«å®šç¾© (ãƒãƒ£ãƒ³ãƒãƒ«å<TAB>ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“ID<TAB>ãƒãƒ£ãƒ³ãƒãƒ«ID<TAB>PTXå†…éƒ¨ãƒãƒ£ãƒ³ãƒãƒ«ID<TAB>TSID(ISDB-Sç”¨))
+; ƒ`ƒƒƒ“ƒlƒ‹’è‹` (ƒ`ƒƒƒ“ƒlƒ‹–¼<TAB>ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔID<TAB>ƒ`ƒƒƒ“ƒlƒ‹ID<TAB>PTX“à•”ƒ`ƒƒƒ“ƒlƒ‹ID<TAB>TSID(ISDB-S—p))
 ; [BS]
 BS01/TS0	0	0	0	16400
 BS01/TS1	0	1	0	16401

@@ -1,13 +1,13 @@
 ;
-; BonDriver_PX4 ãƒãƒ£ãƒ³ãƒãƒ«å®šç¾©ãƒ•ã‚¡ã‚¤ãƒ« (ISDB-T) (æ—¥æœ¬ã«ãŠã‘ã‚‹åœ°ä¸Šæ³¢ãƒ‡ã‚¸ã‚¿ãƒ«æ”¾é€ç”¨)
-; (BonDriver_PT3-STã®ChSet.txtã¨äº’æ›æ€§ã‚ã‚Š)
+; BonDriver_PX4 ƒ`ƒƒƒ“ƒlƒ‹’è‹`ƒtƒ@ƒCƒ‹ (ISDB-T) (“ú–{‚É‚¨‚¯‚é’nã”gƒfƒWƒ^ƒ‹•ú‘——p)
+; (BonDriver_PT3-ST‚ÌChSet.txt‚ÆŒÝŠ·«‚ ‚è)
 ;
-; ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“å®šç¾© ($ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“å<TAB>ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“ID)
-$åœ°ãƒ‡ã‚¸(UHF)	0
-;$åœ°ãƒ‡ã‚¸(CATV)	1
+; ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔ’è‹` ($ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔ–¼<TAB>ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔID)
+$’nƒfƒW(UHF)	0
+;$’nƒfƒW(CATV)	1
 ;
-; ãƒãƒ£ãƒ³ãƒãƒ«å®šç¾© (ãƒãƒ£ãƒ³ãƒãƒ«å<TAB>ãƒãƒ£ãƒ³ãƒãƒ«ç©ºé–“ID<TAB>ãƒãƒ£ãƒ³ãƒãƒ«ID<TAB>PTXå†…éƒ¨ãƒãƒ£ãƒ³ãƒãƒ«ID<TAB>TSID(ISDB-Sç”¨))
-; [åœ°ãƒ‡ã‚¸(UHF)]
+; ƒ`ƒƒƒ“ƒlƒ‹’è‹` (ƒ`ƒƒƒ“ƒlƒ‹–¼<TAB>ƒ`ƒƒƒ“ƒlƒ‹‹óŠÔID<TAB>ƒ`ƒƒƒ“ƒlƒ‹ID<TAB>PTX“à•”ƒ`ƒƒƒ“ƒlƒ‹ID<TAB>TSID(ISDB-S—p))
+; [’nƒfƒW(UHF)]
 13Ch	0	0	63	0
 14Ch	0	1	64	0
 15Ch	0	2	65	0
@@ -48,7 +48,7 @@ $åœ°ãƒ‡ã‚¸(UHF)	0
 50Ch	0	37	100	0
 51Ch	0	38	101	0
 52Ch	0	39	102	0
-; [åœ°ãƒ‡ã‚¸(CATV)]
+; [’nƒfƒW(CATV)]
 C13Ch	1	0	 3	0
 C14Ch	1	1	 4	0
 C15Ch	1	2	 5	0
