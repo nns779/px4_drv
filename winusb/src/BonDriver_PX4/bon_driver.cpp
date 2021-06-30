@@ -228,17 +228,20 @@ const BOOL BonDriver::OpenTuner()
 		ctrl_pipe_config.stream_read = false;
 		ctrl_pipe_config.timeout = 2000;
 
-		if (!ctrl_pipe->Connect(L"px4_ctrl_pipe", ctrl_pipe_config, nullptr)) {
+		if (!ctrl_pipe->Connect(L"px4_ctrl_pipe", ctrl_pipe_config, nullptr))
 			throw BonDriverError("BonDriver::OpenTuner: control pipe: cannot connect.");
-		}
 
 		ctrl_client_.SetPipe(ctrl_pipe);
 
-		for (std::size_t i = 0; ; i++) {
-			const px4::command::ReceiverInfo &ri = receivers_.Get(i);
+		try {
+			for (std::size_t i = 0; ; i++) {
+				const px4::command::ReceiverInfo &ri = receivers_.Get(i);
 
-			if (ctrl_client_.Open(ri, systems_, &ri_res))
-				break;
+				if (ctrl_client_.Open(ri, systems_, &ri_res))
+					break;
+			}
+		} catch (const std::out_of_range &) {
+			throw BonDriverError("BonDriver::OpenTuner: no receivers available.");
 		}
 
 		px4::PipeClient::PipeClientConfig data_pipe_config;
@@ -248,11 +251,8 @@ const BOOL BonDriver::OpenTuner()
 
 		data_pipe_.reset(new px4::PipeClient());
 
-		if (!data_pipe_->Connect(L"px4_data_pipe", data_pipe_config, nullptr)) {
-			ctrl_client_.Close();
-			ctrl_client_.ClearPipe();
+		if (!data_pipe_->Connect(L"px4_data_pipe", data_pipe_config, nullptr))
 			throw BonDriverError("BonDriver::OpenTuner: data pipe: cannot connect.");
-		}
 
 		px4::command::DataCmd data_cmd;
 		std::size_t ret_size;
@@ -260,26 +260,15 @@ const BOOL BonDriver::OpenTuner()
 		data_cmd.cmd = px4::command::DataCmdCode::SET_DATA_ID;
 		data_cmd.data_id = ri_res.data_id;
 
-		if (!data_pipe_->Write(&data_cmd, sizeof(data_cmd), ret_size)) {
-			data_pipe_.reset();
-			ctrl_client_.Close();
-			ctrl_client_.ClearPipe();
+		if (!data_pipe_->Write(&data_cmd, sizeof(data_cmd), ret_size))
 			throw BonDriverError("BonDriver::OpenTuner: command failed.");
-		}
 
-		if (!ctrl_client_.SetCapture(true)) {
-			data_pipe_.reset();
-			ctrl_client_.Close();
-			ctrl_client_.ClearPipe();
+		if (!ctrl_client_.SetCapture(true))
 			throw BonDriverError("BonDriver::OpenTuner: command failed.");
-		}
 
 		ioq_->Start();
 
 		open_ = TRUE;
-	} catch (const std::out_of_range &) {
-		ret = FALSE;
-		MessageBoxA(nullptr, "BonDriver::OpenTuner: cannot open.", "BonDriver_PX4 (BonDriver::OpenTuner)", MB_OK | MB_ICONERROR);
 	} catch (const std::exception &e) {
 		ret = FALSE;
 		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::OpenTuner)", MB_OK | MB_ICONERROR);
@@ -295,6 +284,7 @@ const BOOL BonDriver::OpenTuner()
 			data_pipe_.reset();
 		}
 
+		ctrl_client_.Close();
 		ctrl_client_.ClearPipe();
 	}
 
@@ -314,6 +304,7 @@ void BonDriver::CloseTuner()
 		data_pipe_.reset();
 	}
 
+	ctrl_client_.Close();
 	ctrl_client_.ClearPipe();
 
 	space_ = 0;
