@@ -809,10 +809,12 @@ int PxMltDevice::PxMltReceiver::Tune()
 		return ret;
 
 	ret = cxd2856er_post_tune(&cxd2856er_);
-	if (ret)
+	if (ret) {
 		dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2856er_post_tune() failed. (ret: %d)\n");
-	else
-		current_system_ = params_.system;
+		return ret;
+	}
+
+	current_system_ = params_.system;
 
 	int i = 300;
 	while (i--) {
