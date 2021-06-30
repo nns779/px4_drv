@@ -11,19 +11,30 @@
 
 namespace px4 {
 
+struct Px4MultiDeviceModeParam final {
+	Px4MultiDeviceMode mode;
+	const wchar_t str[8];
+} px4_mldev_mode_param[] = {
+	{ Px4MultiDeviceMode::ALL, L"all" },
+	{ Px4MultiDeviceMode::S_ONLY, L"s-only" },
+	{ Px4MultiDeviceMode::S0_ONLY, L"s0-only" },
+	{ Px4MultiDeviceMode::S1_ONLY, L"s1-only" },
+};
+
 Px4Device::Px4Device(const std::wstring &path, const px4::DeviceDefinition &device_def, std::uintptr_t index, px4::ReceiverManager &receiver_manager)
 	: DeviceBase(path, device_def, index, receiver_manager),
 	config_(),
 	lock_(),
 	available_(true),
+	serial_(),
 	init_(false),
 	open_count_(0),
 	lnb_power_count_(0),
 	streaming_count_(0)
 {
 	LoadConfig();
+	ParseSerialNumber();
 
-	memset(&serial_, 0, sizeof(serial_));
 	memset(&it930x_, 0, sizeof(it930x_));
 	memset(&stream_ctx_, 0, sizeof(stream_ctx_));
 }
@@ -55,6 +66,20 @@ void Px4Device::LoadConfig()
 	if (configs.Exists(L"PsbPurgeTimeout"))
 		config_.device.psb_purge_timeout = px4::util::wtoi(configs.Get(L"PsbPurgeTimeout"));
 
+	if (configs.Exists(L"DisableMultiDevicePowerControl"))
+		config_.device.disable_multi_device_power_control = px4::util::wtob(configs.Get(L"DisableMultiDevicePowerControl"));
+
+	if (configs.Exists(L"MultiDevicePowerControlMode")) {
+		auto &mode_str = configs.Get(L"MultiDevicePowerControlMode");
+
+		for (int i = 0; i < sizeof(px4_mldev_mode_param) / sizeof(px4_mldev_mode_param[0]); i++) {
+			if (mode_str == px4_mldev_mode_param[i].str) {
+				config_.device.multi_device_power_control_mode = px4_mldev_mode_param[i].mode;
+				break;
+			}
+		}
+	}
+
 	if (configs.Exists(L"DiscardNullPackets"))
 		config_.device.discard_null_packets = px4::util::wtob(configs.Get(L"DiscardNullPackets"));
 
@@ -64,7 +89,25 @@ void Px4Device::LoadConfig()
 	dev_dbg(&dev_, "px4::Px4Device::LoadConfig: no_raw_io: %s\n", (config_.usb.no_raw_io) ? "true" : "false");
 	dev_dbg(&dev_, "px4::Px4Device::LoadConfig: receiver_max_packets: %u\n", config_.device.receiver_max_packets);
 	dev_dbg(&dev_, "px4::Px4Device::LoadConfig: psb_purge_timeout: %i\n", config_.device.psb_purge_timeout);
+	dev_dbg(&dev_, "px4::Px4Device::LoadConfig: disable_multi_device_power_control: %s\n", (config_.device.disable_multi_device_power_control) ? "true" : "false");
 	dev_dbg(&dev_, "px4::Px4Device::LoadConfig: discard_null_packets: %s\n", (config_.device.discard_null_packets) ? "true" : "false");
+
+	return;
+}
+
+void Px4Device::ParseSerialNumber() noexcept
+{
+	if (!usb_dev_.serial)
+		return;
+
+	try {
+		serial_.serial_number = std::stoull(usb_dev_.serial->bString);
+		serial_.dev_id = static_cast<std::uint8_t>(serial_.serial_number % 10);
+		serial_.serial_number /= 10;
+
+		dev_dbg(&dev_, "px4::Px4Device::ParseSerialNumber: serial_number: %014llu\n", serial_.serial_number);
+		dev_dbg(&dev_, "px4::Px4Device::ParseSerialNumber: dev_id: %u\n", serial_.dev_id);
+	} catch (...) {}
 
 	return;
 }
@@ -79,6 +122,7 @@ int Px4Device::Init()
 		return -EALREADY;
 
 	int ret = 0;
+	bool use_mldev = false;
 	itedtv_bus &bus = it930x_.bus;
 
 	bus.dev = &dev_;
@@ -138,13 +182,34 @@ int Px4Device::Init()
 	if (ret)
 		goto fail_device;
 
-	ret = it930x_write_gpio(&it930x_, 7, true);
-	if (ret)
-		goto fail_device;
+	switch (usb_dev_.descriptor.idProduct) {
+	case 0x084a:
+	case 0x24a:
+	case 0x74a:
+		use_mldev = !config_.device.disable_multi_device_power_control;
+		break;
 
-	ret = it930x_write_gpio(&it930x_, 2, false);
-	if (ret)
-		goto fail_device;
+	default:
+		break;
+	}
+
+	if (use_mldev) {
+		if (MultiDevice::Search(serial_.serial_number, mldev_))
+			ret = mldev_->Add(*this);
+		else
+			ret = MultiDevice::Alloc(*this, config_.device.multi_device_power_control_mode, mldev_);
+
+		if (ret)
+			goto fail_device;
+	} else {
+		ret = it930x_write_gpio(&it930x_, 7, true);
+		if (ret)
+			goto fail_device;
+
+		ret = it930x_write_gpio(&it930x_, 2, false);
+		if (ret)
+			goto fail_device;
+	}
 
 	ret = it930x_set_gpio_mode(&it930x_, 11, IT930X_GPIO_OUT, true);
 	if (ret)
@@ -468,7 +533,7 @@ int Px4Device::StreamHandler(void *context, void *buf, std::uint32_t len)
 std::mutex Px4Device::MultiDevice::mldev_list_lock_;
 std::unordered_map<std::uint64_t, std::shared_ptr<Px4Device::MultiDevice>> Px4Device::MultiDevice::mldev_list_;
 
-Px4Device::MultiDevice::MultiDevice(Mode mode, std::uint64_t serial_number)
+Px4Device::MultiDevice::MultiDevice(Px4MultiDeviceMode mode, std::uint64_t serial_number)
 	: lock_(),
 	serial_number_(serial_number),
 	mode_(mode),
@@ -486,6 +551,8 @@ Px4Device::MultiDevice::~MultiDevice()
 
 bool Px4Device::MultiDevice::Search(std::uint64_t serial_number, std::shared_ptr<MultiDevice> &mldev)
 {
+	msg_dbg("px4::Px4Device::MultiDevice::Search\n");
+
 	try {
 		std::lock_guard<std::mutex> lock(mldev_list_lock_);
 
@@ -496,9 +563,13 @@ bool Px4Device::MultiDevice::Search(std::uint64_t serial_number, std::shared_ptr
 	}
 }
 
-int Px4Device::MultiDevice::Alloc(Px4Device &dev, Mode mode, std::shared_ptr<MultiDevice> &mldev)
+int Px4Device::MultiDevice::Alloc(Px4Device &dev, Px4MultiDeviceMode mode, std::shared_ptr<MultiDevice> &mldev)
 {
+	msg_dbg("px4::Px4Device::MultiDevice::Alloc\n");
+
 	std::uint8_t dev_id = dev.serial_.dev_id - 1;
+
+	msg_dbg("px4::Px4Device::MultiDevice::Alloc: serial_number: %014llu, dev_id: %u\n", dev.serial_.serial_number, dev.serial_.dev_id);
 
 	if (dev_id > 1)
 		return -EINVAL;
@@ -514,6 +585,8 @@ int Px4Device::MultiDevice::Alloc(Px4Device &dev, Mode mode, std::shared_ptr<Mul
 
 int Px4Device::MultiDevice::Add(Px4Device &dev)
 {
+	msg_dbg("px4::Px4Device::MultiDevice::Add\n");
+
 	std::uint8_t dev_id = dev.serial_.dev_id - 1;
 	
 	if (dev_id > 1)
@@ -546,6 +619,8 @@ int Px4Device::MultiDevice::Add(Px4Device &dev)
 
 int Px4Device::MultiDevice::Remove(Px4Device &dev)
 {
+	msg_dbg("px4::Px4Device::MultiDevice::Remove\n");
+
 	std::uint8_t dev_id = dev.serial_.dev_id - 1;
 	std::uint8_t other_dev_id = (dev_id) ? 1 : 0;
 
@@ -595,15 +670,15 @@ bool Px4Device::MultiDevice::IsPowerIntelockingRequried(std::uint8_t dev_id) con
 	auto &state = receiver_state_[dev_id];
 
 	switch (mode_) {
-	case Mode::S_ONLY:
+	case Px4MultiDeviceMode::S_ONLY:
 		ret = state[0] || state[1];
 		break;
 
-	case Mode::S0_ONLY:
+	case Px4MultiDeviceMode::S0_ONLY:
 		ret = state[0];
 		break;
 
-	case Mode::S1_ONLY:
+	case Px4MultiDeviceMode::S1_ONLY:
 		ret = state[1];
 		break;
 
@@ -611,6 +686,8 @@ bool Px4Device::MultiDevice::IsPowerIntelockingRequried(std::uint8_t dev_id) con
 		ret = state[0] || state[1] || state[2] || state[3];
 		break;
 	}
+
+	msg_dbg("px4::Px4Device::MultiDevice::IsPowerInterlockingRequired: ret: %s\n", (ret) ? "true" : "false");
 
 	return ret;
 }
@@ -654,7 +731,7 @@ int Px4Device::MultiDevice::SetPower(Px4Device &dev, std::uintptr_t index, bool 
 	if (dev_[other_dev_id]) {
 		bool interlocking = IsPowerIntelockingRequried(dev_id);
 
-		if (interlocking == state && power_state_[other_dev_id] != interlocking && (state || GetReceiverStatus(other_dev_id))) {
+		if (interlocking == state && power_state_[other_dev_id] != interlocking && (state || !GetReceiverStatus(other_dev_id))) {
 			ret = dev_[other_dev_id]->SetBackendPower(state);
 			if (ret && state)
 				return ret;

@@ -29,10 +29,17 @@ namespace px4 {
 #define PX4_DEVICE_TS_SYNC_COUNT	4U
 #define PX4_DEVICE_TS_SYNC_SIZE		(188U * PX4_DEVICE_TS_SYNC_COUNT)
 
+enum class Px4MultiDeviceMode {
+	ALL = 0,
+	S_ONLY,
+	S0_ONLY,
+	S1_ONLY
+};
+
 struct Px4DeviceConfig final {
 	Px4DeviceConfig()
 		: usb{ 816, 816, 5, false },
-		device{ 2048, 2000, true }
+		device{ 2048, 2000, false, Px4MultiDeviceMode::ALL, true }
 	{}
 	struct {
 		unsigned int xfer_packets;
@@ -43,6 +50,8 @@ struct Px4DeviceConfig final {
 	struct {
 		unsigned int receiver_max_packets;
 		int psb_purge_timeout;
+		bool disable_multi_device_power_control;
+		Px4MultiDeviceMode multi_device_power_control_mode;
 		bool discard_null_packets;
 	} device;
 };
@@ -68,6 +77,7 @@ public:
 
 private:
 	struct SerialNumber final {
+		SerialNumber() : serial_number(0), dev_id(0) {}
 		std::uint64_t serial_number;
 		std::uint8_t dev_id;
 	};
@@ -79,13 +89,6 @@ private:
 
 	class MultiDevice final {
 	public:
-		enum class Mode {
-			ALL = 0,
-			S_ONLY,
-			S0_ONLY,
-			S1_ONLY
-		};
-
 		~MultiDevice();
 
 		// cannot copy
@@ -97,14 +100,14 @@ private:
 		MultiDevice& operator=(MultiDevice &&) = delete;
 
 		static bool Search(std::uint64_t serial_number, std::shared_ptr<MultiDevice> &mldev);
-		static int Alloc(Px4Device &dev, Mode mode, std::shared_ptr<MultiDevice> &mldev);
+		static int Alloc(Px4Device &dev, Px4MultiDeviceMode mode, std::shared_ptr<MultiDevice> &mldev);
 
 		int Add(Px4Device &dev);
 		int Remove(Px4Device &dev);
 		int SetPower(Px4Device &dev, std::uintptr_t index, bool state, bool *first);
 
 	private:
-		MultiDevice(Mode mode, std::uint64_t serial_number);
+		MultiDevice(Px4MultiDeviceMode mode, std::uint64_t serial_number);
 
 		std::uint8_t GetDeviceCount() const noexcept;
 		bool GetReceiverStatus(std::uint8_t dev_id) const noexcept;
@@ -115,7 +118,7 @@ private:
 
 		std::mutex lock_;
 		std::uint64_t serial_number_;
-		Mode mode_;
+		Px4MultiDeviceMode mode_;
 		Px4Device *dev_[2];
 		bool power_state_[2];
 		bool receiver_state_[2][4];
@@ -172,6 +175,7 @@ private:
 	};
 
 	void LoadConfig();
+	void ParseSerialNumber() noexcept;
 
 	const i2c_comm_master& GetI2cMaster(int bus) const;
 
