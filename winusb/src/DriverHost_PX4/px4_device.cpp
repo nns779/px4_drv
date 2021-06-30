@@ -184,8 +184,8 @@ int Px4Device::Init()
 
 	switch (usb_dev_.descriptor.idProduct) {
 	case 0x084a:
-	case 0x24a:
-	case 0x74a:
+	case 0x024a:
+	case 0x074a:
 		use_mldev = !config_.device.disable_multi_device_power_control;
 		break;
 
