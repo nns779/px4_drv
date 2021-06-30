@@ -249,6 +249,8 @@ const BOOL BonDriver::OpenTuner()
 		data_pipe_.reset(new px4::PipeClient());
 
 		if (!data_pipe_->Connect(L"px4_data_pipe", data_pipe_config, nullptr)) {
+			ctrl_client_.Close();
+			ctrl_client_.ClearPipe();
 			throw BonDriverError("BonDriver::OpenTuner: data pipe: cannot connect.");
 		}
 
