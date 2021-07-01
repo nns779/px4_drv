@@ -1458,11 +1458,6 @@ int Px4Device::Px4Receiver::ReadStat(px4::command::StatType type, std::int32_t &
 
 			p = 10 * std::log10(5505024 / (double)cndat);
 			cnr = (0.024 * p * p * p * p) - (1.6 * p * p * p) + (39.8 * p * p) + (549.1 * p) + 3096.5;
-			/*printf("%u, %f, %f, %f, %f, %f\n", cndat, p, 0.024 * p * p * p * p, 1.6 * p * p * p, 39.8 * p * p, 549.1 * p);
-			p = std::round(std::log10(5505024 / (double)cndat) * 100000) / 100000;
-			printf("%u, %f, %f, %f, %f, %f\n", cndat, p, 240 * p * p * p * p, 1600 * p * p * p, 3980 * p * p, 5491 * p);
-			printf("%f, %f\n", cnr, (240 * p * p * p * p) - (1600 * p * p * p) + (3980 * p * p) + (5491 * p) + 3096.5);*/
-			//printf("%f, %f, %f, %f\n", (double)cndat, std::log10((double)cndat), 5505024 / (double)cndat, std::log10(5505024 / (double)cndat));
 
 			if (!std::isnan(cnr))
 				value = static_cast<std::int32_t>(cnr);
