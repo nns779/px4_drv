@@ -964,13 +964,13 @@ int Px4Device::Px4Receiver::Open()
 {
 	dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Open(%u): init_: %s, open_: %s\n", index_, (init_) ? "true" : "false", (open_) ? "true" : "false");
 
-	if (open_)
-		return (!init_) ? -EINVAL : 0;
-
 	int ret = 0;
 	std::unique_lock<std::mutex> lock(lock_);
 	std::unique_lock<std::recursive_mutex> dev_lock(parent_.lock_);
 	bool need_init = false;
+
+	if (open_)
+		return (!init_) ? -EINVAL : 0;
 
 	if (parent_.mldev_) {
 		ret = parent_.mldev_->SetPower(parent_, index_, true, &need_init);
