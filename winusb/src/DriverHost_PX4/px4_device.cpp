@@ -388,7 +388,7 @@ int Px4Device::PrepareCapture()
 	if (ret)
 		dev_err(&dev_, "px4::Px4Device::PrepareCapture: it930x_purge_psb() failed. (ret: %d)\n", ret);
 
-	return ret;
+	return (ret && ret != -ETIMEDOUT) ? ret : 0;
 }
 
 int Px4Device::StartCapture()

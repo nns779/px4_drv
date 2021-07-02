@@ -362,7 +362,8 @@ int PxMltDevice::StartCapture()
 		ret = it930x_purge_psb(&it930x_, config_.device.psb_purge_timeout);
 		if (ret) {
 			dev_err(&dev_, "px4::PxMltDevice::StartCapture: it930x_purge_psb() failed. (ret: %d)\n", ret);
-			return ret;
+			if (ret != -ETIMEDOUT)
+				return ret;
 		}
 
 		it930x_.bus.usb.streaming.urb_buffer_size = 188 * config_.usb.urb_max_packets;
