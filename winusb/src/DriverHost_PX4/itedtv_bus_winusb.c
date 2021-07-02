@@ -91,7 +91,7 @@ static int itedtv_usb_ctrl_tx(struct itedtv_bus *bus, void *buf, int len)
 	ResetEvent(ol.hEvent);
 
 	/* Endpoint 0x02: Host->Device bulk endpoint for controlling the device */
-	if (!WinUsb_WritePipe(dev->winusb, 0x02, buf, len, &rlen, &ol)) {
+	if (!WinUsb_WritePipe(dev->winusb, 0x02, buf, len, NULL, &ol)) {
 		if (GetLastError() == ERROR_IO_PENDING)
 			WaitForSingleObject(ol.hEvent, bus->usb.ctrl_timeout);
 		else
@@ -126,7 +126,7 @@ static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
 	ResetEvent(ol.hEvent);
 
 	/* Endpoint 0x81: Device->Host bulk endpoint for controlling the device */
-	if (!WinUsb_ReadPipe(dev->winusb, 0x81, buf, *len, &rlen, &ol)) {
+	if (!WinUsb_ReadPipe(dev->winusb, 0x81, buf, *len, NULL, &ol)) {
 		if (GetLastError() == ERROR_IO_PENDING)
 			WaitForSingleObject(ol.hEvent, bus->usb.ctrl_timeout);
 		else
@@ -140,10 +140,13 @@ static int itedtv_usb_ctrl_rx(struct itedtv_bus *bus, void *buf, int *len)
 			ret = -winerr_to_errno(bus->dev);
 	}
 
-	if (ret)
+	if (ret) {
 		WinUsb_AbortPipe(dev->winusb, 0x81);
+		*len = -1;
+	} else {
+		*len = rlen;
+	}
 
-	*len = (rlen <= INT_MAX) ? rlen : -1;
 	return ret;
 }
 
@@ -164,7 +167,7 @@ static int itedtv_usb_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int
 	}
 
 	/* Endpoint 0x84: Device->Host bulk endpoint for receiving TS from the device */
-	if (!WinUsb_ReadPipe(dev->winusb, 0x84, buf, *len, &rlen, &ol)) {
+	if (!WinUsb_ReadPipe(dev->winusb, 0x84, buf, *len, NULL, &ol)) {
 		if (GetLastError() == ERROR_IO_PENDING)
 			WaitForSingleObject(ol.hEvent, timeout);
 		else
@@ -178,12 +181,14 @@ static int itedtv_usb_stream_rx(struct itedtv_bus *bus, void *buf, int *len, int
 			ret = -winerr_to_errno(bus->dev);
 	}
 
-	if (ret)
+	if (ret) {
 		WinUsb_AbortPipe(dev->winusb, 0x84);
+		*len = -1;
+	} else {
+		*len = rlen;
+	}
 
-	*len = (rlen <= INT_MAX) ? rlen : -1;
 	CloseHandle(ol.hEvent);
-
 	return ret;
 }
 
