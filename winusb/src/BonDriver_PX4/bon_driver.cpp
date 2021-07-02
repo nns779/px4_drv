@@ -487,6 +487,8 @@ const BOOL BonDriver::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 	bool ret = false;
 
 	try {
+		std::lock_guard<std::mutex> lock(mtx_);
+
 		ret = ctrl_client_.SetParams(*param_set);
 		if (ret)
 			ret = ctrl_client_.Tune();
