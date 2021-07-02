@@ -168,6 +168,18 @@ void CtrlServer::CtrlConnection::Worker() noexcept
 
 			break;
 
+		case px4::command::CtrlCmdCode::CHECK_LOCK:
+		{
+			px4::command::CtrlCheckLockCmd *check_lock = reinterpret_cast<px4::command::CtrlCheckLockCmd *>(buf.get());
+
+			if (receiver && !receiver->CheckLock(check_lock->locked))
+				check_lock->status = px4::command::CtrlStatusCode::SUCCEEDED;
+			else
+				check_lock->status = px4::command::CtrlStatusCode::FAILED;
+
+			break;
+		}
+
 		case px4::command::CtrlCmdCode::SET_LNB_VOLTAGE:
 		{
 			px4::command::CtrlLnbVoltageCmd *lnb = reinterpret_cast<px4::command::CtrlLnbVoltageCmd *>(buf.get());

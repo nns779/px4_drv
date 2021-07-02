@@ -26,6 +26,7 @@ namespace command {
 		SET_PARAMS,
 		CLEAR_PARAMS,
 		TUNE,
+		CHECK_LOCK,
 		SET_LNB_VOLTAGE = 24,
 		READ_STATS = 32,
 	};
@@ -100,6 +101,10 @@ namespace command {
 
 	struct CtrlTuneCmd : CtrlCmdHeader {
 		// header only
+	};
+
+	struct CtrlCheckLockCmd : CtrlCmdHeader {
+		bool locked;
 	};
 
 	struct CtrlLnbVoltageCmd : CtrlCmdHeader {

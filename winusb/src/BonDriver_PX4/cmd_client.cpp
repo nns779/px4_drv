@@ -113,6 +113,22 @@ bool CtrlCmdClient::Tune() noexcept
 	return Call(tune_cmd);
 }
 
+bool CtrlCmdClient::CheckLock(bool &locked) noexcept
+{
+	px4::command::CtrlCheckLockCmd check_lock_cmd;
+
+	check_lock_cmd.cmd = px4::command::CtrlCmdCode::CHECK_LOCK;
+	check_lock_cmd.status = px4::command::CtrlStatusCode::NONE;
+	check_lock_cmd.locked = false;
+
+	bool ret = Call(check_lock_cmd);
+
+	if (ret)
+		locked = check_lock_cmd.locked;
+
+	return ret;
+}
+
 bool CtrlCmdClient::SetLnbVoltage(std::int32_t voltage) noexcept
 {
 	px4::command::CtrlLnbVoltageCmd lnb_cmd;

@@ -35,6 +35,7 @@ public:
 	bool SetParams(const px4::command::ParameterSet &param_set) noexcept;
 	bool ClearParams() noexcept;
 	bool Tune() noexcept;
+	bool CheckLock(bool &locked) noexcept;
 	bool SetLnbVoltage(std::int32_t voltage) noexcept;
 	bool ReadStats(px4::command::StatSet &stat_set) noexcept;
 
