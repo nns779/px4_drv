@@ -36,7 +36,7 @@ public:
 	bool ClearParams() noexcept;
 	bool Tune() noexcept;
 	bool SetLnbVoltage(std::int32_t voltage) noexcept;
-	bool ReadStats(px4::command::StatSet& stat_set) noexcept;
+	bool ReadStats(px4::command::StatSet &stat_set) noexcept;
 
 private:
 	template <typename T> bool Call(T &cmd) noexcept;
