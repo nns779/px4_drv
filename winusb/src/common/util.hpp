@@ -27,6 +27,22 @@ static std::uint32_t atoui32(const char *str)
 	return value;
 }
 
+static std::uint32_t wtoui32(const std::wstring &str)
+{
+	const wchar_t *p = str.c_str();
+	std::uint32_t value = 0;
+
+	for (; *p; p++) {
+		if (*p < L'0' || *p > L'9')
+			break;
+
+		value *= 10;
+		value += *p - L'0';
+	}
+
+	return value;
+}
+
 static int wtoi(const std::wstring &str)
 {
 	const wchar_t *p = str.c_str();

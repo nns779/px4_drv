@@ -27,6 +27,7 @@ BonDriver::BonDriver() noexcept
 	receivers_(),
 	lnb_power_(false),
 	lnb_power_state_(false),
+	pipe_timeout_(2000),
 	ctrl_client_(nullptr),
 	data_pipe_(nullptr),
 	open_(FALSE),
@@ -68,6 +69,10 @@ bool BonDriver::Init()
 				driver_host_path_ = path;
 
 			name_ = bon_config.Get(L"Name", L"PX4");
+
+			try {
+				pipe_timeout_ = px4::util::wtoui32(bon_config.Get(L"PipeConnectTimeout"));
+			} catch (const std::out_of_range &) {}
 		} else {
 			systems_ = px4::SystemType::ISDB_T;
 			driver_host_path_ = dir_path + L"DriverHost_PX4.exe";
@@ -234,7 +239,7 @@ const BOOL BonDriver::OpenTuner()
 		px4::command::ReceiverInfo ri_res;
 
 		ctrl_pipe_config.stream_read = false;
-		ctrl_pipe_config.timeout = 2000;
+		ctrl_pipe_config.timeout = pipe_timeout_;
 
 		if (!ctrl_pipe->Connect(L"px4_ctrl_pipe", ctrl_pipe_config, nullptr))
 			throw BonDriverError("BonDriver::OpenTuner: control pipe: cannot connect.");
@@ -255,7 +260,7 @@ const BOOL BonDriver::OpenTuner()
 		px4::PipeClient::PipeClientConfig data_pipe_config;
 
 		data_pipe_config.stream_read = true;
-		data_pipe_config.timeout = 2000;
+		data_pipe_config.timeout = pipe_timeout_;
 
 		data_pipe_.reset(new px4::PipeClient());
 
