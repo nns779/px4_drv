@@ -370,7 +370,7 @@ static int it930x_read_firmware_version(struct it930x_bridge *it930x,
 			      IT930X_CMD_QUERYINFO,
 			      &wb, &rb,
 			      NULL, false);
-	if (!ret)
+	if (!ret && fw_version)
 		*fw_version = (buf[0] << 24) | (buf[1] << 16) |
 			      (buf[2] << 8) | buf[3];
 
@@ -614,6 +614,19 @@ int it930x_term(struct it930x_bridge *it930x)
 	it930x->priv = NULL;
 
 	return 0;
+}
+
+int it930x_raise(struct it930x_bridge *it930x)
+{
+	int ret = 0, i;
+
+	for (i = 0; i < 5; i++) {
+		ret = it930x_read_firmware_version(it930x, NULL);
+		if (!ret)
+			break;
+	}
+
+	return ret;
 }
 
 int it930x_load_firmware(struct it930x_bridge *it930x, const char *filename)

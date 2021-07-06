@@ -164,6 +164,10 @@ int PxMltDevice::Init()
 		it930x_.config.input[i].port_number = params_[static_cast<int>(model_)][i].port_number;
 	}
 
+	ret = it930x_raise(&it930x_);
+	if (ret)
+		goto fail_device;
+
 	ret = it930x_load_firmware(&it930x_, "it930x-firmware.bin");
 	if (ret)
 		goto fail_device;

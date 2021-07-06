@@ -165,6 +165,10 @@ int Px4Device::Init()
 		stream_ctx_.stream_buf[i] = receivers_[i]->GetStreamBuffer();
 	}
 
+	ret = it930x_raise(&it930x_);
+	if (ret)
+		goto fail_device;
+
 	ret = it930x_load_firmware(&it930x_, "it930x-firmware.bin");
 	if (ret)
 		goto fail_device;
