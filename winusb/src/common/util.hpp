@@ -33,18 +33,18 @@ static int wtoi(const std::wstring &str)
 	wchar_t sign = L'\0';
 	int value = 0;
 
-	if (*p == '+' || *p == '-')
+	if (*p == L'+' || *p == L'-')
 		sign = *p++;
 
 	for (; *p; p++) {
-		if (*p < '0' || *p > '9')
+		if (*p < L'0' || *p > L'9')
 			break;
 
 		value *= 10;
-		value += *p - '0';
+		value += *p - L'0';
 	}
 
-	return (sign == '-') ? -value : value;
+	return (sign == L'-') ? -value : value;
 }
 
 static unsigned int wtoui(const std::wstring &str)
@@ -53,11 +53,11 @@ static unsigned int wtoui(const std::wstring &str)
 	unsigned int value = 0;
 
 	for (; *p; p++) {
-		if (*p < '0' || *p > '9')
+		if (*p < L'0' || *p > L'9')
 			break;
 
 		value *= 10;
-		value += *p - '0';
+		value += *p - L'0';
 	}
 
 	return value;
