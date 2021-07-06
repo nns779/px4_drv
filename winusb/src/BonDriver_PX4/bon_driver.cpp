@@ -25,6 +25,8 @@ BonDriver::BonDriver() noexcept
 	systems_(px4::SystemType::UNSPECIFIED),
 	chset_(),
 	receivers_(),
+	lnb_power_(false),
+	lnb_power_state_(false),
 	ctrl_client_(nullptr),
 	data_pipe_(nullptr),
 	open_(FALSE),
@@ -102,7 +104,13 @@ bool BonDriver::Init()
 			bool result;
 
 			try {
-				std::wstring chset_path = configs_.Get(L"BonDriver.ISDB-S").Get(L"ChSetPath");
+				auto &config = configs_.Get(L"BonDriver.ISDB-S");
+
+				try {
+					lnb_power_ = !!px4::util::wtoi(config.Get(L"LNBPower"));
+				} catch (const std::out_of_range &) {}
+
+				std::wstring chset_path = config.Get(L"ChSetPath");
 				WCHAR path[MAX_PATH];
 
 				if (PathIsRelativeW(chset_path.c_str()) && PathCanonicalizeW(path, (dir_path + chset_path).c_str()))
@@ -304,6 +312,11 @@ void BonDriver::CloseTuner()
 		data_pipe_.reset();
 	}
 
+	if (lnb_power_state_) {
+		ctrl_client_.SetLnbVoltage(0);
+		lnb_power_state_ = false;
+	}
+
 	ctrl_client_.Close();
 	ctrl_client_.ClearPipe();
 
@@ -484,14 +497,26 @@ const BOOL BonDriver::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 		param_set->params[0].value = channel.tsid;
 	}
 
-	bool ret = false;
+	bool ret = true;
 
 	try {
 		std::lock_guard<std::mutex> lock(mtx_);
 
-		ret = ctrl_client_.SetParams(*param_set);
-		if (ret)
-			ret = ctrl_client_.Tune();
+		if (lnb_power_) {
+			if (system == px4::SystemType::ISDB_S && !lnb_power_state_) {
+				ret = ctrl_client_.SetLnbVoltage(15);
+				lnb_power_state_ = true;
+			} else if (lnb_power_state_) {
+				ret = ctrl_client_.SetLnbVoltage(0);
+				lnb_power_state_ = false;
+			}
+		}
+
+		if (ret) {
+			ret = ctrl_client_.SetParams(*param_set);
+			if (ret)
+				ret = ctrl_client_.Tune();
+		}
 	} catch (const std::exception &e) {
 		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::SetChannel)", MB_OK | MB_ICONERROR);
 	} catch (...) {

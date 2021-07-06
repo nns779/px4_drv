@@ -81,6 +81,8 @@ private:
 	px4::SystemType systems_;
 	px4::ChannelSet chset_;
 	px4::ReceiverInfoSet receivers_;
+	bool lnb_power_;
+	bool lnb_power_state_;
 	px4::CtrlCmdClient ctrl_client_;
 	std::unique_ptr<px4::PipeClient> data_pipe_;
 	BOOL open_;
