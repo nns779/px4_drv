@@ -855,7 +855,59 @@ int PxMltDevice::PxMltReceiver::Tune()
 
 int PxMltDevice::PxMltReceiver::CheckLock(bool &locked)
 {
-	return -ENOSYS;
+	if (!open_)
+		return -EINVAL;
+
+	int ret = 0;
+	bool unlocked = false;
+	std::lock_guard<std::mutex> lock(lock_);
+
+	switch (current_system_) {
+	case px4::SystemType::ISDB_T:
+	{
+		bool unlocked = false;
+
+		ret = cxd2856er_is_ts_locked_isdbt(&cxd2856er_, &locked, &unlocked);
+		if (!ret && unlocked)
+			ret = -ECANCELED;
+
+		break;
+	}
+
+	case px4::SystemType::ISDB_S:
+		ret = cxd2856er_is_ts_locked_isdbs(&cxd2856er_, &locked);
+		break;
+
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+int PxMltDevice::PxMltReceiver::SetStreamId()
+{
+	if (current_system_ != px4::SystemType::ISDB_S)
+		return -EINVAL;
+
+	if (!open_)
+		return -EINVAL;
+
+	int ret = 0;
+	std::lock_guard<std::mutex> lock(lock_);
+
+	if (params_.stream_id < 12) {
+		ret = cxd2856er_set_slot_isdbs(&cxd2856er_, params_.stream_id);
+		if (ret)
+			dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetStreamId(%u): cxd2856er_set_slot_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
+	} else {
+		ret = cxd2856er_set_tsid_isdbs(&cxd2856er_, params_.stream_id);
+		if (ret)
+			dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetStreamId(%u): cxd2856er_set_tsid_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
+	}
+
+	return ret;
 }
 
 int PxMltDevice::PxMltReceiver::SetLnbVoltage(std::int32_t voltage)

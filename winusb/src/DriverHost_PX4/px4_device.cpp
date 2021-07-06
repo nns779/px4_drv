@@ -1332,7 +1332,78 @@ int Px4Device::Px4Receiver::Tune()
 
 int Px4Device::Px4Receiver::CheckLock(bool &locked)
 {
-	return -ENOSYS;
+	if (!init_ || !open_)
+		return -EINVAL;
+
+	int ret = 0;
+	std::lock_guard<std::mutex> lock(lock_);
+
+	switch (system_) {
+	case px4::SystemType::ISDB_T:
+		ret = tc90522_is_signal_locked_t(&tc90522_, &locked);
+		break;
+
+	case px4::SystemType::ISDB_S:
+		ret = tc90522_is_signal_locked_s(&tc90522_, &locked);
+		break;
+
+	default:
+		ret = -EINVAL;
+		break;
+	}
+
+	return ret;
+}
+
+int Px4Device::Px4Receiver::SetStreamId()
+{
+	if (system_ != px4::SystemType::ISDB_S)
+		return -EINVAL;
+
+	if (!init_ || !open_)
+		return -EINVAL;
+
+	int ret = 0;
+	std::uint16_t tsid;
+	std::lock_guard<std::mutex> lock(lock_);
+
+	if (params_.stream_id < 8) {
+		for (int i = 50; i; i--) {
+			ret = tc90522_tmcc_get_tsid_s(&tc90522_, params_.stream_id, &tsid);
+			if ((!ret && tsid) || (ret == -EINVAL))
+				break;
+
+			Sleep(20);
+		}
+
+		if (ret)
+			return ret;
+
+		dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::SetStreamId(%u): slot: %u, tsid: 0x%04x\n", index_, params_.stream_id, tsid);
+	} else {
+		tsid = params_.stream_id;
+	}
+
+	ret = tc90522_set_tsid_s(&tc90522_, tsid);
+	if (ret)
+		return ret;
+
+	int i;
+
+	for (i = 50; i; i--) {
+		std::uint16_t tsid2;
+
+		ret = tc90522_get_tsid_s(&tc90522_, &tsid2);
+		if (!ret && tsid2 == tsid)
+			break;
+
+		Sleep(20);
+	}
+
+	if (!ret && !i)
+		ret = -EAGAIN;
+
+	return ret;
 }
 
 int Px4Device::Px4Receiver::SetLnbVoltage(std::int32_t voltage)

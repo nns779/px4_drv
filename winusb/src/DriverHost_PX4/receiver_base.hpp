@@ -69,6 +69,7 @@ public:
 	virtual void Close() = 0;
 	virtual int Tune() = 0;
 	virtual int CheckLock(bool &locked) = 0;
+	virtual int SetStreamId() = 0;
 	virtual int SetLnbVoltage(std::int32_t voltage) = 0;
 	virtual int SetCapture(bool capture) = 0;
 	virtual int ReadStat(px4::command::StatType type, std::int32_t &value) = 0;

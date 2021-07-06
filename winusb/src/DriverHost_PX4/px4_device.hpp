@@ -145,6 +145,7 @@ private:
 		void Close() override;
 		int Tune() override;
 		int CheckLock(bool &locked) override;
+		int SetStreamId() override;
 		int SetLnbVoltage(std::int32_t voltage) override;
 		int SetCapture(bool capture) override;
 		int ReadStat(px4::command::StatType type, std::int32_t &value) override;
