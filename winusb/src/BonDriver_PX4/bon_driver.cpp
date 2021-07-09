@@ -508,9 +508,11 @@ const BOOL BonDriver::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 		std::lock_guard<std::mutex> lock(mtx_);
 
 		if (lnb_power_) {
-			if (system == px4::SystemType::ISDB_S && !lnb_power_state_) {
-				ret = ctrl_client_.SetLnbVoltage(15);
-				lnb_power_state_ = true;
+			if (system == px4::SystemType::ISDB_S) {
+				if (!lnb_power_state_) {
+					ret = ctrl_client_.SetLnbVoltage(15);
+					lnb_power_state_ = true;
+				}
 			} else if (lnb_power_state_) {
 				ret = ctrl_client_.SetLnbVoltage(0);
 				lnb_power_state_ = false;
