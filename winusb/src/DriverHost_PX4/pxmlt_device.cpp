@@ -555,7 +555,8 @@ const PxMltDevice::PxMltReceiver::PxMltReceiverCnTableIsdbS PxMltDevice::PxMltRe
 };
 
 PxMltDevice::PxMltReceiver::PxMltReceiver(PxMltDevice &parent, std::uintptr_t index)
-	: parent_(parent),
+	: ReceiverBase(RECEIVER_SAT_SET_STREAM_ID_BEFORE_TUNE),
+	parent_(parent),
 	index_(index),
 	lock_(),
 	open_(false),
@@ -735,12 +736,12 @@ void PxMltDevice::PxMltReceiver::Close()
 	return;
 }
 
-int PxMltDevice::PxMltReceiver::Tune()
+int PxMltDevice::PxMltReceiver::SetFrequency()
 {
 	if (!open_)
 		return -EINVAL;
 
-	dev_dbg(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): freq: %u\n", index_, params_.freq);
+	dev_dbg(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): freq: %u\n", index_, params_.freq);
 
 	int ret = 0;
 	cxd2856er_system_params demod_params = { 0 };
@@ -754,28 +755,28 @@ int PxMltDevice::PxMltReceiver::Tune()
 
 		ret = cxd2856er_wakeup(&cxd2856er_, CXD2856ER_ISDB_T_SYSTEM, &demod_params);
 		if (ret)
-			dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2856er_wakeup(CXD2856ER_ISDB_T_SYSTEM) failed. (ret: %d)\n", index_, ret);
+			dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_wakeup(CXD2856ER_ISDB_T_SYSTEM) failed. (ret: %d)\n", index_, ret);
 
 		break;
 
 	case px4::SystemType::ISDB_S:
-		if (params_.stream_id < 12) {
+		/*if (params_.stream_id < 12) {
 			ret = cxd2856er_set_slot_isdbs(&cxd2856er_, params_.stream_id);
 			if (ret) {
-				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2856er_set_slot_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
+				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_set_slot_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
 				break;
 			}
 		} else {
 			ret = cxd2856er_set_tsid_isdbs(&cxd2856er_, params_.stream_id);
 			if (ret) {
-				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2856er_set_tsid_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
+				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_set_tsid_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
 				break;
 			}
-		}
+		}*/
 
 		ret = cxd2856er_wakeup(&cxd2856er_, CXD2856ER_ISDB_S_SYSTEM, &demod_params);
 		if (ret)
-			dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2856er_wakeup(CXD2856ER_ISDB_S_SYSTEM) failed. (ret: %d)\n", index_, ret);
+			dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_wakeup(CXD2856ER_ISDB_S_SYSTEM) failed. (ret: %d)\n", index_, ret);
 
 		break;
 
@@ -794,14 +795,14 @@ int PxMltDevice::PxMltReceiver::Tune()
 		case px4::SystemType::ISDB_T:
 			ret = cxd2858er_set_params_t(&cxd2858er_, CXD2858ER_ISDB_T_SYSTEM, params_.freq, 6);
 			if (ret)
-				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2858er_set_params_t(%u, 6) failed. (ret: %d)\n");
+				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2858er_set_params_t(%u, 6) failed. (ret: %d)\n");
 
 			break;
 
 		case px4::SystemType::ISDB_S:
 			ret = cxd2858er_set_params_s(&cxd2858er_, CXD2858ER_ISDB_S_SYSTEM, params_.freq, 28860);
 			if (ret)
-				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2858er_set_params_s(%u, 28860) failed. (ret: %d)\n");
+				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2858er_set_params_s(%u, 28860) failed. (ret: %d)\n");
 
 			break;
 
@@ -815,41 +816,11 @@ int PxMltDevice::PxMltReceiver::Tune()
 
 	ret = cxd2856er_post_tune(&cxd2856er_);
 	if (ret) {
-		dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::Tune(%u): cxd2856er_post_tune() failed. (ret: %d)\n");
+		dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_post_tune() failed. (ret: %d)\n");
 		return ret;
 	}
 
 	current_system_ = params_.system;
-
-	int i = 300;
-	while (i--) {
-		bool locked = false, unlocked = false;
-
-		switch (current_system_) {
-		case px4::SystemType::ISDB_T:
-			ret = cxd2856er_is_ts_locked_isdbt(&cxd2856er_, &locked, &unlocked);
-			if (!ret && unlocked)
-				ret = -ECANCELED;
-
-			break;
-
-		case px4::SystemType::ISDB_S:
-			ret = cxd2856er_is_ts_locked_isdbs(&cxd2856er_, &locked);
-			break;
-
-		default:
-			ret = -EINVAL;
-			break;
-		}
-
-		if (locked || ret)
-			break;
-
-		lock_.unlock();
-		msleep(10);
-		lock_.lock();
-	}
-
 	return ret;
 }
 
@@ -888,7 +859,7 @@ int PxMltDevice::PxMltReceiver::CheckLock(bool &locked)
 
 int PxMltDevice::PxMltReceiver::SetStreamId()
 {
-	if (current_system_ != px4::SystemType::ISDB_S)
+	if (params_.system != px4::SystemType::ISDB_S)
 		return -EINVAL;
 
 	if (!open_)

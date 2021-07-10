@@ -28,6 +28,7 @@ BonDriver::BonDriver() noexcept
 	lnb_power_(false),
 	lnb_power_state_(false),
 	pipe_timeout_(2000),
+	tune_timeout_(5000),
 	ctrl_client_(nullptr),
 	data_pipe_(nullptr),
 	open_(FALSE),
@@ -72,6 +73,10 @@ bool BonDriver::Init()
 
 			try {
 				pipe_timeout_ = px4::util::wtoui32(bon_config.Get(L"PipeConnectTimeout"));
+			} catch (const std::out_of_range &) {}
+
+			try {
+				tune_timeout_ = px4::util::wtoui32(bon_config.Get(L"TuneTimeout"));
 			} catch (const std::out_of_range &) {}
 		} else {
 			systems_ = px4::SystemType::ISDB_T;
@@ -522,7 +527,7 @@ const BOOL BonDriver::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 		if (ret) {
 			ret = ctrl_client_.SetParams(*param_set);
 			if (ret)
-				ret = ctrl_client_.Tune();
+				ret = ctrl_client_.Tune(tune_timeout_);
 		}
 	} catch (const std::exception &e) {
 		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::SetChannel)", MB_OK | MB_ICONERROR);

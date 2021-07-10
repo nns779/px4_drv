@@ -161,12 +161,16 @@ void CtrlServer::CtrlConnection::Worker() noexcept
 			break;
 
 		case px4::command::CtrlCmdCode::TUNE:
-			if (receiver && !receiver->Tune())
+		{
+			px4::command::CtrlTuneCmd *tune = reinterpret_cast<px4::command::CtrlTuneCmd *>(buf.get());
+
+			if (receiver && receiver->Tune(tune->timeout))
 				hdr->status = px4::command::CtrlStatusCode::SUCCEEDED;
 			else
 				hdr->status = px4::command::CtrlStatusCode::FAILED;
 
 			break;
+		}
 
 		case px4::command::CtrlCmdCode::CHECK_LOCK:
 		{

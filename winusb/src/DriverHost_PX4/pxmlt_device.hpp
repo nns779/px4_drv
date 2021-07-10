@@ -96,7 +96,7 @@ private:
 
 		int Open() override;
 		void Close() override;
-		int Tune() override;
+		int SetFrequency() override;
 		int CheckLock(bool &locked) override;
 		int SetStreamId() override;
 		int SetLnbVoltage(std::int32_t voltage) override;

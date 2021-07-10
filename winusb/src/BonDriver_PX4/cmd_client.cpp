@@ -103,12 +103,13 @@ bool CtrlCmdClient::ClearParams() noexcept
 	return Call(clear_cmd);
 }
 
-bool CtrlCmdClient::Tune() noexcept
+bool CtrlCmdClient::Tune(std::uint32_t timeout) noexcept
 {
 	px4::command::CtrlTuneCmd tune_cmd;
 
 	tune_cmd.cmd = px4::command::CtrlCmdCode::TUNE;
 	tune_cmd.status = px4::command::CtrlStatusCode::NONE;
+	tune_cmd.timeout = timeout;
 
 	return Call(tune_cmd);
 }

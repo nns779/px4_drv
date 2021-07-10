@@ -13,7 +13,7 @@ namespace px4 {
 #pragma pack(push, 8)
 
 namespace command {
-	static const std::uint32_t VERSION = 0x00040000U;
+	static const std::uint32_t VERSION = 0x00040002U;
 
 	enum class CtrlCmdCode : std::uint32_t {
 		UNDEFINED = 0,
@@ -100,7 +100,7 @@ namespace command {
 	};
 
 	struct CtrlTuneCmd : CtrlCmdHeader {
-		// header only
+		std::uint32_t timeout;
 	};
 
 	struct CtrlCheckLockCmd : CtrlCmdHeader {

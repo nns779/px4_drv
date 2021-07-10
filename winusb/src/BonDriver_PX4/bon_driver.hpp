@@ -84,6 +84,7 @@ private:
 	bool lnb_power_;
 	bool lnb_power_state_;
 	std::uint32_t pipe_timeout_;
+	std::uint32_t tune_timeout_;
 	px4::CtrlCmdClient ctrl_client_;
 	std::unique_ptr<px4::PipeClient> data_pipe_;
 	BOOL open_;

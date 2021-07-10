@@ -48,7 +48,7 @@ public:
 		std::size_t threshold_size_;
 	};
 
-	ReceiverBase();
+	ReceiverBase(unsigned int options);
 	virtual ~ReceiverBase();
 
 	// cannot copy
@@ -62,12 +62,13 @@ public:
 	bool GetParameters(px4::command::ParameterSet &param_set) noexcept;
 	bool SetParameters(const px4::command::ParameterSet &param_set) noexcept;
 	void ClearParameters() noexcept;
+	bool Tune(std::uint32_t timeout);
 	bool ReadStats(px4::command::StatSet &stat_set);
 	std::shared_ptr<StreamBuffer> GetStreamBuffer() noexcept { return stream_buf_; }
 
 	virtual int Open() = 0;
 	virtual void Close() = 0;
-	virtual int Tune() = 0;
+	virtual int SetFrequency() = 0;
 	virtual int CheckLock(bool &locked) = 0;
 	virtual int SetStreamId() = 0;
 	virtual int SetLnbVoltage(std::int32_t voltage) = 0;
@@ -75,6 +76,12 @@ public:
 	virtual int ReadStat(px4::command::StatType type, std::int32_t &value) = 0;
 
 protected:
+	unsigned int options_;
+#define RECEIVER_SAT_SET_STREAM_ID_BEFORE_TUNE	0x00000010
+#define RECEIVER_SAT_SET_STREAM_ID_AFTER_TUNE	0x00000020
+#define RECEIVER_WAIT_AFTER_LOCK		0x00000040
+#define RECEIVER_WAIT_AFTER_LOCK_TC_T		0x00000080
+
 	Parameters params_;
 	std::shared_ptr<StreamBuffer> stream_buf_;
 };

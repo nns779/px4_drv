@@ -777,7 +777,8 @@ struct tc90522_regbuf Px4Device::Px4Receiver::tc_init_s_[] = {
 };
 
 Px4Device::Px4Receiver::Px4Receiver(Px4Device &parent, std::uintptr_t index)
-	: parent_(parent),
+	: ReceiverBase(RECEIVER_SAT_SET_STREAM_ID_AFTER_TUNE | RECEIVER_WAIT_AFTER_LOCK_TC_T),
+	parent_(parent),
 	index_(index),
 	lock_(),
 	init_(false),
@@ -1127,12 +1128,12 @@ void Px4Device::Px4Receiver::Close()
 	return;
 }
 
-int Px4Device::Px4Receiver::Tune()
+int Px4Device::Px4Receiver::SetFrequency()
 {
 	if (!init_ || !open_)
 		return -EINVAL;
 
-	dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Tune(%u): freq: %u\n", index_, params_.freq);
+	dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::SetFrequency(%u): freq: %u\n", index_, params_.freq);
 
 	int ret = 0;
 	std::lock_guard<std::mutex> lock(lock_);
@@ -1170,7 +1171,7 @@ int Px4Device::Px4Receiver::Tune()
 			break;
 
 		if (!tuner_locked) {
-			dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Tune(%u): tuner is NOT locked.\n", index_);
+			dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::SetFrequency(%u): tuner is NOT locked.\n", index_);
 			ret = -EAGAIN;
 			break;
 		}
@@ -1190,29 +1191,6 @@ int Px4Device::Px4Receiver::Tune()
 		ret = tc90522_write_reg(&tc90522_, 0x75, 0x08);
 		if (ret)
 			break;
-
-		int i;
-		bool demod_locked;
-
-		for (i = 150; i; i--) {
-			ret = tc90522_is_signal_locked_t(&tc90522_, &demod_locked);
-			if (!ret && demod_locked)
-				break;
-
-			Sleep(20);
-		}
-
-		if (ret)
-			break;
-
-		if (!demod_locked) {
-			dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Tune(%u): demod is NOT locked.\n", index_);
-			ret = -EAGAIN;
-			break;
-		}
-
-		if (i > 132)
-			Sleep((i - 132) * 20);
 
 		break;
 	}
@@ -1249,7 +1227,7 @@ int Px4Device::Px4Receiver::Tune()
 			break;
 
 		if (!tuner_locked) {
-			dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Tune(%u): tuner is NOT locked.\n", index_);
+			dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::SetFrequency(%u): tuner is NOT locked.\n", index_);
 			ret = -EAGAIN;
 			break;
 		}
@@ -1257,65 +1235,6 @@ int Px4Device::Px4Receiver::Tune()
 		ret = tc90522_set_agc_s(&tc90522_, true);
 		if (ret)
 			break;
-
-		bool demod_locked;
-
-		for (int i = 150; i; i--) {
-			ret = tc90522_is_signal_locked_s(&tc90522_, &demod_locked);
-			if (!ret && demod_locked)
-				break;
-
-			Sleep(20);
-		}
-
-		if (ret)
-			break;
-
-		if (!demod_locked) {
-			dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Tune(%u): demod is NOT locked.\n", index_);
-			ret = -EAGAIN;
-			break;
-		}
-
-		std::uint16_t tsid;
-
-		if (params_.stream_id < 8) {
-			for (int i = 50; i; i--) {
-				ret = tc90522_tmcc_get_tsid_s(&tc90522_, params_.stream_id, &tsid);
-				if ((!ret && tsid) || (ret == -EINVAL))
-					break;
-
-				Sleep(20);
-			}
-
-			if (ret)
-				break;
-
-			dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Tune(%u): slot: %u, tsid: 0x%04x\n", index_, params_.stream_id, tsid);
-		} else {
-			tsid = params_.stream_id;
-		}
-
-		ret = tc90522_set_tsid_s(&tc90522_, tsid);
-		if (ret)
-			break;
-
-		int i;
-
-		for (i = 50; i; i--) {
-			std::uint16_t tsid2;
-
-			ret = tc90522_get_tsid_s(&tc90522_, &tsid2);
-			if (!ret && tsid2 == tsid)
-				break;
-
-			Sleep(20);
-		}
-
-		if (!i) {
-			ret = -EAGAIN;
-			break;
-		}
 
 		break;
 	}
@@ -1325,7 +1244,7 @@ int Px4Device::Px4Receiver::Tune()
 		break;
 	}
 
-	dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::Tune(%u): %s.\n", index_, (!ret) ? "succeeded" : "failed");
+	dev_dbg(&parent_.dev_, "px4::Px4Device::Px4Receiver::SetFrequency(%u): %s.\n", index_, (!ret) ? "succeeded" : "failed");
 
 	return ret;
 }

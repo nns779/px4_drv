@@ -2,9 +2,13 @@
 
 #include "receiver_base.hpp"
 
+#include <chrono>
+#include <windows.h>
+
 namespace px4 {
 
-ReceiverBase::ReceiverBase()
+ReceiverBase::ReceiverBase(unsigned int options)
+	: options_(options)
 {
 	memset(&params_, 0, sizeof(params_));
 	stream_buf_.reset(new StreamBuffer());
@@ -66,6 +70,56 @@ bool ReceiverBase::SetParameters(const px4::command::ParameterSet &param_set) no
 void ReceiverBase::ClearParameters() noexcept
 {
 	memset(&params_, 0, sizeof(params_));
+}
+
+bool ReceiverBase::Tune(std::uint32_t timeout)
+{
+	int ret = 0;
+
+	if ((params_.system == px4::SystemType::ISDB_S) && (options_ & RECEIVER_SAT_SET_STREAM_ID_BEFORE_TUNE)) {
+		ret = SetStreamId();
+		if (ret)
+			return false;
+	}
+
+	ret = SetFrequency();
+	if (ret)
+		return false;
+
+	int i;
+	auto begin = std::chrono::steady_clock::now();
+	bool locked = false;
+
+	for (i = 0; true; i++) {
+		ret = CheckLock(locked);
+		if ((!ret && locked) || ret == -ECANCELED)
+			break;
+
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - begin);
+		if (duration.count() >= timeout) {
+			ret = -ETIMEDOUT;
+			break;
+		}
+
+		Sleep(20);
+	}
+
+	if (ret || !locked)
+		return false;
+
+	if ((params_.system == px4::SystemType::ISDB_T) && (options_ & RECEIVER_WAIT_AFTER_LOCK_TC_T) && (i < 35))
+		Sleep((35 - i) * 10);
+
+	if ((params_.system == px4::SystemType::ISDB_S) && !(options_ & RECEIVER_SAT_SET_STREAM_ID_BEFORE_TUNE)) {
+		ret = SetStreamId();
+		if (ret)
+			return false;
+	}
+
+	if (options_ & RECEIVER_WAIT_AFTER_LOCK)
+		Sleep(200);
+
+	return true;
 }
 
 bool ReceiverBase::ReadStats(px4::command::StatSet &stat_set)
