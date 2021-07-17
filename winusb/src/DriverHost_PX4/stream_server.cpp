@@ -70,6 +70,13 @@ void StreamServer::StreamConnection::Worker() noexcept
 
 			break;
 
+		case px4::command::DataCmdCode::PURGE:
+			if (!receiver)
+				break;
+
+			receiver->GetStreamBuffer()->Purge();
+			break;
+
 		default:
 			ret = false;
 			break;

@@ -5,6 +5,8 @@
 #include <chrono>
 #include <windows.h>
 
+#include "msg.h"
+
 namespace px4 {
 
 ReceiverBase::ReceiverBase(unsigned int options)
@@ -231,6 +233,11 @@ void ReceiverBase::StreamBuffer::HandleRead(std::size_t buf_size, std::function<
 	}
 
 	return;
+}
+
+bool ReceiverBase::StreamBuffer::Purge() noexcept
+{
+	return ringbuf_.Purge();
 }
 
 } // namespace px4

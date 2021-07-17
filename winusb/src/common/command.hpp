@@ -133,7 +133,8 @@ namespace command {
 
 	enum class DataCmdCode : std::uint32_t {
 		UNDEFINED = 0,
-		SET_DATA_ID,
+		SET_DATA_ID = 1,
+		PURGE = 8,
 	};
 
 	struct DataCmd {

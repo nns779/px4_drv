@@ -38,6 +38,7 @@ public:
 		bool Write(const void *buf, std::size_t &size) noexcept;
 		void NotifyWrite() noexcept;
 		void HandleRead(std::size_t buf_size, std::function<bool(const void *buf, std::size_t size)> handler);
+		bool Purge() noexcept;
 
 	private:
 		std::mutex mtx_;

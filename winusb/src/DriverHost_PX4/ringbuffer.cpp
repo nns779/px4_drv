@@ -13,7 +13,11 @@ RingBuffer::RingBuffer(std::size_t size)
 	buf_(nullptr),
 	actual_size_(0),
 	head_(0),
-	tail_(0)
+	tail_(0),
+	wait_(false),
+	rw_count_(0),
+	wait_lock_(),
+	wait_cond_()
 {
 	Alloc(size);
 }
@@ -77,6 +81,13 @@ bool RingBuffer::Read(void *buf, std::size_t &size) noexcept
 	state_.compare_exchange_strong(expected_state, 2);
 #endif
 
+	if (wait_) {
+		size = 0;
+		return true;
+	}
+
+	++rw_count_;
+
 	std::size_t actual_size = actual_size_;
 	std::intptr_t head = head_;
 	std::size_t buf_size = buf_size_;
@@ -98,6 +109,9 @@ bool RingBuffer::Read(void *buf, std::size_t &size) noexcept
 		actual_size_ -= read_size;
 	}
 
+	if (!--rw_count_ && wait_)
+		wait_cond_.notify_all();
+
 	size = read_size;
 
 	return true;
@@ -109,9 +123,18 @@ bool RingBuffer::Write(const void *buf, std::size_t &size) noexcept
 	if (state_ != 2)
 		return false;
 #else
-	if (!state_)
+	if (!state_) {
+		size = 0;
 		return false;
+	}
 #endif
+
+	if (wait_) {
+		size = 0;
+		return true;
+	}
+
+	++rw_count_;
 
 	std::size_t actual_size = actual_size_;
 	std::intptr_t tail = tail_;
@@ -134,10 +157,37 @@ bool RingBuffer::Write(const void *buf, std::size_t &size) noexcept
 		actual_size_ += write_size;
 	}
 
+	if (!--rw_count_ && wait_)
+		wait_cond_.notify_all();
+
 	bool ret = (size == write_size);
 
 	size = write_size;
 	return ret;
+}
+
+bool RingBuffer::Purge() noexcept
+{
+	try {
+		bool expected = false;
+
+		if (!wait_.compare_exchange_strong(expected, true))
+			return false;
+
+		{
+			std::unique_lock<std::mutex> lock(wait_lock_);
+			wait_cond_.wait(lock, [this] {
+				return (rw_count_ == 0);
+			});
+		}
+
+		Reset();
+		wait_ = false;
+	} catch (...) {
+		return false;
+	}
+
+	return true;
 }
 
 } // namespace px4

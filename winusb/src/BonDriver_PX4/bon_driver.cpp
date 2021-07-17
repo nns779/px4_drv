@@ -432,6 +432,15 @@ const BOOL BonDriver::GetTsStream(BYTE **ppDst, DWORD *pdwSize, DWORD *pdwRemain
 
 void BonDriver::PurgeTsStream(void)
 {
+	{
+		px4::command::DataCmd data_cmd;
+		std::size_t ret_size;
+		std::lock_guard<std::mutex> lock(mtx_);
+
+		data_cmd.cmd = px4::command::DataCmdCode::PURGE;
+		data_pipe_->Write(&data_cmd, sizeof(data_cmd), ret_size);
+	}
+
 	ioq_->PurgeDataBuffer();
 	return;
 }
@@ -560,6 +569,8 @@ const BOOL BonDriver::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 	}
 
 	delete[] reinterpret_cast<std::uint8_t*>(param_set);
+
+	PurgeTsStream();
 
 	if (ret) {
 		// succeeded
