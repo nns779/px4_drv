@@ -760,20 +760,6 @@ int PxMltDevice::PxMltReceiver::SetFrequency()
 		break;
 
 	case px4::SystemType::ISDB_S:
-		/*if (params_.stream_id < 12) {
-			ret = cxd2856er_set_slot_isdbs(&cxd2856er_, params_.stream_id);
-			if (ret) {
-				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_set_slot_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
-				break;
-			}
-		} else {
-			ret = cxd2856er_set_tsid_isdbs(&cxd2856er_, params_.stream_id);
-			if (ret) {
-				dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_set_tsid_isdbs(%u) failed. (ret: %d)\n", index_, params_.stream_id, ret);
-				break;
-			}
-		}*/
-
 		ret = cxd2856er_wakeup(&cxd2856er_, CXD2856ER_ISDB_S_SYSTEM, &demod_params);
 		if (ret)
 			dev_err(&parent_.dev_, "px4::PxMltDevice::PxMltReceiver::SetFrequency(%u): cxd2856er_wakeup(CXD2856ER_ISDB_S_SYSTEM) failed. (ret: %d)\n", index_, ret);
