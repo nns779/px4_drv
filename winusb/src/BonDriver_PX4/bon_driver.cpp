@@ -57,6 +57,9 @@ bool BonDriver::Init()
 		if (!configs_.Load(px4::util::path::GetFileBase() + L".ini"))
 			return false;
 
+		std::size_t num_packets = 1024;
+		std::uintptr_t max_buffers = 64, min_buffers = 4;
+
 		if (configs_.Exists(L"BonDriver")) {
 			const px4::Config &bon_config = configs_.Get(L"BonDriver");
 			const std::wstring &mode = bon_config.Get(L"System", L"ISDB-T");
@@ -78,6 +81,27 @@ bool BonDriver::Init()
 			try {
 				tune_timeout_ = px4::util::wtoui32(bon_config.Get(L"TuneTimeout"));
 			} catch (const std::out_of_range &) {}
+
+			try {
+				num_packets = px4::util::wtoui(bon_config.Get(L"NumberOfPacketsPerBuffer"));
+				if (num_packets <= 0)
+					return false;
+			} catch (const std::out_of_range &) {}
+
+			try {
+				max_buffers = px4::util::wtoui(bon_config.Get(L"MaximumNumberOfBuffers"));
+				if (max_buffers <= 0)
+					return false;
+			} catch (const std::out_of_range &) {}
+
+			try {
+				min_buffers = px4::util::wtoui(bon_config.Get(L"MinimumNumberOfBuffers"));
+				if (min_buffers <= 0)
+					return false;
+			} catch (const std::out_of_range &) {}
+
+			if (max_buffers < min_buffers)
+				return false;
 		} else {
 			systems_ = px4::SystemType::ISDB_T;
 			driver_host_path_ = dir_path + L"DriverHost_PX4.exe";
@@ -146,7 +170,7 @@ bool BonDriver::Init()
 		if (!quit_event_)
 			return false;
 
-		ioq_.reset(new px4::IoQueue(px4::IoQueue::IoOperation::READ, iorp_, 188 * 2048, 32, 2));
+		ioq_.reset(new px4::IoQueue(px4::IoQueue::IoOperation::READ, iorp_, 188 * num_packets, max_buffers, min_buffers));
 	} catch (const std::runtime_error &e) {
 		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::Init)", MB_OK);
 		return false;
