@@ -35,7 +35,7 @@ public:
 		virtual bool Do(void *buf, std::size_t &size) = 0;
 	};
 
-	IoQueue(IoOperation io_op, IoProvider &iop, std::size_t buf_size, std::uintptr_t max = 32, std::uintptr_t min = 2);
+	IoQueue(IoOperation io_op, IoProvider &iop, std::size_t buf_size, std::uintptr_t max = 32, std::uintptr_t min = 2, int data_purge_count = 1);
 	~IoQueue();
 
 	// cannot copy
@@ -81,6 +81,8 @@ private:
 	std::condition_variable free_cond_;
 	std::unique_ptr<IoBuffer> current_buf_;
 	std::size_t current_ofs_;
+	int data_purge_count_;
+	int data_purge_remain_;
 	std::unique_ptr<std::thread> th_;
 };
 

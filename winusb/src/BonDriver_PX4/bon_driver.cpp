@@ -59,6 +59,7 @@ bool BonDriver::Init()
 
 		std::size_t num_packets = 1024;
 		std::uintptr_t max_buffers = 64, min_buffers = 4;
+		int data_purge_count = 1;
 
 		if (configs_.Exists(L"BonDriver")) {
 			const px4::Config &bon_config = configs_.Get(L"BonDriver");
@@ -102,6 +103,12 @@ bool BonDriver::Init()
 
 			if (max_buffers < min_buffers)
 				return false;
+
+			try {
+				data_purge_count = px4::util::wtoi(bon_config.Get(L"NumberOfBuffersToPurge"));
+				if (data_purge_count < 0)
+					return false;
+			} catch (const std::out_of_range &) {}
 		} else {
 			systems_ = px4::SystemType::ISDB_T;
 			driver_host_path_ = dir_path + L"DriverHost_PX4.exe";
@@ -170,7 +177,7 @@ bool BonDriver::Init()
 		if (!quit_event_)
 			return false;
 
-		ioq_.reset(new px4::IoQueue(px4::IoQueue::IoOperation::READ, iorp_, 188 * num_packets, max_buffers, min_buffers));
+		ioq_.reset(new px4::IoQueue(px4::IoQueue::IoOperation::READ, iorp_, 188 * num_packets, max_buffers, min_buffers, data_purge_count));
 	} catch (const std::runtime_error &e) {
 		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::Init)", MB_OK);
 		return false;
