@@ -96,12 +96,14 @@ private:
 
 		int Open() override;
 		void Close() override;
-		int SetFrequency() override;
 		int CheckLock(bool &locked) override;
-		int SetStreamId() override;
 		int SetLnbVoltage(std::int32_t voltage) override;
 		int SetCapture(bool capture) override;
 		int ReadStat(px4::command::StatType type, std::int32_t &value) override;
+
+	protected:
+		int SetFrequency() override;
+		int SetStreamId() override;
 
 	private:
 		static const struct PxMltReceiverCnTableIsdbS final {

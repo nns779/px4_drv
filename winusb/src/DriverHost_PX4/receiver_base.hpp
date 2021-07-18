@@ -69,14 +69,15 @@ public:
 
 	virtual int Open() = 0;
 	virtual void Close() = 0;
-	virtual int SetFrequency() = 0;
 	virtual int CheckLock(bool &locked) = 0;
-	virtual int SetStreamId() = 0;
 	virtual int SetLnbVoltage(std::int32_t voltage) = 0;
 	virtual int SetCapture(bool capture) = 0;
 	virtual int ReadStat(px4::command::StatType type, std::int32_t &value) = 0;
 
 protected:
+	virtual int SetFrequency() = 0;
+	virtual int SetStreamId() = 0;
+
 	unsigned int options_;
 #define RECEIVER_SAT_SET_STREAM_ID_BEFORE_TUNE	0x00000010
 #define RECEIVER_SAT_SET_STREAM_ID_AFTER_TUNE	0x00000020
@@ -85,6 +86,9 @@ protected:
 
 	Parameters params_;
 	std::shared_ptr<StreamBuffer> stream_buf_;
+
+private:
+	std::mutex lock_;
 };
 
 class ReceiverError : public std::runtime_error {

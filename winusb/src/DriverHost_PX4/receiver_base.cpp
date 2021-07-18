@@ -10,7 +10,8 @@
 namespace px4 {
 
 ReceiverBase::ReceiverBase(unsigned int options)
-	: options_(options)
+	: options_(options),
+	lock_()
 {
 	memset(&params_, 0, sizeof(params_));
 	stream_buf_.reset(new StreamBuffer());
@@ -23,6 +24,8 @@ ReceiverBase::~ReceiverBase()
 
 bool ReceiverBase::GetParameters(px4::command::ParameterSet &param_set) noexcept
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	param_set.system = params_.system;
 	param_set.freq = params_.freq;
 
@@ -47,6 +50,8 @@ bool ReceiverBase::GetParameters(px4::command::ParameterSet &param_set) noexcept
 
 bool ReceiverBase::SetParameters(const px4::command::ParameterSet &param_set) noexcept
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	params_.system = param_set.system;
 	params_.freq = param_set.freq;
 
@@ -71,12 +76,15 @@ bool ReceiverBase::SetParameters(const px4::command::ParameterSet &param_set) no
 
 void ReceiverBase::ClearParameters() noexcept
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	memset(&params_, 0, sizeof(params_));
 }
 
 bool ReceiverBase::Tune(std::uint32_t timeout)
 {
 	int ret = 0;
+	std::lock_guard<std::mutex> lock(lock_);
 
 	if ((params_.system == px4::SystemType::ISDB_S) && (options_ & RECEIVER_SAT_SET_STREAM_ID_BEFORE_TUNE)) {
 		ret = SetStreamId();
@@ -126,6 +134,8 @@ bool ReceiverBase::Tune(std::uint32_t timeout)
 
 bool ReceiverBase::ReadStats(px4::command::StatSet &stat_set)
 {
+	std::lock_guard<std::mutex> lock(lock_);
+
 	for (std::uint32_t i = 0; i < stat_set.num; i++) {
 		if (ReadStat(stat_set.data[i].type, stat_set.data[i].value))
 			return false;
