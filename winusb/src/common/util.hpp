@@ -16,6 +16,9 @@ static std::uint32_t atoui32(const char *str)
 {
 	std::uint32_t value = 0;
 
+	while (*str == ' ' || *str == '\t')
+		str++;
+
 	for (; *str; str++) {
 		if (*str < '0' || *str > '9')
 			break;
@@ -31,6 +34,9 @@ static std::uint32_t wtoui32(const std::wstring &str)
 {
 	const wchar_t *p = str.c_str();
 	std::uint32_t value = 0;
+
+	while (*p == L' ' || *p == L'\t')
+		p++;
 
 	for (; *p; p++) {
 		if (*p < L'0' || *p > L'9')
@@ -48,6 +54,9 @@ static int wtoi(const std::wstring &str)
 	const wchar_t *p = str.c_str();
 	wchar_t sign = L'\0';
 	int value = 0;
+
+	while (*p == L' ' || *p == L'\t')
+		p++;
 
 	if (*p == L'+' || *p == L'-')
 		sign = *p++;
@@ -67,6 +76,9 @@ static unsigned int wtoui(const std::wstring &str)
 {
 	const wchar_t *p = str.c_str();
 	unsigned int value = 0;
+
+	while (*p == L' ' || *p == L'\t')
+		p++;
 
 	for (; *p; p++) {
 		if (*p < L'0' || *p > L'9')
