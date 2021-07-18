@@ -28,7 +28,7 @@ PxMltDevice::PxMltDevice(const std::wstring &path, const px4::DeviceDefinition &
 	: DeviceBase(path, device_def, index, receiver_manager),
 	config_(),
 	lock_(),
-	available_(false),
+	available_(true),
 	init_(false),
 	open_count_(0),
 	lnb_power_count_(0),
