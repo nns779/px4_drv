@@ -12,7 +12,7 @@
 
 namespace px4 {
 
-IoQueue::IoQueue(IoOperation io_op, IoProvider &iop, std::size_t buf_size, std::uintptr_t max, std::uintptr_t min, int data_purge_count_)
+IoQueue::IoQueue(IoOperation io_op, IoProvider &iop, std::size_t buf_size, std::uintptr_t max, std::uintptr_t min, int data_ignore_count)
 	: io_op_(io_op),
 	iop_(iop),
 	buf_size_(buf_size),
@@ -20,8 +20,8 @@ IoQueue::IoQueue(IoOperation io_op, IoProvider &iop, std::size_t buf_size, std::
 	min_(min),
 	total_buf_num_(0),
 	current_ofs_(0),
-	data_purge_count_(data_purge_count_),
-	data_purge_remain_(0)
+	data_ignore_count_(data_ignore_count),
+	data_ignore_remain_(0)
 {
 	while (min--)
 		IncreaseFreeBuffer();
@@ -154,7 +154,7 @@ void IoQueue::PurgeDataBuffer()
 		free_buf_.push_back(std::move(buf));
 	}
 
-	data_purge_remain_ = data_purge_count_;
+	data_ignore_remain_ = data_ignore_count_;
 
 	free_lock.unlock();
 	free_cond_.notify_all();
@@ -272,8 +272,8 @@ bool IoQueue::PushBackDataBuffer(std::unique_ptr<IoBuffer> &&buf)
 {
 	std::unique_lock<std::mutex> lock(data_mtx_);
 
-	if (data_purge_remain_) {
-		data_purge_remain_--;
+	if (data_ignore_remain_ > 0) {
+		data_ignore_remain_--;
 		lock.unlock();
 		return PushBackFreeBuffer(std::move(buf));
 	}
