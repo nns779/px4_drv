@@ -975,7 +975,7 @@ int Px4Device::Px4Receiver::Open()
 	bool need_init = false;
 
 	if (open_)
-		return (!init_) ? -EINVAL : 0;
+		return (!init_) ? -EINVAL : -EALREADY;
 
 	if (parent_.mldev_) {
 		ret = parent_.mldev_->SetPower(parent_, index_, true, &need_init);
