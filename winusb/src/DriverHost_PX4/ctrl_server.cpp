@@ -63,28 +63,27 @@ void CtrlServer::CtrlConnection::Worker() noexcept
 
 			px4::command::CtrlOpenCmd *open = reinterpret_cast<px4::command::CtrlOpenCmd *>(buf.get());
 
-			receiver = receiver_manager_.Search(open->receiver_info, info);
-			if (receiver) {
-				int ret;
+			while (true) {
+				receiver = receiver_manager_.Search(open->receiver_info, info);
+				if (!receiver)
+					break;
 
-				ret = receiver->Open();
-				if (!ret) {
-					std::uint32_t data_id;
+				if (receiver->Open())
+					continue;
 
-					if (receiver_manager_.GenerateDataId(receiver, data_id)) {
-						open->status = px4::command::CtrlStatusCode::SUCCEEDED;
-						open->receiver_info = info;
-						open->receiver_info.data_id = data_id;
-						break;
-					}
+				std::uint32_t data_id;
 
+				if (!receiver_manager_.GenerateDataId(receiver, data_id)) {
 					receiver->Close();
+					continue;
 				}
 
-				receiver = nullptr;
+				open->receiver_info = info;
+				open->receiver_info.data_id = data_id;
+				break;
 			}
 
-			open->status = px4::command::CtrlStatusCode::FAILED;
+			open->status = (receiver) ? px4::command::CtrlStatusCode::SUCCEEDED : px4::command::CtrlStatusCode::FAILED;
 			break;
 		}
 
