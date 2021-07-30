@@ -46,6 +46,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 	if (timeBeginPeriod(timer_resolution) != TIMERR_NOERROR)
 		timer_resolution = 0;
+
+	msg_info("Timer Resolution: %u\n", timer_resolution);
 #endif
 
 	try {
