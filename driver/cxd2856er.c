@@ -8,7 +8,9 @@
 #include "print_format.h"
 #include "cxd2856er.h"
 
+#ifdef __linux__
 #include <linux/delay.h>
+#endif
 
 int cxd2856er_read_regs(struct cxd2856er_demod *demod,
 			enum cxd2856er_i2c_target target,
@@ -1022,7 +1024,7 @@ int cxd2856er_set_slot_isdbs(struct cxd2856er_demod *demod, u16 idx)
 		return ret;
 
 	data[0] = 0;
-	data[1] = idx;
+	data[1] = (u8)idx;
 	data[2] = 1;
 
 	return cxd2856er_write_slvt_regs(demod, 0xe9, data, 3);

@@ -1,0 +1,7 @@
+.vs/
+build/
+
+*.aps
+*.user
+
+!*.rc
