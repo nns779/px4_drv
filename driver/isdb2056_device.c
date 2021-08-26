@@ -962,6 +962,10 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 	if (ret)
 		goto fail_bridge;
 
+	ret = it930x_raise(it930x);
+	if (ret)
+		goto fail_device;
+
 	ret = isdb2056_device_load_config(isdb2056, &chrdev_config);
 	if (ret)
 		goto fail_device;

@@ -1243,6 +1243,10 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 	if (ret)
 		goto fail_bridge;
 
+	ret = it930x_raise(it930x);
+	if (ret)
+		goto fail_device;
+
 	ret = px4_device_load_config(px4, chrdev_config);
 	if (ret)
 		goto fail_device;

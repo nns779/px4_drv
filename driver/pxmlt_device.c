@@ -1000,6 +1000,10 @@ int pxmlt_device_init(struct pxmlt_device *pxmlt, struct device *dev,
 	if (ret)
 		goto fail_bridge;
 
+	ret = it930x_raise(it930x);
+	if (ret)
+		goto fail_device;
+
 	ret = pxmlt_device_load_config(pxmlt, model, chrdev_config);
 	if (ret)
 		goto fail_device;
