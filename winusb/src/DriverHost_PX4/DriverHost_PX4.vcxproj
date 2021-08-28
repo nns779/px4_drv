@@ -251,6 +251,7 @@
     <ClCompile Include="..\common\config.cpp" />
     <ClCompile Include="..\common\msg.c" />
     <ClCompile Include="..\common\pipe.cpp" />
+    <ClCompile Include="..\common\security_attributes.cpp" />
     <ClCompile Include="..\common\util.cpp" />
     <ClCompile Include="ctrl_server.cpp" />
     <ClCompile Include="device_base.cpp" />
@@ -284,6 +285,7 @@
     <ClInclude Include="..\common\config.hpp" />
     <ClInclude Include="..\common\msg.h" />
     <ClInclude Include="..\common\pipe.hpp" />
+    <ClInclude Include="..\common\security_attributes.hpp" />
     <ClInclude Include="..\common\type.hpp" />
     <ClInclude Include="..\common\util.hpp" />
     <ClInclude Include="ctrl_server.hpp" />

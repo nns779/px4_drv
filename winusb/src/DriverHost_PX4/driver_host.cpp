@@ -4,6 +4,7 @@
 
 #include <aclapi.h>
 
+#include "security_attributes.hpp"
 #include "notify_icon.hpp"
 
 namespace px4 {
@@ -27,43 +28,13 @@ DriverHost::~DriverHost()
 
 void DriverHost::Run()
 {
-	SID_IDENTIFIER_AUTHORITY sia;
-	PSID sid = nullptr;
-	EXPLICIT_ACCESSW ea;
-	PACL acl = nullptr;
-	SECURITY_DESCRIPTOR sd;
-	SECURITY_ATTRIBUTES sa;
-
-	sia = SECURITY_WORLD_SID_AUTHORITY;
-
-	if (!AllocateAndInitializeSid(&sia, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &sid))
-		throw DriverHostError("px4::DriverHost::Run: AllocateAndInitializeSid() failed.");
-
-	memset(&ea, 0, sizeof(ea));
-	ea.grfAccessPermissions = EVENT_ALL_ACCESS;
-	ea.grfAccessMode = SET_ACCESS;
-	ea.grfInheritance = NO_INHERITANCE;
-	ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-	ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
-	ea.Trustee.ptstrName = (LPWSTR)sid;
-
-	if (SetEntriesInAclW(1, &ea, nullptr, &acl) != ERROR_SUCCESS) {
-		LocalFree(sid);
-		throw DriverHostError("px4::DriverHost::Run: SetEntriesInAclW() failed.");
+	{
+		SecurityAttributes sa(EVENT_ALL_ACCESS);
+		startup_event_ = CreateEventW(sa.Get(), TRUE, FALSE, L"Global\\DriverHost_PX4_StartupEvent");
 	}
 
-	InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
-	SetSecurityDescriptorDacl(&sd, TRUE, acl, FALSE);
-
-	sa.nLength = sizeof(sa);
-	sa.lpSecurityDescriptor = &sd;
-	sa.bInheritHandle = FALSE;
-
-	startup_event_ = CreateEventW(&sa, TRUE, FALSE, L"DriverHost_PX4_StartupEvent");
 	if (!startup_event_)
 		throw DriverHostError("px4::DriverHost::Run: CreateEventW() failed.");
-
-	LocalFree(sid);
 
 	device_manager_.reset(new px4::DeviceManager(dev_defs_, receiver_manager_));
 

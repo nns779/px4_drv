@@ -4,6 +4,8 @@
 
 #include <system_error>
 
+#include "security_attributes.hpp"
+
 namespace px4 {
 
 PipeServer::PipeServer() noexcept
@@ -42,16 +44,23 @@ bool PipeServer::Accept(const std::wstring &name, const PipeServerConfig &config
 	mode |= (config.stream_read) ? PIPE_READMODE_BYTE : PIPE_READMODE_MESSAGE;
 	mode |= PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS;
 
-	pipe_handle = CreateNamedPipeW(
-		path.c_str(),
-		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-		mode,
-		PIPE_UNLIMITED_INSTANCES,
-		static_cast<DWORD>(config.out_buffer_size),
-		static_cast<DWORD>(config.in_buffer_size),
-		config.default_timeout,
-		nullptr);
-	if (pipe_handle == INVALID_HANDLE_VALUE) {
+	try {
+		SecurityAttributes sa(GENERIC_READ | GENERIC_WRITE);
+
+		pipe_handle = CreateNamedPipeW(
+			path.c_str(),
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			mode,
+			PIPE_UNLIMITED_INSTANCES,
+			static_cast<DWORD>(config.out_buffer_size),
+			static_cast<DWORD>(config.in_buffer_size),
+			config.default_timeout,
+			sa.Get());
+		if (pipe_handle == INVALID_HANDLE_VALUE) {
+			error_.assign(GetLastError(), std::system_category());
+			goto exit;
+		}
+	} catch (SecurityAttributesError &e) {
 		error_.assign(GetLastError(), std::system_category());
 		goto exit;
 	}
