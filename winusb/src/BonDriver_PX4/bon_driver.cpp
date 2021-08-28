@@ -11,6 +11,7 @@
 #include "bon_driver.hpp"
 #include "config.hpp"
 #include "chset.hpp"
+#include "security_attributes.hpp"
 #include "pipe_client.hpp"
 #include "command.hpp"
 #include "util.hpp"
@@ -206,44 +207,13 @@ const BOOL BonDriver::OpenTuner()
 		return TRUE;
 
 	try {
-		SID_IDENTIFIER_AUTHORITY sia;
-		PSID sid = nullptr;
-		EXPLICIT_ACCESSW ea;
-		PACL acl = nullptr;
-		SECURITY_DESCRIPTOR sd;
-		SECURITY_ATTRIBUTES sa;
 		HANDLE startup_event;
 		DWORD st;
 
-		sia = SECURITY_WORLD_SID_AUTHORITY;
-
-		if (!AllocateAndInitializeSid(&sia, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &sid))
-			throw BonDriverError("BonDriver::OpenTuner: AllocateAndInitializeSid() failed.");
-
-		memset(&ea, 0, sizeof(ea));
-		ea.grfAccessPermissions = EVENT_ALL_ACCESS;
-		ea.grfAccessMode = SET_ACCESS;
-		ea.grfInheritance = NO_INHERITANCE;
-		ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-		ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
-		ea.Trustee.ptstrName = (LPWSTR)sid;
-
-		if (SetEntriesInAclW(1, &ea, nullptr, &acl) != ERROR_SUCCESS) {
-			LocalFree(sid);
-			throw BonDriverError("BonDriver::OpenTuner: SetEntriesInAclW() failed.");
+		{
+			SecurityAttributes sa(EVENT_ALL_ACCESS);
+			startup_event = CreateEventW(sa.Get(), TRUE, FALSE, L"Global\\DriverHost_PX4_StartupEvent");
 		}
-
-		InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
-		SetSecurityDescriptorDacl(&sd, TRUE, acl, FALSE);
-
-		sa.nLength = sizeof(sa);
-		sa.lpSecurityDescriptor = &sd;
-		sa.bInheritHandle = FALSE;
-
-		startup_event = CreateEventW(&sa, TRUE, FALSE, L"DriverHost_PX4_StartupEvent");
-
-		LocalFree(acl);
-		LocalFree(sid);
 
 		if (!startup_event) {
 			throw BonDriverError("BonDriver::OpenTuner: CreateEventW(\"DriverHost_PX4_StartupEvent\") failed.");

@@ -4,12 +4,14 @@
 
 #include <aclapi.h>
 
+#include "security_attributes.hpp"
 #include "notify_icon.hpp"
 
 namespace px4 {
 
 DriverHost::DriverHost()
-	: startup_event_(nullptr)
+	: mutex_(nullptr),
+	startup_event_(nullptr)
 {
 	configs_.Load(px4::util::path::GetFileBase() + L".ini");
 
@@ -23,47 +25,38 @@ DriverHost::~DriverHost()
 
 	if (startup_event_)
 		CloseHandle(startup_event_);
+
+	if (mutex_) {
+		ReleaseMutex(mutex_);
+		CloseHandle(mutex_);
+	}
 }
 
 void DriverHost::Run()
 {
-	SID_IDENTIFIER_AUTHORITY sia;
-	PSID sid = nullptr;
-	EXPLICIT_ACCESSW ea;
-	PACL acl = nullptr;
-	SECURITY_DESCRIPTOR sd;
-	SECURITY_ATTRIBUTES sa;
-
-	sia = SECURITY_WORLD_SID_AUTHORITY;
-
-	if (!AllocateAndInitializeSid(&sia, 1, SECURITY_WORLD_RID, 0, 0, 0, 0, 0, 0, 0, &sid))
-		throw DriverHostError("px4::DriverHost::Run: AllocateAndInitializeSid() failed.");
-
-	memset(&ea, 0, sizeof(ea));
-	ea.grfAccessPermissions = EVENT_ALL_ACCESS;
-	ea.grfAccessMode = SET_ACCESS;
-	ea.grfInheritance = NO_INHERITANCE;
-	ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-	ea.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
-	ea.Trustee.ptstrName = (LPWSTR)sid;
-
-	if (SetEntriesInAclW(1, &ea, nullptr, &acl) != ERROR_SUCCESS) {
-		LocalFree(sid);
-		throw DriverHostError("px4::DriverHost::Run: SetEntriesInAclW() failed.");
+	{
+		SecurityAttributes sa(MUTEX_ALL_ACCESS);
+		mutex_ = CreateMutexW(sa.Get(), TRUE, L"Global\\DriverHost_PX4_Mutex");
 	}
 
-	InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
-	SetSecurityDescriptorDacl(&sd, TRUE, acl, FALSE);
+	if (!mutex_)
+		throw DriverHostError("px4::DriverHost::Run: CreateMutexW() failed.");
 
-	sa.nLength = sizeof(sa);
-	sa.lpSecurityDescriptor = &sd;
-	sa.bInheritHandle = FALSE;
+	if (GetLastError() == ERROR_ALREADY_EXISTS) {
+		CloseHandle(mutex_);
+		mutex_ = nullptr;
+		return;
+	}
 
-	startup_event_ = CreateEventW(&sa, TRUE, FALSE, L"DriverHost_PX4_StartupEvent");
-	if (!startup_event_)
+	{
+		SecurityAttributes sa(EVENT_ALL_ACCESS);
+		startup_event_ = CreateEventW(sa.Get(), TRUE, FALSE, L"Global\\DriverHost_PX4_StartupEvent");
+	}
+
+	if (!startup_event_) {
+		CloseHandle(mutex_);
 		throw DriverHostError("px4::DriverHost::Run: CreateEventW() failed.");
-
-	LocalFree(sid);
+	}
 
 	device_manager_.reset(new px4::DeviceManager(dev_defs_, receiver_manager_));
 
@@ -94,6 +87,10 @@ void DriverHost::Run()
 
 	CloseHandle(startup_event_);
 	startup_event_ = nullptr;
+
+	ReleaseMutex(mutex_);
+	CloseHandle(mutex_);
+	mutex_ = nullptr;
 }
 
 } // namespace px4
