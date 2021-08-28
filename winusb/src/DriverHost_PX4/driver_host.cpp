@@ -10,7 +10,8 @@
 namespace px4 {
 
 DriverHost::DriverHost()
-	: startup_event_(nullptr)
+	: mutex_(nullptr),
+	startup_event_(nullptr)
 {
 	configs_.Load(px4::util::path::GetFileBase() + L".ini");
 
@@ -24,17 +25,38 @@ DriverHost::~DriverHost()
 
 	if (startup_event_)
 		CloseHandle(startup_event_);
+
+	if (mutex_) {
+		ReleaseMutex(mutex_);
+		CloseHandle(mutex_);
+	}
 }
 
 void DriverHost::Run()
 {
 	{
+		SecurityAttributes sa(MUTEX_ALL_ACCESS);
+		mutex_ = CreateMutexW(sa.Get(), TRUE, L"Global\\DriverHost_PX4_Mutex");
+	}
+
+	if (!mutex_)
+		throw DriverHostError("px4::DriverHost::Run: CreateMutexW() failed.");
+
+	if (GetLastError() == ERROR_ALREADY_EXISTS) {
+		CloseHandle(mutex_);
+		mutex_ = nullptr;
+		return;
+	}
+
+	{
 		SecurityAttributes sa(EVENT_ALL_ACCESS);
 		startup_event_ = CreateEventW(sa.Get(), TRUE, FALSE, L"Global\\DriverHost_PX4_StartupEvent");
 	}
 
-	if (!startup_event_)
+	if (!startup_event_) {
+		CloseHandle(mutex_);
 		throw DriverHostError("px4::DriverHost::Run: CreateEventW() failed.");
+	}
 
 	device_manager_.reset(new px4::DeviceManager(dev_defs_, receiver_manager_));
 
@@ -65,6 +87,10 @@ void DriverHost::Run()
 
 	CloseHandle(startup_event_);
 	startup_event_ = nullptr;
+
+	ReleaseMutex(mutex_);
+	CloseHandle(mutex_);
+	mutex_ = nullptr;
 }
 
 } // namespace px4

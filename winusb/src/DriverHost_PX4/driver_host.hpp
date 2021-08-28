@@ -38,6 +38,7 @@ private:
 	px4::DeviceDefinitionSet dev_defs_;
 	px4::ReceiverManager receiver_manager_;
 
+	HANDLE mutex_;
 	HANDLE startup_event_;
 	std::unique_ptr<px4::DeviceManager> device_manager_;
 	std::unique_ptr<px4::CtrlServer> ctrl_server_;
