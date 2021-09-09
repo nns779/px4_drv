@@ -32,7 +32,7 @@ static GUID empty_guid = { 0 };
 
 px4::ReceiverBase* ReceiverManager::SearchAndOpen(px4::command::ReceiverInfo &key, px4::command::ReceiverInfo &info, std::uint32_t &data_id)
 {
-	std::shared_lock<std::shared_mutex> lock(mtx_);
+	std::lock_guard<std::shared_mutex> lock(mtx_);
 
 	for (auto it = data_.cbegin(); it != data_.cend(); ++it) {
 		const px4::command::ReceiverInfo& k = it->second.info;
@@ -93,8 +93,6 @@ px4::ReceiverBase* ReceiverManager::SearchByDataId(std::uint32_t data_id)
 
 bool ReceiverManager::GenerateDataId(px4::ReceiverBase *receiver, std::uint32_t &data_id)
 {
-	std::lock_guard<std::shared_mutex> lock(mtx_);
-
 	if (!data_.count(receiver))
 		return false;
 

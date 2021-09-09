@@ -27,7 +27,6 @@ public:
 	bool Unregister(px4::ReceiverBase *receiver);
 	px4::ReceiverBase* SearchAndOpen(px4::command::ReceiverInfo &key, px4::command::ReceiverInfo &info, std::uint32_t &data_id);
 	px4::ReceiverBase* SearchByDataId(std::uint32_t data_id);
-	bool GenerateDataId(px4::ReceiverBase *receiver, std::uint32_t &data_id);
 	void ClearDataId(px4::ReceiverBase *receiver);
 
 private:
@@ -35,6 +34,8 @@ private:
 		px4::command::ReceiverInfo info;
 		bool valid_data_id;
 	};
+
+	bool GenerateDataId(px4::ReceiverBase *receiver, std::uint32_t &data_id);
 
 	std::shared_mutex mtx_;
 	std::unordered_map<px4::ReceiverBase*, ReceiverData> data_;
