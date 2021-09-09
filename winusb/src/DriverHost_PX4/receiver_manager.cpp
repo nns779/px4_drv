@@ -30,7 +30,7 @@ bool ReceiverManager::Unregister(px4::ReceiverBase *receiver)
 
 static GUID empty_guid = { 0 };
 
-px4::ReceiverBase* ReceiverManager::Search(px4::command::ReceiverInfo &key, px4::command::ReceiverInfo &info)
+px4::ReceiverBase* ReceiverManager::SearchAndOpen(px4::command::ReceiverInfo &key, px4::command::ReceiverInfo &info, std::uint32_t &data_id)
 {
 	std::shared_lock<std::shared_mutex> lock(mtx_);
 
@@ -58,9 +58,19 @@ px4::ReceiverBase* ReceiverManager::Search(px4::command::ReceiverInfo &key, px4:
 		if ((key.index >= 0) && (key.index != k.index))
 			continue;
 
+		px4::ReceiverBase *r = it->first;
+
+		if (r->Open())
+			continue;
+
+		if (!GenerateDataId(r, data_id)) {
+			r->Close();
+			continue;
+		}
+
 		info = k;
 
-		return it->first;
+		return r;
 	}
 
 	return nullptr;

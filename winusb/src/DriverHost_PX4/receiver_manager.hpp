@@ -25,7 +25,7 @@ public:
 
 	bool Register(px4::command::ReceiverInfo &info, px4::ReceiverBase *receiver);
 	bool Unregister(px4::ReceiverBase *receiver);
-	px4::ReceiverBase* Search(px4::command::ReceiverInfo &key, px4::command::ReceiverInfo &info);
+	px4::ReceiverBase* SearchAndOpen(px4::command::ReceiverInfo &key, px4::command::ReceiverInfo &info, std::uint32_t &data_id);
 	px4::ReceiverBase* SearchByDataId(std::uint32_t data_id);
 	bool GenerateDataId(px4::ReceiverBase *receiver, std::uint32_t &data_id);
 	void ClearDataId(px4::ReceiverBase *receiver);
