@@ -89,6 +89,7 @@ private:
 	std::unique_ptr<px4::PipeClient> data_pipe_;
 	BOOL open_;
 	DWORD space_, ch_;
+	BOOL display_error_message_;
 
 	std::mutex stream_mtx_;
 	std::unique_ptr<px4::IoQueue> ioq_;
