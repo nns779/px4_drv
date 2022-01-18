@@ -35,6 +35,7 @@ BonDriver::BonDriver() noexcept
 	open_(FALSE),
 	space_(0),
 	ch_(0),
+	display_error_message_(false),
 	stream_mtx_(),
 	ioq_(nullptr),
 	iorp_(*this),
@@ -110,6 +111,13 @@ bool BonDriver::Init()
 				if (data_ignore_count < 0)
 					return false;
 			} catch (const std::out_of_range &) {}
+
+			try {
+				int display_error_message = px4::util::wtoi(bon_config.Get(L"DisplayErrorMessage"));
+				if (display_error_message == 1) {
+					display_error_message_ = true;
+				}
+			} catch (const std::out_of_range &) {}
 		} else {
 			systems_ = px4::SystemType::ISDB_T;
 			driver_host_path_ = dir_path + L"DriverHost_PX4.exe";
@@ -180,10 +188,10 @@ bool BonDriver::Init()
 
 		ioq_.reset(new px4::IoQueue(px4::IoQueue::IoOperation::READ, iorp_, 188 * num_packets, max_buffers, min_buffers, data_ignore_count));
 	} catch (const std::runtime_error &e) {
-		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::Init)", MB_OK);
+		if (display_error_message_) MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::Init)", MB_OK);
 		return false;
 	} catch (...) {
-		MessageBoxA(nullptr, "Fatal error!", "BonDriver_PX4 (BonDriver::Init)", MB_OK);
+		if (display_error_message_) MessageBoxA(nullptr, "Fatal error!", "BonDriver_PX4 (BonDriver::Init)", MB_OK);
 		return false;
 	}
 
@@ -290,10 +298,10 @@ const BOOL BonDriver::OpenTuner()
 		open_ = TRUE;
 	} catch (const std::exception &e) {
 		ret = FALSE;
-		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::OpenTuner)", MB_OK | MB_ICONERROR);
+		if (display_error_message_) MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::OpenTuner)", MB_OK | MB_ICONERROR);
 	} catch (...) {
 		ret = FALSE;
-		MessageBoxA(nullptr, "Fatal error!", "BonDriver_PX4 (BonDriver::OpenTuner)", MB_OK | MB_ICONERROR);
+		if (display_error_message_) MessageBoxA(nullptr, "Fatal error!", "BonDriver_PX4 (BonDriver::OpenTuner)", MB_OK | MB_ICONERROR);
 	}
 
 	if (!open_) {
@@ -540,9 +548,9 @@ const BOOL BonDriver::SetChannel(const DWORD dwSpace, const DWORD dwChannel)
 				ret = ctrl_client_.Tune(tune_timeout_);
 		}
 	} catch (const std::exception &e) {
-		MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::SetChannel)", MB_OK | MB_ICONERROR);
+		if (display_error_message_) MessageBoxA(nullptr, e.what(), "BonDriver_PX4 (BonDriver::SetChannel)", MB_OK | MB_ICONERROR);
 	} catch (...) {
-		MessageBoxA(nullptr, "Fatal error!", "BonDriver_PX4 (BonDriver::SetChannel)", MB_OK | MB_ICONERROR);
+		if (display_error_message_) MessageBoxA(nullptr, "Fatal error!", "BonDriver_PX4 (BonDriver::SetChannel)", MB_OK | MB_ICONERROR);
 	}
 
 	delete[] reinterpret_cast<std::uint8_t*>(param_set);
