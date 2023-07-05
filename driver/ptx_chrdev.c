@@ -570,7 +570,7 @@ int ptx_chrdev_context_create(const char *name, const char *devname,
 
 	INIT_LIST_HEAD(&ctx->group_list);
 
-	ctx->class = class_create(THIS_MODULE, name);
+	ctx->class = class_create(name);
 	if (IS_ERR(ctx->class)) {
 		pr_err("ptx_chrdev_context_create: class_create(\"%s\") failed.\n",
 		       name);
