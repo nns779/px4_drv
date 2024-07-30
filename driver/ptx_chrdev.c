@@ -14,6 +14,7 @@
 #include <linux/sched.h>
 #include <linux/uaccess.h>
 #include <linux/fs.h>
+#include <linux/version.h>
 
 static LIST_HEAD(ctx_list);
 static DEFINE_MUTEX(ctx_list_lock);
@@ -570,7 +571,11 @@ int ptx_chrdev_context_create(const char *name, const char *devname,
 
 	INIT_LIST_HEAD(&ctx->group_list);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
 	ctx->class = class_create(THIS_MODULE, name);
+#else
+    ctx->class = class_create(name);
+#endif
 	if (IS_ERR(ctx->class)) {
 		pr_err("ptx_chrdev_context_create: class_create(\"%s\") failed.\n",
 		       name);
