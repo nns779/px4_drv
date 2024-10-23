@@ -566,7 +566,7 @@ int ptx_chrdev_context_create(const char *name, const char *devname,
 		return -ENOMEM;
 
 	mutex_init(&ctx->lock);
-	strlcpy(ctx->devname, devname, sizeof(ctx->devname));
+	strscpy(ctx->devname, devname, sizeof(ctx->devname));
 
 	INIT_LIST_HEAD(&ctx->group_list);
 
