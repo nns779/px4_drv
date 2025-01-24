@@ -1,0 +1,13 @@
+Source: px4drv-dkms
+Section: contrib/kernel
+Priority: optional
+Maintainer: Go Kudo <zeriyoshi@gmail.com>
+Build-Depends: debhelper (>=11~), dh-sequence-dkms
+Standards-Version: 1.0.0
+Homepage: https://github.com/zeriyoshi/px4_drv
+
+Package: px4drv-dkms
+Architecture: any
+Multi-Arch: foreign
+Depends: dkms (>= 1.95), ${misc:Depends}
+Description: px4_drv DKMS Debian Package

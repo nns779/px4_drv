@@ -1,6 +1,3 @@
-.tmp_versions/
-Module.symvers
-modules.order
 *.o
 *.rc
 *.ko
@@ -12,11 +9,18 @@ modules.order
 *.mod.c
 *.mod.o
 
-/driver/revision.h
-
 *.bin
 *.sys
 *.zip
 
-*.obj
-*.exe
+*.DS_Store
+
+revision.h
+Module.symvers
+
+/debian/.debhelper
+/debian/px4drv-dkms
+/debian/debhelper-build-stamp
+/debian/files
+/debian/px4drv-dkms.debhelper.log
+/debian/px4drv-dkms.substvars

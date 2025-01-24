@@ -1,3 +1,0 @@
-LIBRARY BonDriver_PX4
-EXPORTS
-	CreateBonDriver

@@ -1,6 +1,7 @@
 # px4_drv - Unofficial Linux driver for PLEX PX4/PX5/PX-MLT series ISDB-T/S receivers
 
 PLEXやe-Betterから発売された各種ISDB-T/Sチューナー向けのchardev版非公式Linuxドライバです。  
+
 PLEX社の[Webサイト](http://plex-net.co.jp)にて配布されている公式Linuxドライバとは**別物**です。
 
 ## 対応デバイス
