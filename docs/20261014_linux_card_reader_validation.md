@@ -208,8 +208,8 @@ pcscd が px4_drv のモジュールより先に USB を列挙すると、リー
 - 手元に実機がない機種
   - PX4 系: PX-Q3U4・PX-Q3PE4・PX-Q3PE5 (2基連動の電源管理を含む)、PX-W3PE4・PX-W3PE5
   - PXMLT 系: PX-MLT5U・PX-MLT8PE・DTV02A-4TS-P (DTV02A-5TS-P は PX-MLT5PE のリブランド品で、ハードウェアと通る処理が同じなので、PX-MLT5PE の結果に含めている)
-  - ISDB2056 系: ISDB2056N
-  - ISDBT2071 系: PX-S1UR・DTV03A-1TU
+  - ISDB2056 系: ISDB2056N・PX-S1UR
+  - ISDBT2071 系: DTV03A-1TU
 - PX-M1UR 以外の機種での、通信中のカードの抜去と再挿入
 - ACAS チップ
 - PX-W3U4 以外の機種での CS の受信、長時間の録画、ネイティブ Linux での TS の品質
