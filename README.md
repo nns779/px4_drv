@@ -372,8 +372,11 @@ Ubuntu 20.04 以降と、同じ世代以降の Debian 系ディストリビュ�
 	$ sudo apt install -y ./px4-drv-pcsc_0.6.1_amd64.deb pcscd
 
 インストールや更新の後は、pcscd を再起動すると読み込まれます。  
-カードを使っている最中に再起動すると復号が途切れるため、録画や視聴をしていないときに実行してください。
+カードを使っている最中に再起動すると復号が途切れるため、録画や視聴をしていないときに実行してください。  
+pcscd を新しくインストールした場合は、すでにつながっている機器のデバイスファイルに `pcscd` グループがまだ付いていないので、先に udev の規則を当て直します。
 
+	$ sudo udevadm trigger --subsystem-match=px4card
+	$ sudo udevadm settle
 	$ sudo systemctl restart pcscd
 
 > [!TIP]
@@ -396,7 +399,7 @@ Ubuntu 20.04 以降と、同じ世代以降の Debian 系ディストリビュ�
 
 PX-MLT5U は未発売の機種ですが、公式の Windows 用ドライバーに定義があるため対応しています。  
 Windows 版の INF がないので、GUID を省いたパスから ID を計算します。  
-同じ ID の機器を複数台つないだ場合は、2台目以降のデバイスファイル名に `-1` などが付きます。  
+同じ ID の機器を複数台つないだ場合は、2台目以降のデバイスファイル名に `-1` などが付きます (リーダー名の `[ID: ...]` には付かず、どちらも同じ値になります)。  
 シリアル番号が使えない機器では、`usb-<USB の接続位置>` がデバイスファイル名になります。
 
 カードリーダーが表示されない場合は、次を確かめてください。
@@ -488,6 +491,9 @@ Mirakurun の `docker-compose.yml` の例はソケットのファイル (`pcscd.
 
 #### DKMS を使用せずにインストールした場合
 
+内蔵カードリーダーを pcscd で使っている場合は、pcscd がデバイスファイルを開いたままでモジュールを外せないため、先に pcscd を止めます。
+
+	$ sudo systemctl stop pcscd.socket pcscd.service
 	$ sudo modprobe -r px4_drv
 	$ cd driver
 	$ sudo make uninstall

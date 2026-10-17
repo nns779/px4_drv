@@ -61,6 +61,10 @@ ioctl のコマンドの振り分けと `it930x_bcas_*()` の呼び出しは、�
 [`ifdhandler.cpp`](ifdhandler.cpp) は pcsc-lite の IFD ハンドラーの関数を実装し、[`linux_card_device.cpp`](linux_card_device.cpp) は ioctl を発行する薄いアダプターです。  
 T=1 の実装は、Windows 版の [`smart_card.cpp`](../winusb/src/DriverHost_PX4/smart_card.cpp) をそのままビルドして使います。
 
+APDU の通信に失敗したときは、Windows 版と同じく T=1 のセッションだけを捨て、次の APDU の前にカードをリセットして復帰します。  
+pcscd は通信の失敗でカードをリセットしないため、ここでカードを閉じると、アプリケーションが明示的にリセットするまで通信できなくなります。  
+カードを閉じるのは、カードが抜かれたときと USB が切断されたときだけです。
+
 pcscd は USB の接続を検出すると、[`Info.plist`](Info.plist) の VID と PID が一致する機器についてこの IFD ハンドラーを読み込みます。  
 IFD ハンドラーは、渡された USB のバス番号とデバイス番号を sysfs の `/sys/class/px4card/<ID>` の親と照合し、その `uevent` の `DEVNAME` から開くデバイスファイルを決めます。  
 同じ機種を複数台つないだときに VID と PID だけでは区別できないためです。  

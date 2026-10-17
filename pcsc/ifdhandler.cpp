@@ -285,8 +285,14 @@ extern "C" RESPONSECODE IFDHTransmitToICC(DWORD Lun, SCARD_IO_HEADER SendPci,
 		std::size_t length = capacity;
 		int ret = reader.card.Transmit(TxBuffer, TxLength, RxBuffer, length);
 		if (ret) {
-			reader.Invalidate();
-			return MapError(ret);
+			/*
+			 * 通信の失敗では SmartCard が自分の T=1 のセッションだけを捨て、次の APDU の前にカードをリセットして復帰する (Windows 版と同じ)
+			 * pcscd は通信の失敗でカードをリセットしないため、ここでカードを閉じると、アプリケーションがリセットするまで通信できなくなる
+			 */
+			const RESPONSECODE code = MapError(ret);
+			if (code == IFD_ICC_NOT_PRESENT || code == IFD_NO_SUCH_DEVICE)
+				reader.Invalidate();
+			return code;
 		}
 		*RxLength = length;
 		if (RecvPci) {

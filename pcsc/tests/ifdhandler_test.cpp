@@ -283,12 +283,21 @@ int main(int argc, char *argv[])
 	devices[0].error = ETIMEDOUT;
 	length = sizeof(buffer);
 	assert(IFDHTransmitToICC(0, pci, apdu, sizeof(apdu), buffer, &length, &received) == IFD_RESPONSE_TIMEOUT);
-	assert(length == 0 && !devices[0].powered);
+	assert(length == 0 && devices[0].powered); // 通信の失敗ではカードを閉じない
 	length = sizeof(buffer);
-	assert(IFDHGetCapabilities(0, TAG_IFD_ATR, &length, buffer) == IFD_SUCCESS && length == 0);
+	assert(IFDHTransmitToICC(0, pci, apdu, sizeof(apdu), buffer, &length, &received) == IFD_SUCCESS);
+	assert(length == 2 && devices[0].resets == 2); // 次の APDU の前にカードをリセットして復帰する
+	length = sizeof(buffer);
+	assert(IFDHGetCapabilities(0, TAG_IFD_ATR, &length, buffer) == IFD_SUCCESS && length == sizeof(atr));
 	length = sizeof(buffer);
 	assert(IFDHPowerICC(0, IFD_RESET, buffer, &length) == IFD_SUCCESS);
-	assert(devices[0].resets == 2);
+	assert(devices[0].resets == 3);
+	devices[0].present = false;
+	length = sizeof(buffer);
+	assert(IFDHSetProtocolParameters(0, SCARD_PROTOCOL_T1, 0, 0, 0, 0) == IFD_SUCCESS);
+	assert(IFDHTransmitToICC(0, pci, apdu, sizeof(apdu), buffer, &length, &received) == IFD_ICC_NOT_PRESENT);
+	assert(length == 0 && !devices[0].powered); // カードの抜去ではカードを閉じる
+	devices[0].present = true;
 	length = sizeof(buffer);
 	assert(IFDHPowerICC(0, IFD_POWER_DOWN, buffer, &length) == IFD_SUCCESS && length == 0);
 	const auto resets = devices[0].resets;
