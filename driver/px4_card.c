@@ -114,7 +114,6 @@ static int px4_card_request(struct px4_card *card, unsigned int command,
 			    u32 *value, struct px4_card_frame *frame)
 {
 	struct it930x_bridge *it930x = card->backend.it930x;
-	enum it930x_uart_baudrate baudrate;
 	bool state = false;
 	int ret;
 
@@ -148,20 +147,7 @@ static int px4_card_request(struct px4_card *card, unsigned int command,
 		return it930x_bcas_reset_card(it930x);
 
 	case PX4_CARD_SET_BAUDRATE:
-		switch (*value) {
-		case 9600:
-			baudrate = IT930X_UART_BAUDRATE_9600;
-			break;
-		case 19200:
-			baudrate = IT930X_UART_BAUDRATE_19200;
-			break;
-		case 38400:
-			baudrate = IT930X_UART_BAUDRATE_38400;
-			break;
-		default:
-			return -EINVAL;
-		}
-		return it930x_bcas_set_baudrate(it930x, baudrate);
+		return it930x_bcas_set_baudrate(it930x, *value);
 
 	case PX4_CARD_RX_READY:
 		ret = it930x_bcas_check_ready(it930x, &state);

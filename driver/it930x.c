@@ -1171,17 +1171,16 @@ int it930x_purge_psb(struct it930x_bridge *it930x, int timeout)
 #define IT930X_REG_UART_RX_READY	0x496a
 #define IT930X_REG_UART_RX_LENGTH	0x496b
 
-static int it930x_set_uart_baudrate(struct it930x_bridge *it930x,
-				    enum it930x_uart_baudrate baudrate)
+static int it930x_set_uart_baudrate(struct it930x_bridge *it930x, u32 baudrate)
 {
 	u8 value;
 	struct it930x_ctrl_buf write_buf;
 
-	if (baudrate == IT930X_UART_BAUDRATE_9600)
+	if (baudrate == 9600)
 		value = 0;
-	else if (baudrate == IT930X_UART_BAUDRATE_19200)
+	else if (baudrate == 19200)
 		value = 1;
-	else if (baudrate == IT930X_UART_BAUDRATE_38400)
+	else if (baudrate == 38400)
 		/*
 		 * UART mode 1 では2が9600bps 相当へ戻るため、
 		 * 汎用 UART と同じ38400bps のリロード値を直接指定する
@@ -1231,7 +1230,7 @@ int it930x_bcas_reset_card(struct it930x_bridge *it930x)
 	if (ret)
 		return ret;
 
-	ret = it930x_set_uart_baudrate(it930x, IT930X_UART_BAUDRATE_9600);
+	ret = it930x_set_uart_baudrate(it930x, 9600);
 	if (ret)
 		return ret;
 
@@ -1352,8 +1351,7 @@ int it930x_bcas_detect_card(struct it930x_bridge *it930x, bool *detected)
 	return 0;
 }
 
-int it930x_bcas_set_baudrate(struct it930x_bridge *it930x,
-			     enum it930x_uart_baudrate baudrate)
+int it930x_bcas_set_baudrate(struct it930x_bridge *it930x, u32 baudrate)
 {
 	return it930x_set_uart_baudrate(it930x, baudrate);
 }

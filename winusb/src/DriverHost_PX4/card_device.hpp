@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <cerrno>
 
-#include "it930x_uart.h"
-
 namespace px4 {
 
 class CardDevice {
@@ -15,7 +13,8 @@ public:
 	virtual void CloseCard() = 0;
 	virtual int DetectCard(bool &detected) = 0;
 	virtual int ResetCard() = 0;
-	virtual int SetCardBaudrate(::it930x_uart_baudrate baudrate) = 0;
+	/* baudrate は bps で渡す (9600 、19200 、38400 のいずれか) */
+	virtual int SetCardBaudrate(std::uint32_t baudrate) = 0;
 	/* ready は UART に完全なカード応答が揃った場合だけ true を返す */
 	virtual int IsCardDataReady(bool &ready) = 0;
 	/* len は呼び出し前に buf の容量、成功後に実際の読み取り長を表す */

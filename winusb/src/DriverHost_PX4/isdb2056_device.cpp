@@ -316,7 +316,7 @@ int Isdb2056Device::ResetCard()
 	return card_open_ ? it930x_bcas_reset_card(&it930x_) : -ENODEV;
 }
 
-int Isdb2056Device::SetCardBaudrate(::it930x_uart_baudrate baudrate)
+int Isdb2056Device::SetCardBaudrate(std::uint32_t baudrate)
 {
 	std::lock_guard<std::recursive_mutex> lock(lock_);
 	return card_open_ ? it930x_bcas_set_baudrate(&it930x_, baudrate) : -ENODEV;

@@ -160,7 +160,7 @@ int SmartCard::Reset(std::vector<std::uint8_t> &atr)
 	card_ifsc_ = parameters.ifsc;
 	use_crc_ = parameters.use_crc;
 	block_timeout_ms_ = parameters.block_timeout_ms;
-	const bool is_acas = parameters.baudrate == IT930X_UART_BAUDRATE_38400;
+	const bool is_acas = parameters.baudrate == 38400;
 	/* ACAS は IFS (254) から開始し、B-CAS は従来の RESYNCH を先に送る */
 	const std::uint8_t ifsd = is_acas ? 254 : (use_crc_ ? 250 : 251);
 	ret = InitializeT1(!is_acas, ifsd);
@@ -296,13 +296,13 @@ int SmartCard::ParseAtr(const std::vector<std::uint8_t> &atr,
 			/* IT930x が生成できる FI=1 の速度だけを受理する */
 			switch (ta) {
 			case 0x11:
-				parameters.baudrate = IT930X_UART_BAUDRATE_9600;
+				parameters.baudrate = 9600;
 				break;
 			case 0x12:
-				parameters.baudrate = IT930X_UART_BAUDRATE_19200;
+				parameters.baudrate = 19200;
 				break;
 			case 0x13:
-				parameters.baudrate = IT930X_UART_BAUDRATE_38400;
+				parameters.baudrate = 38400;
 				break;
 			default:
 				return -EOPNOTSUPP;

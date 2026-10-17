@@ -10,7 +10,7 @@ CPPFLAGS += -I.
 CXXFLAGS ?= -O2 -g
 CXXFLAGS += -std=c++17 -Wall -Wextra -Wpedantic -pthread
 SOURCES := ifdhandler.cpp linux_card_device.cpp $(SHARED)/smart_card.cpp
-HEADERS := linux_card_device.hpp $(SHARED)/card_device.hpp $(SHARED)/smart_card.hpp $(ROOT)/include/px4_card_ioctl.h $(ROOT)/driver/it930x_uart.h
+HEADERS := linux_card_device.hpp $(SHARED)/card_device.hpp $(SHARED)/smart_card.hpp $(ROOT)/include/px4_card_ioctl.h
 
 all: $(BUILD)/libifd-px4.so
 

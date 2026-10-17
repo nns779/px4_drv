@@ -85,15 +85,9 @@ int LinuxCardDevice::ResetCard()
 	return Request(PX4_CARD_RESET, nullptr);
 }
 
-int LinuxCardDevice::SetCardBaudrate(it930x_uart_baudrate baudrate)
+int LinuxCardDevice::SetCardBaudrate(std::uint32_t baudrate)
 {
-	__u32 value;
-	switch (baudrate) {
-	case IT930X_UART_BAUDRATE_9600: value = 9600; break;
-	case IT930X_UART_BAUDRATE_19200: value = 19200; break;
-	case IT930X_UART_BAUDRATE_38400: value = 38400; break;
-	default: return -EINVAL;
-	}
+	__u32 value = baudrate;
 	return Request(PX4_CARD_SET_BAUDRATE, &value);
 }
 

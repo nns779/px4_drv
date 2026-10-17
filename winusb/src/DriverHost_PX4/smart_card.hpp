@@ -33,7 +33,7 @@ private:
 	using Deadline = std::chrono::steady_clock::time_point;
 
 	struct AtrParameters final {
-		::it930x_uart_baudrate baudrate = IT930X_UART_BAUDRATE_9600;
+		std::uint32_t baudrate = 9600;
 		std::uint8_t ifsc = 32;
 		bool use_crc = false;
 		unsigned int block_timeout_ms = 500;

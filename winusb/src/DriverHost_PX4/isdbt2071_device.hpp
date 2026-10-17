@@ -74,7 +74,7 @@ public:
 	void CloseCard() override;
 	int DetectCard(bool &detected) override;
 	int ResetCard() override;
-	int SetCardBaudrate(::it930x_uart_baudrate baudrate) override;
+	int SetCardBaudrate(std::uint32_t baudrate) override;
 	int IsCardDataReady(bool &ready) override;
 	int ReadCardData(std::uint8_t *buf, std::uint8_t &len) override;
 	int WriteCardData(const std::uint8_t *buf, std::uint8_t len) override;

@@ -57,7 +57,7 @@ public:
 		return 0;
 	}
 
-	int SetCardBaudrate(::it930x_uart_baudrate value) override
+	int SetCardBaudrate(std::uint32_t value) override
 	{
 		baudrate = value;
 		return 0;
@@ -296,7 +296,7 @@ public:
 		0x3b, 0xf0, 0x12, 0x00, 0xff, 0x91, 0x81,
 		0xb1, 0x7c, 0x45, 0x1f, 0x01, 0x9b,
 	};
-	::it930x_uart_baudrate baudrate = IT930X_UART_BAUDRATE_9600;
+	std::uint32_t baudrate = 9600;
 	bool expected_crc = false;
 	std::vector<std::uint8_t> written_pcbs;
 	std::vector<std::uint8_t> ifs_values;
@@ -332,7 +332,7 @@ int main()
 	device->is_present = true;
 	succeeded = Check(card.GetStatus(present, initialized, atr) == 0 &&
 		present && initialized && atr.size() == 13 && device->reset_count == 1 &&
-		device->baudrate == IT930X_UART_BAUDRATE_19200 &&
+		device->baudrate == 19200 &&
 		device->written_pcbs.size() == 2 && device->written_pcbs[0] == 0xc0 &&
 		device->written_pcbs[1] == 0xc1 && device->ifs_values.size() == 1 &&
 		device->ifs_values[0] == 251,
@@ -514,7 +514,7 @@ int main()
 	acas_device->drop_first_ifs = true;
 	px4::SmartCard acas_card(acas_device);
 	succeeded = Check(acas_card.Open() == 0 &&
-		acas_device->baudrate == IT930X_UART_BAUDRATE_38400 &&
+		acas_device->baudrate == 38400 &&
 		acas_device->written_pcbs.size() == 3 &&
 		acas_device->written_pcbs[0] == 0xc1 &&
 		acas_device->written_pcbs[1] == 0xc0 &&
