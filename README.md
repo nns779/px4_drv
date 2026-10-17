@@ -53,6 +53,8 @@ PLEX 社の [Webサイト](http://plex-net.co.jp) にて配布されている公
 - [kznrluk 氏のフォーク](https://github.com/kznrluk/px4_drv) の更新を取り込み、Linux カーネル 6.4 系以降の API 変更に対応
 - [hendecarows 氏のフォーク](https://github.com/hendecarows/px4_drv) での更新を取り込み、DTV03A-1TU に対応
 - PX-MLT5PE のリブランド品である DTV02A-5TS-P (USB Product ID: 0x924e) に対応
+- WinUSB 版と同じく、PX-S1UR を ISDB2056 系の共通処理に統合し、設計の異なる DTV03A-1TU (ISDBT2071) を単独の実装に分離
+- Linux 4.15 (Ubuntu 18.04 の初期カーネル) 以降でビルドできるように修正
 - https://github.com/tsukumijima/px4_drv/pull/33 をマージし、IBT (Indirect Branch Tracking) 対応に伴う `objtool` の検査強化により、Linux 6.15 系などでモジュールをビルド・ロードできない問題に対応
   - 当初は保守的に Linux 6.15.4 以降でのみ `module_init()` と `module_exit()` を使っていたが、これらは古いカーネルでも利用できるため、v0.6.0 以降ではカーネル版による分岐を削除して統一
 - https://github.com/tsukumijima/px4_drv/pull/6 をマージし、Linux カーネル 6.8 系以降の API 変更に対応
@@ -205,6 +207,7 @@ BonDriver と同じフォルダに DriverHost_PX4.exe / DriverHost_PX4.ini / it9
 
 ### 2. ドライバのインストール
 
+px4_drv は、Linux 4.15 (Ubuntu 18.04 の初期カーネル) 以降のカーネルでビルドできます。  
 一部の Linux ディストリビューションでは、別途 udev のインストールが必要になる場合があります。
 	
 #### Debian パッケージを使用してインストール (強く推奨)
