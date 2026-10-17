@@ -48,7 +48,7 @@ PR #43 は、`develop` から作った自前のブランチへ、マージコミ
 - PX4 系: Q3 系は `dev_id` が 1 の側だけに登録し、2基連動の電源管理 (`px4_mldev`) に Windows 版の `MultiDevice::SetCardPower()` と同じカードの参照を加えた
 - ISDB2056 系: チューナーを開くたびに電源を入れて閉じるたびに切る作りだったので、チューナーとカードのどちらが電源を使っているかの記録と、それを守るロックを追加した
 - PX-M1UR: `m1ur_device.c` は `isdb2056_device.c` の写しで、違いは ISDB2056N 向けの分岐がないことと、チューナーを開く処理の途中で失敗したときの後始末 (2559c7b で ISDB2056 側だけ直していた) の有無だけだった。写しのままだと片方だけを直す不具合が残るため、Windows 版と同じく ISDB2056 の機種の1つとして統合した
-- PX-S1UR・DTV03A-1TU: `s1ur_device.c` にも同じ後始末の漏れがあったので直したうえで、ISDB2056 と同じ形で対応した
+- PX-S1UR・DTV03A-1TU: `s1ur_device.c` にも同じ後始末の漏れがあったので直したうえで、ISDB2056 と同じ形で対応した。その後、Windows 版と同じく PX-S1UR を `isdb2056_device.c` の1機種に統合し、設計の異なる ISDBT2071 (DTV03A-1TU) を `isdbt2071_device.c` に分けて、`s1ur_device.c` は削除した
 - PXMLT 系: PX-MLT8PE の3チューナー側 (`PXMLT8PE3`) を除くすべてに登録した
 
 ## 取り込みを見送った外部の変更
