@@ -28,9 +28,19 @@
 #include "isdb2056_device.h"
 #include "isdbt2071_device.h"
 
-/* fallthrough が未定義の古いカーネルでも、次の case へ処理を進める */
+/*
+ * fallthrough は Linux 5.4 で追加されたため、それより古いカーネルでは 5.4 と同じ定義を置く
+ * 5.3 は case の落ち込みの警告が有効なので、コンパイラーが対応していれば属性を使う
+ */
+#ifndef fallthrough
+#if defined(__has_attribute)
+#if __has_attribute(__fallthrough__)
+#define fallthrough __attribute__((__fallthrough__))
+#endif
+#endif
 #ifndef fallthrough
 #define fallthrough do {} while (0)
+#endif
 #endif
 
 #ifndef PX4_USB_MAX_DEVICE
