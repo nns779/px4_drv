@@ -43,7 +43,7 @@ RESPONSECODE MapError(int error)
 {
 	switch (error) {
 	case 0: return IFD_SUCCESS;
-	case -ENODEV: case -ENOENT: case -ESHUTDOWN: return IFD_NO_SUCH_DEVICE;
+	case -ENODEV: case -ENOENT: case -ENXIO: case -ESHUTDOWN: return IFD_NO_SUCH_DEVICE;
 	case px4::SMART_CARD_NO_MEDIUM: case -ENOMEDIUM: return IFD_ICC_NOT_PRESENT;
 	case -ETIMEDOUT: return IFD_RESPONSE_TIMEOUT;
 	case -ENOBUFS: return IFD_ERROR_INSUFFICIENT_BUFFER;
@@ -82,7 +82,8 @@ RESPONSECODE WithReader(DWORD lun, Function function)
 int CheckPresence(Reader &reader, bool &present)
 {
 	int ret = reader.device->DetectCard(present);
-	if (ret || !present)
+	/* 通信の失敗と同じく、一時的な USB の失敗ではカードを閉じず、カードの抜去と USB の切断のときだけ閉じる */
+	if (ret ? MapError(ret) == IFD_NO_SUCH_DEVICE : !present)
 		reader.Invalidate();
 	return ret;
 }

@@ -423,11 +423,11 @@ Windows と Linux の両方で、同じ機器を共通の ID で識別できま�
 
 #### root 以外のサービスから使う場合
 
-Debian / Ubuntu の pcscd は、接続してきたプログラムを polkit で確かめ、ログインしていないユーザーからの接続を拒否します。  
-このため、Mirakurun や EDCB を root 以外のユーザーの systemd サービスとして動かすと、カードリーダーを使えません (外付けのカードリーダーでも同じで、pcscd のログに `is NOT authorized for action: access_pcsc` が出ます)。
+Ubuntu 24.04 以降の pcscd は、接続してきたプログラムを polkit で確かめ、ログインしていないユーザーからの接続を拒否します。  
+このため、Mirakurun や EDCB を root 以外のユーザーの systemd サービスとして動かすと、カードリーダーを使えません (外付けのカードリーダーでも同じで、pcscd のログに `is NOT authorized for action: access_pcsc` が出ます)。  
+Ubuntu 22.04 以前と Debian 12 以前の pcscd はこの確認をしないため、次の設定は不要です。
 
-その場合は、次の polkit のルールを `/etc/polkit-1/rules.d/50-pcscd-recorder.rules` に置き、サービスのユーザー (この例では `mirakurun`) に許可します。  
-この形式のルールは、Ubuntu 24.04 以降と Debian 12 以降の polkit で使えます。
+この拒否が出る場合は、次の polkit のルールを `/etc/polkit-1/rules.d/50-pcscd-recorder.rules` に置き、サービスのユーザー (この例では `mirakurun`) に許可します。
 
 ```js
 polkit.addRule(function(action, subject) {

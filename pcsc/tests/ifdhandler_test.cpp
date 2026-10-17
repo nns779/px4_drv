@@ -31,6 +31,7 @@ struct Device {
 	bool powered = false;
 	bool old_module = false;
 	int error = 0;
+	int detect_error = 0;
 	unsigned int resets = 0;
 	unsigned int writes = 0;
 	unsigned int sequence = 0;
@@ -138,6 +139,11 @@ extern "C" int __wrap_ioctl(int fd, unsigned long command, ...)
 		device->powered = false;
 		return 0;
 	case PX4_CARD_DETECT:
+		if (device->detect_error) {
+			const int error = device->detect_error;
+			device->detect_error = 0;
+			return Failure(error);
+		}
 		value = device->present;
 		return 0;
 	}
@@ -228,6 +234,16 @@ static void TestResolver()
 	std::filesystem::remove(root / "class/000042546005001/uevent");
 	assert(px4::ResolveCardDevice("usb:0511/924e:libudev:0:/dev/bus/usb/003/008",
 		path, (root / "class").string()) == -ENODEV);
+	/* PX-Q3 系はシリアル番号の末尾の桁が 1 の側だけにカードスロットがあり、反対側は登録を待たずに失敗させる */
+	std::filesystem::create_directories(root / "usb/3-3");
+	std::ofstream(root / "usb/3-3/busnum") << "3\n";
+	std::ofstream(root / "usb/3-3/devnum") << "9\n";
+	const std::pair<const char *, int> q3_cases[] = {{"000001711009060", -ENXIO}, {"000001711009061", -ENODEV}};
+	for (const auto &[serial, expected] : q3_cases) {
+		std::ofstream(root / "usb/3-3/serial") << serial << "\n";
+		assert(px4::ResolveCardDevice("usb:0511/084a:libudev:0:/dev/bus/usb/003/009",
+			path, (root / "class").string(), "/dev", (root / "usb").string()) == expected);
+	}
 	std::filesystem::remove_all(root);
 }
 
@@ -287,6 +303,11 @@ int main(int argc, char *argv[])
 	length = sizeof(buffer);
 	assert(IFDHTransmitToICC(0, pci, apdu, sizeof(apdu), buffer, &length, &received) == IFD_SUCCESS);
 	assert(length == 2 && devices[0].resets == 2); // 次の APDU の前にカードをリセットして復帰する
+	devices[0].detect_error = ETIMEDOUT;
+	assert(IFDHICCPresence(0) == IFD_RESPONSE_TIMEOUT && devices[0].powered); // 有無の問い合わせの一時的な失敗でもカードを閉じない
+	length = sizeof(buffer);
+	assert(IFDHTransmitToICC(0, pci, apdu, sizeof(apdu), buffer, &length, &received) == IFD_SUCCESS);
+	assert(devices[0].resets == 2);
 	length = sizeof(buffer);
 	assert(IFDHGetCapabilities(0, TAG_IFD_ATR, &length, buffer) == IFD_SUCCESS && length == sizeof(atr));
 	length = sizeof(buffer);

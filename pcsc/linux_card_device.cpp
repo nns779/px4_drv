@@ -140,8 +140,31 @@ static bool ReadNumber(const std::filesystem::path &path, unsigned int &value,
 	return bool(stream >> value);
 }
 
+/*
+ * PX-Q3 系は2つの USB デバイスで1つの筐体を構成し、カードスロットはシリアル番号の末尾の桁が 1 の側にだけある
+ * Windows 版の Px4Device::HasCardReader() と同じ判定で、カードリーダーが現れない側を待たずに済ませる
+ */
+static bool LacksCardSlot(unsigned int vendor, unsigned int product,
+			  unsigned int bus, unsigned int device, const std::string &usbsys)
+{
+	if (vendor != 0x0511 || (product != 0x084a && product != 0x024a && product != 0x074a))
+		return false;
+	std::error_code ec;
+	for (const auto &entry : std::filesystem::directory_iterator(usbsys, ec)) {
+		unsigned int b, d;
+		if (!ReadNumber(entry.path() / "busnum", b) || !ReadNumber(entry.path() / "devnum", d) ||
+		    b != bus || d != device)
+			continue;
+		std::string serial;
+		std::ifstream(entry.path() / "serial") >> serial;
+		return serial.size() == 15 && serial.back() != '1';
+	}
+	return false;
+}
+
 int ResolveCardDevice(const std::string &name, std::string &path,
-		      const std::string &sysfs, const std::string &devdir)
+		      const std::string &sysfs, const std::string &devdir,
+		      const std::string &usbsys)
 {
 	if (!name.empty() && name[0] == '/') {
 		path = name;
@@ -183,7 +206,8 @@ int ResolveCardDevice(const std::string &name, std::string &path,
 			}
 		}
 	}
-	return -ENODEV;
+	/* 登録を待つ ENODEV と区別し、カードリーダーを持たない側は ENXIO ですぐに失敗させる */
+	return LacksCardSlot(vendor, product, bus, device, usbsys) ? -ENXIO : -ENODEV;
 }
 
 } // namespace px4

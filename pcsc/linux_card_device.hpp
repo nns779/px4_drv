@@ -30,6 +30,7 @@ private:
 /* 同じ機種を複数台つないだときに VID と PID だけでは区別できないため、sysfs で USB のバス番号とデバイス番号まで照合する */
 int ResolveCardDevice(const std::string &name, std::string &path,
 		      const std::string &sysfs = "/sys/class/px4card",
-		      const std::string &devdir = "/dev");
+		      const std::string &devdir = "/dev",
+		      const std::string &usbsys = "/sys/bus/usb/devices");
 
 } // namespace px4
