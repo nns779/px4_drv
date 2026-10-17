@@ -141,7 +141,7 @@ static bool ReadNumber(const std::filesystem::path &path, unsigned int &value,
 }
 
 /*
- * PX-Q3 系は2つの USB デバイスで1つの筐体を構成し、カードスロットはシリアル番号の末尾の桁が 1 の側にだけある
+ * PX-Q3 系は2つの USB デバイスで1つの筐体を構成し、カーネルモジュールはシリアル番号の末尾の桁が 1 の側にだけカードリーダーを登録する
  * Windows 版の Px4Device::HasCardReader() と同じ判定で、カードリーダーが現れない側を待たずに済ませる
  */
 static bool LacksCardSlot(unsigned int vendor, unsigned int product,

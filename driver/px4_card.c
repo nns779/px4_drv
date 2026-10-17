@@ -476,6 +476,10 @@ int px4_card_register(struct device *parent,
 
 	*result = NULL;
 
+	/* px4_card_init() に失敗した場合は、カードリーダーを登録せずにチューナーだけを使えるようにする */
+	if (!px4_card_class)
+		return -ENODEV;
+
 	card = kzalloc(sizeof(*card), GFP_KERNEL);
 	if (!card)
 		return -ENOMEM;
@@ -547,8 +551,11 @@ int px4_card_init(void)
 	px4_card_class = class_create(THIS_MODULE, "px4card");
 #endif
 	if (IS_ERR(px4_card_class)) {
+		ret = PTR_ERR(px4_card_class);
+		/* 失敗したときは NULL にして、px4_card_register() と px4_card_exit() に失敗を伝える */
+		px4_card_class = NULL;
 		unregister_chrdev_region(px4_card_devt_base, PX4_CARD_MAX_DEVICES);
-		return PTR_ERR(px4_card_class);
+		return ret;
 	}
 	px4_card_class->devnode = px4_card_devnode;
 	return 0;
@@ -557,6 +564,9 @@ int px4_card_init(void)
 /* すべてのカードリーダーの登録を解除した後に呼ぶ */
 void px4_card_exit(void)
 {
+	if (!px4_card_class)
+		return;
+
 	class_destroy(px4_card_class);
 	unregister_chrdev_region(px4_card_devt_base, PX4_CARD_MAX_DEVICES);
 }
