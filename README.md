@@ -350,34 +350,34 @@ gcc, make, カーネルソース/ヘッダ, dkms がインストールされて�
 
 ### 4. 内蔵 B-CAS カードリーダーの利用
 
-内蔵カードリーダーを持つ機種では、カードリーダーごとに `/dev/px4card/<ID>` が作られます。  
-pcsc-lite (pcscd) 用のドライバー (IFD ハンドラー) を導入すると、PC/SC に対応したアプリケーションから、外付けのカードリーダーと同じように利用できます。  
-**内蔵カードリーダーを使わない場合は、この手順は不要です。**
-
-内蔵カードリーダーを持つ機種は次のとおりです。
+次の機種の内蔵カードリーダーは、pcscd 用のドライバー (`px4-drv-pcsc`) をインストールすると、外付けのカードリーダーと同じように、Mirakurun や EDCB などの PC/SC に対応したアプリケーションから使えます。  
+内蔵カードリーダーを使わない場合は、この手順は不要です。
 
 - PLEX PX-W3U4 / PX-Q3U4 / PX-W3PE4 / PX-Q3PE4 / PX-W3PE5 / PX-Q3PE5
-- PLEX PX-MLT5U / PX-MLT5PE / PX-MLT8PE
-- e-Better DTV02A-5TS-P / DTV02A-4TS-P / DTV02A-1T1S-U / DTV03A-1TU
+- PLEX PX-MLT5PE / PX-MLT8PE
 - PLEX PX-M1UR / PX-S1UR
+- e-Better DTV02A-5TS-P / DTV02A-4TS-P / DTV02A-1T1S-U / DTV03A-1TU
 
-PX-Q3U4 / PX-Q3PE4 / PX-Q3PE5 / PX-MLT8PE は、1つの筐体に USB デバイスが2つ入った構成の機種で、カードリーダーのデバイスファイルは片方にだけ作られます。
+> [!NOTE]
+> Docker で Mirakurun などを動かしている場合は、pcscd をホストとコンテナのどちらで動かすかによって、ドライバーをインストールする場所が変わります。  
+> 先に [Docker で使う場合](#docker-で使う場合) を読んでください。
 
-#### IFD ハンドラーのインストール
+#### pcscd 用ドライバーのインストール
 
-Releases から、CPU アーキテクチャに合った IFD ハンドラーの Debian パッケージ (amd64 か arm64) をダウンロードしてインストールします。  
+Releases から、CPU アーキテクチャに合った Debian パッケージ (amd64 か arm64) をダウンロードし、pcscd と一緒にインストールします。  
 Ubuntu 20.04 以降と、同じ世代以降の Debian 系ディストリビューションで動作します。
 
 	$ wget https://github.com/tsukumijima/px4_drv/releases/download/v0.6.1/px4-drv-pcsc_0.6.1_amd64.deb
 	$ sudo apt install -y ./px4-drv-pcsc_0.6.1_amd64.deb pcscd
-
-インストールや更新の後は、pcscd を再起動すると読み込まれます。  
-カードを使っている最中に再起動すると復号が途切れるため、録画や視聴をしていないときに実行してください。  
-pcscd を新しくインストールした場合は、すでにつながっている機器のデバイスファイルに `pcscd` グループがまだ付いていないので、先に udev の規則を当て直します。
-
 	$ sudo udevadm trigger --subsystem-match=px4card
 	$ sudo udevadm settle
 	$ sudo systemctl restart pcscd
+
+`udevadm` の2行は、接続済みのチューナーのカードリーダーを、新しくインストールした pcscd から開けるようにするためのものです。
+
+> [!NOTE]
+> 更新したときも、インストールの後に pcscd を再起動すると読み込まれます。  
+> カードを使っている最中に再起動すると復号が途切れるため、録画や視聴をしていないときに実行してください。
 
 > [!TIP]
 > ソースからビルドしてインストールすることもできます。C++17 に対応したコンパイラー、make 、pkg-config 、pcsc-lite の開発用ファイル (Debian / Ubuntu では `libpcsclite-dev`) が必要です。  
@@ -388,39 +388,46 @@ pcscd を新しくインストールした場合は、すでにつながって�
 
 #### 認識の確認
 
-`pcsc-tools` の `pcsc_scan` で、カードリーダーとカードを認識しているかを確かめられます。
+B-CAS カードを挿した状態で、`pcsc-tools` の `pcsc_scan` を実行します。
 
 	$ sudo apt install -y pcsc-tools
 	$ pcsc_scan
 
-`PLEX PX-W3U4 Smart Card Reader [ID: CD65353E4231AA77] (000001711009061) 00 00` のように、機種名と ID の付いたカードリーダーが表示されます。  
-`[ID: ...]` は Windows 版のリーダー名の `(ID: ...)` と同じ値で、デバイスファイル名 (この例では `/dev/px4card/CD65353E4231AA77`) にも同じ ID を使います。  
-後ろの括弧の中の USB のシリアル番号と末尾の番号は、pcscd が付けるものです。
+次のように、内蔵カードリーダーの名前の下に `Card inserted` と、末尾に `B-CAS Card` の判定が表示されれば使えます。  
+確かめたら、Ctrl+C で終了します。
 
-PX-MLT5U は未発売の機種ですが、公式の Windows 用ドライバーに定義があるため対応しています。  
-Windows 版の INF がないので、GUID を省いたパスから ID を計算します。  
-同じ ID の機器を複数台つないだ場合は、2台目以降のデバイスファイル名に `-1` などが付きます (リーダー名の `[ID: ...]` には付かず、どちらも同じ値になります)。  
-シリアル番号が使えない機器では、`usb-<USB の接続位置>` がデバイスファイル名になります。
+```
+ Reader 0: PLEX PX-W3U4 Smart Card Reader [ID: CD65353E4231AA77] (000001711009061) 00 00
+  Event number: 0
+  Card state: Card inserted, 
+  ATR: 3B F0 12 00 FF 91 81 B1 7C 45 1F 03 99
+(中略)
+Possibly identified card (using /usr/share/pcsc/smartcard_list.txt):
+3B F0 12 00 FF 91 81 B1 7C 45 1F 03 99
+	Japanese Chijou Digital B-CAS Card (pay TV)
+```
 
-カードリーダーが表示されない場合は、次を確かめてください。
+リーダー名の `[ID: ...]` は、Windows 版のリーダー名の `(ID: ...)` と同じ値です。  
+Windows と Linux の両方で、同じ機器を共通の ID で識別できます。
 
-- `/dev/px4card/` の下にデバイスファイルがあるか (ない場合は、カーネルモジュールがカードリーダーに対応した版かを確かめます)
-- pcscd を動かす環境に IFD ハンドラーをインストールし、その後で pcscd を再起動したか
-- `journalctl -u pcscd` に、デバイスファイルを開けなかったことを示す `open(...) failed` が出ていないか
+#### 認識されない場合
 
-リーダー名に `[ID: ...]` が入っていない場合は、pcscd が px4_drv のモジュールより先に USB を列挙しています (モジュールを手作業で読み込み直したときなど)。  
-pcscd を起動し直すと、ID の入った名前になります。
+- **カードリーダーが表示されない:** `ls /dev/px4card/` で、カードリーダーのデバイスファイルがあるかを確かめます。  
+  ない場合は、インストールした px4_drv が内蔵カードリーダーに対応したバージョンかを確かめます。  
+  ある場合は、[インストール](#pcscd-用ドライバーのインストール) の `udevadm` の2行と pcscd の再起動を、もう一度実行します
+- **`Card state` が `Card inserted` にならない:** B-CAS カードの向き (裏表) と、奥まで挿し込まれているかを確かめます
+- **リーダー名に `[ID: ...]` が入っていない:** カーネルモジュールを読み込み直したときなどに起きます。pcscd を再起動すると解消します
 
-デバイスファイルを開くのは pcscd だけで、権限は `pcscd` グループの `0660` です。  
-pcsc-lite 2.4 以降 (Ubuntu 26.04 など) の pcscd は `pcscd` ユーザーで動くため、このグループで開きます。  
-`pcscd` グループのない古い環境では、デバイスファイルは `root:root` になり、root で動く pcscd が開きます。  
-録画アプリケーションはデバイスファイルを開かずに pcscd へ接続するので、アプリケーションのユーザーをグループへ加える必要はありません。
+それでも表示されない場合は、`journalctl -u pcscd` で pcscd のログを確かめます。  
+デバイスファイルを開けなかったときは、`open(...) failed` と、その理由が出ます。
 
 #### root 以外のサービスから使う場合
 
 Debian / Ubuntu の pcscd は、接続してきたプログラムを polkit で確かめ、ログインしていないユーザーからの接続を拒否します。  
-これは外付けのカードリーダーでも同じで、Mirakurun や EDCB を root 以外のユーザーの systemd サービスとして動かすと、カードリーダーを使えません (pcscd のログに `is NOT authorized for action: access_pcsc` が出ます)。  
-その場合は、次のような polkit の規則を `/etc/polkit-1/rules.d/50-pcscd-recorder.rules` に置き、サービスのユーザー (この例では `mirakurun`) に許可します。
+このため、Mirakurun や EDCB を root 以外のユーザーの systemd サービスとして動かすと、カードリーダーを使えません (外付けのカードリーダーでも同じで、pcscd のログに `is NOT authorized for action: access_pcsc` が出ます)。
+
+その場合は、次の polkit のルールを `/etc/polkit-1/rules.d/50-pcscd-recorder.rules` に置き、サービスのユーザー (この例では `mirakurun`) に許可します。  
+この形式のルールは、Ubuntu 24.04 以降と Debian 12 以降の polkit で使えます。
 
 ```js
 polkit.addRule(function(action, subject) {
@@ -432,15 +439,25 @@ polkit.addRule(function(action, subject) {
 });
 ```
 
+> [!NOTE]
+> 録画アプリケーションはカードリーダーのデバイスファイルを直接開かず、pcscd に接続します。  
+> チューナーの `video` グループとは違い、アプリケーションのユーザーを `pcscd` グループに加える必要はありません。
+
 #### Docker で使う場合
 
-カーネルモジュールはホストへインストールし、pcscd をコンテナとホストのどちらで動かすかで、IFD ハンドラーを入れる場所が変わります。  
-ホストとコンテナの両方で pcscd を動かすと、同じカードリーダーを取り合い、片方が使えなくなるため、どちらか一方にしてください。
+カーネルモジュールはホストにインストールします。  
+pcscd は、ホストとコンテナのどちらか一方だけで動かし、それに合わせて pcscd 用ドライバーをインストールする場所を選びます。
 
-##### コンテナ内で pcscd を動かす (Mirakurun の既定の構成)
+- **コンテナ内で pcscd を動かす (Mirakurun の既定の構成):** コンテナのイメージにドライバーを追加してビルドし直します
+- **ホストの pcscd を使う:** イメージはそのままで済みますが、ホストとコンテナの pcsc-lite のバージョンが大きく違うと接続できないことがあります
 
-Mirakurun の公式イメージは、コンテナ内で pcscd を動かし、`/dev` 全体をコンテナへマウントする構成が既定です。  
-公式イメージには IFD ハンドラーが入っていないので、Debian パッケージを追加したイメージを作ります。
+> [!WARNING]
+> ホストとコンテナの両方で pcscd を動かすと、カードリーダーへのアクセスが競合し、片方が使えなくなります。
+
+##### コンテナ内で pcscd を動かす
+
+Mirakurun の公式イメージには pcscd 用ドライバーが入っていないので、Debian パッケージを追加したイメージを作ります。  
+arm64 の機器 (Raspberry Pi など) では、ファイル名の `amd64` を `arm64` に変えます。
 
 ```dockerfile
 FROM chinachu/mirakurun:latest
@@ -448,22 +465,24 @@ ADD https://github.com/tsukumijima/px4_drv/releases/download/v0.6.1/px4-drv-pcsc
 RUN dpkg -i /tmp/px4-drv-pcsc_0.6.1_amd64.deb && rm /tmp/px4-drv-pcsc_0.6.1_amd64.deb
 ```
 
-arm64 の機器 (Raspberry Pi など) では、ファイル名の `amd64` を `arm64` に変えます。  
-`docker-compose.yml` は Mirakurun の公式のもの (`/dev:/dev` の volume 、`network_mode: host` 、`device_cgroup_rules`) のまま、`image` をこのイメージに変えます。  
-`/dev` 全体をマウントするので、USB を抜き差しして `/dev/px4card` が作り直されても、コンテナからそのまま見えます。  
-ホストの pcscd は止めておきます。
+`docker-compose.yml` は Mirakurun の公式のもの (`/dev:/dev` の volume 、`network_mode: host` 、`device_cgroup_rules`) のまま、`image` だけをこのイメージに変えます。  
+そのうえで、ホストの pcscd を止めます。
 
 	$ sudo systemctl disable --now pcscd.socket pcscd.service
 
+> [!NOTE]
+> すべての機器を取り外すと `/dev/px4card` ごと消えるため、`/dev/px4card` だけをコンテナへマウントすると、抜き差しした後にコンテナから見えなくなります。  
+> 公式の構成のとおり、`/dev` 全体をマウントしてください。
+
 ##### ホストの pcscd を使う
 
-IFD ハンドラーはホストにインストールし、コンテナ内の pcscd は動かさずに、ホストの pcscd のソケットをコンテナへ渡します。  
-Mirakurun では、環境変数 `DISABLE_PCSCD=1` を設定し、ソケットのあるディレクトリを `/var/run/pcscd:/var/run/pcscd` のようにマウントします。  
-Mirakurun の `docker-compose.yml` の例はソケットのファイル (`pcscd.comm`) だけをマウントしていますが、それではホストの pcscd がソケットを作り直したときに、コンテナが古いソケットを指したままになります。  
-カードリーダーの管理はホストの pcscd と udev に任せられるので、コンテナのイメージをビルドし直す必要はありません。
+ホストに pcscd 用ドライバーを [インストール](#pcscd-用ドライバーのインストール) し、コンテナ内の pcscd は動かさずに、ホストの pcscd のソケットディレクトリをコンテナへマウントします。  
+Mirakurun では、環境変数 `DISABLE_PCSCD=1` を設定し、`/var/run/pcscd:/var/run/pcscd` をマウントします。
 
-コンテナ内の PC/SC ライブラリ (libpcsclite) と、ホストの pcscd の間で、通信手順の版が合っている必要があります。  
-ホストとコンテナで pcsc-lite の版が大きく異なると接続できないことがあるため、その場合はコンテナ内で pcscd を動かす構成を使ってください。
+> [!WARNING]
+> Mirakurun の `docker-compose.yml` の例のように、ソケットファイル (`pcscd.comm`) だけをマウントすると、ホストの pcscd が再起動したときにコンテナから接続できなくなります。  
+> ディレクトリごとマウントしてください。  
+> また、ホストとコンテナの pcsc-lite のバージョンが大きく違うと接続できないことがあります。その場合は、コンテナ内で pcscd を動かす構成を使ってください。
 
 ## アンインストール (Windows)
 
