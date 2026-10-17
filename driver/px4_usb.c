@@ -28,6 +28,11 @@
 #include "isdb2056_device.h"
 #include "s1ur_device.h"
 
+/* fallthrough が未定義の古いカーネルでも、次の case へ処理を進める */
+#ifndef fallthrough
+#define fallthrough do {} while (0)
+#endif
+
 #ifndef PX4_USB_MAX_DEVICE
 #define PX4_USB_MAX_DEVICE	16
 #endif
