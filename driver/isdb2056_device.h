@@ -28,6 +28,8 @@ enum isdb2056_model {
 	ISDB2056N_MODEL,
 	/* PX-M1UR は ISDB2056 と同じ構成 (復調器・チューナー・GPIO) で、デバイスファイル名だけが異なる */
 	PXM1UR_MODEL,
+	/* PX-S1UR は衛星チューナーを持たない地デジ専用機種 */
+	PXS1UR_MODEL,
 };
 
 struct isdb2056_chrdev {

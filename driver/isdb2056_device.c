@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * PTX driver for Digibest ISDB2056 and PLEX PX-M1UR device (isdb2056_device.c)
+ * PTX driver for Digibest ISDB2056 and PLEX PX-M1UR / PX-S1UR devices (isdb2056_device.c)
  *
  * Copyright (c) 2018-2021 nns779
+ *               2023 techma.
  */
 
 #include "print_format.h"
@@ -98,12 +99,15 @@ static int isdb2056_backend_init(struct isdb2056_device *isdb2056)
 		return ret;
 	}
 
-	ret = rt710_init(&chrdev2056->rt710);
-	if (ret) {
-		dev_err(isdb2056->dev,
-			"isdb2056_backend_init: rt710_init() failed. (ret: %d)\n",
-			ret);
-		return ret;
+	/* PX-S1UR には衛星チューナーがないため、RT710 の操作を省く */
+	if (isdb2056->isdb2056_model != PXS1UR_MODEL) {
+		ret = rt710_init(&chrdev2056->rt710);
+		if (ret) {
+			dev_err(isdb2056->dev,
+				"isdb2056_backend_init: rt710_init() failed. (ret: %d)\n",
+				ret);
+			return ret;
+		}
 	}
 
 	return 0;
@@ -210,9 +214,16 @@ static int isdb2056_device_stream_handler(void *context, void *buf, u32 len)
 
 static int isdb2056_chrdev_init(struct ptx_chrdev *chrdev)
 {
+	struct isdb2056_chrdev *chrdev2056 = chrdev->priv;
+	struct isdb2056_device *isdb2056 = container_of(chrdev2056,
+							struct isdb2056_device,
+							chrdev2056);
+
 	dev_dbg(chrdev->parent->dev, "isdb2056_chrdev_init\n");
 
-	chrdev->params.system = PTX_UNSPECIFIED_SYSTEM;
+	/* PX-S1UR は地デジ専用の周波数換算処理で CATV C13-C22ch も扱うため、初期の放送方式を ISDB-T にする */
+	chrdev->params.system = (isdb2056->isdb2056_model == PXS1UR_MODEL)
+				? PTX_ISDB_T_SYSTEM : PTX_UNSPECIFIED_SYSTEM;
 	return 0;
 }
 
@@ -787,6 +798,9 @@ static int isdb2056_chrdev_start_capture(struct ptx_chrdev *chrdev)
 		break;
 
 	default:
+		/* PX-S1UR の受信開始は、選局が済んだ状態に限定する */
+		if (isdb2056->isdb2056_model == PXS1UR_MODEL)
+			ret = -EINVAL;
 		break;
 	}
 
@@ -902,6 +916,22 @@ static struct ptx_chrdev_operations isdb2056_chrdev_ops = {
 	.read_cnr_raw = isdb2056_chrdev_read_cnr_raw
 };
 
+/* PX-S1UR は地デジ用の操作関数だけを登録する */
+static struct ptx_chrdev_operations pxs1ur_chrdev_ops = {
+	.init = isdb2056_chrdev_init,
+	.term = isdb2056_chrdev_term,
+	.open = isdb2056_chrdev_open,
+	.release = isdb2056_chrdev_release,
+	.tune = isdb2056_chrdev_tune,
+	.check_lock = isdb2056_chrdev_check_lock,
+	.set_stream_id = NULL,
+	.set_lnb_voltage = NULL,
+	.set_capture = isdb2056_chrdev_set_capture,
+	.read_signal_strength = NULL,
+	.read_cnr = NULL,
+	.read_cnr_raw = isdb2056_chrdev_read_cnr_raw,
+};
+
 static int isdb2056_device_load_config(struct isdb2056_device *isdb2056,
 				       struct ptx_chrdev_config *chrdev_config)
 {
@@ -922,7 +952,8 @@ static int isdb2056_device_load_config(struct isdb2056_device *isdb2056,
 		return ret;
 	}
 
-	chrdev_config->system_cap = PTX_ISDB_T_SYSTEM | PTX_ISDB_S_SYSTEM;
+	chrdev_config->system_cap = (isdb2056->isdb2056_model == PXS1UR_MODEL)
+		? PTX_ISDB_T_SYSTEM : PTX_ISDB_T_SYSTEM | PTX_ISDB_S_SYSTEM;
 
 	input->enable = true;
 	input->is_parallel = false;
@@ -949,6 +980,7 @@ static int isdb2056_device_load_config(struct isdb2056_device *isdb2056,
 	switch (isdb2056->isdb2056_model) {
 	case ISDB2056_MODEL:
 	case PXM1UR_MODEL:
+	case PXS1UR_MODEL:
 		// ISDB2056 TS demodulator: Toshiba TC90532XBG
 		chrdev2056->tc90522_s.i2c_addr = 0x11;
 		chrdev2056->tc90522_s.is_secondary = false;
@@ -1065,7 +1097,8 @@ int isdb2056_device_init(struct isdb2056_device *isdb2056, struct device *dev,
 	if (ret)
 		goto fail_device;
 
-	chrdev_config.ops = &isdb2056_chrdev_ops;
+	chrdev_config.ops = (isdb2056_model == PXS1UR_MODEL)
+		? &pxs1ur_chrdev_ops : &isdb2056_chrdev_ops;
 	chrdev_config.options = PTX_CHRDEV_WAIT_AFTER_LOCK_TC_T;
 	chrdev_config.ringbuf_size = 188 * px4_device_params.tsdev_max_packets;
 	chrdev_config.ringbuf_threshold_size = chrdev_config.ringbuf_size / 10;
