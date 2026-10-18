@@ -1399,7 +1399,7 @@ int px4_device_init(struct px4_device *px4, struct device *dev,
 
 	/*
 	 * 2つの USB デバイスで1つの筐体を構成する機種では、カードスロットは dev_id 1 の側にだけあるとして登録する (Windows 版の HasCardReader() と同じ判定)
-	 * 根拠は PX-Q3U4 でこの側の ACAS と通信できたという外部の報告で、公式ドライバーは両側のカードを初期化していて判定の手がかりにならず、PX-Q3PE4 と PX-Q3PE5 は未確認
+	 * 実機で確かめられているのは PX-Q3U4 だけ
 	 */
 	if (!multi_device || px4->serial.dev_id == 1) {
 		struct px4_card_backend card_backend = {

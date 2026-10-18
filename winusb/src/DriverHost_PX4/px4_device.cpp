@@ -359,7 +359,7 @@ bool Px4Device::HasCardReader() const noexcept
 {
 	/*
 	 * Q3 系は4チューナーずつ2デバイスで構成され、カードスロットは主デバイス側の1個だけとして扱う
-	 * 根拠は PX-Q3U4 でこの側の ACAS と通信できたという外部の報告で、公式ドライバーは両側のカードを初期化していて判定の手がかりにならず、PX-Q3PE4 と PX-Q3PE5 は未確認
+	 * 実機で確かめられているのは PX-Q3U4 だけ
 	 */
 	switch (usb_dev_.descriptor.idProduct) {
 	case 0x084a:
